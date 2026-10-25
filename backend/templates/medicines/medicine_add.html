@@ -1,0 +1,809 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Add New Medicine — Sanalogx{% endblock %}
+{% block admin_breadcrumb %}Add New Medicine{% endblock %}
+{% block pharmacist_breadcrumb %}Add New Medicine{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 px-md-4 py-4">
+    <div class="row justify-content-center">
+        <div class="col-12 col-xl-10">
+
+            <!-- ── 5. Professional Page Header ───────────────────────────────────── -->
+            <div class="mb-3">
+                <a href="{% url 'medicine_list' %}" class="btn btn-link text-decoration-none text-muted p-0 small fw-semibold d-inline-flex align-items-center gap-1 mb-2 hover-teal">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>Back to Medicine Master</span>
+                </a>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <span class="d-inline-flex align-items-center justify-content-center rounded-3 bg-teal-soft text-teal" style="width: 36px; height: 36px; font-size: 1.15rem;">
+                        <i class="fas fa-plus-circle"></i>
+                    </span>
+                    <h2 class="fw-bold text-navy mb-0 fs-3">Add New Medicine</h2>
+                </div>
+                <p class="text-muted small mb-0">Create a medicine profile with standardized classification, identification, and pharmacy storage details.</p>
+            </div>
+
+            <!-- Validation Errors Alert -->
+            {% if form.errors %}
+                <div class="alert alert-danger border-danger border-opacity-25 shadow-sm p-3 rounded-3 small mb-3 alert-dismissible fade show" role="alert">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fas fa-circle-exclamation text-danger fs-5"></i>
+                        <div>
+                            <strong class="d-block text-danger">Form submission failed</strong>
+                            <span>Please correct the highlighted fields and resubmit.</span>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endif %}
+
+            <!-- Duplicate Warning Alert Box (Triggered dynamically by AJAX) -->
+            <div class="alert alert-warning border border-warning border-opacity-50 shadow-sm p-3.5 rounded-3 mb-3 d-none" id="duplicateWarningBox" role="alert">
+                <div class="d-flex gap-3 align-items-start">
+                    <div class="rounded-circle bg-warning bg-opacity-20 text-warning d-flex align-items-center justify-content-center flex-shrink-0" style="width: 40px; height: 40px; font-size: 1.25rem;">
+                        <i class="fas fa-triangle-exclamation"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-bold text-navy mb-1" id="duplicateTitle">Similar medicine already registered</h6>
+                        <p class="text-secondary small mb-2" id="duplicateText">A medicine matching this generic name, strength, and dosage form already exists in the catalog under ID: <strong id="dupMedicineId"></strong>.</p>
+                        <a href="#" id="viewDuplicateBtn" target="_blank" class="btn btn-sm btn-outline-warning text-dark py-1 px-2.5 small fw-semibold">
+                            <i class="fas fa-arrow-up-right-from-square me-1"></i> View Existing Profile
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── 6. Multi-Step Form Stepper & Container ────────────────────────── -->
+            <div class="card bg-white border shadow-sm overflow-hidden" style="border-radius: 14px; border-color: #E2E8F0;">
+                
+                <!-- Modern Stepper Indicator -->
+                <div class="med-stepper-header border-bottom bg-light">
+                    <nav class="med-stepper-nav" aria-label="Medicine Registration Steps">
+                        <button type="button" class="med-step-btn active" id="step-btn-1" data-step="1">
+                            <span class="med-step-circle">1</span>
+                            <span class="med-step-label">Basic Info</span>
+                        </button>
+                        <div class="med-step-line"></div>
+
+                        <button type="button" class="med-step-btn" id="step-btn-2" data-step="2">
+                            <span class="med-step-circle">2</span>
+                            <span class="med-step-label">Classification</span>
+                        </button>
+                        <div class="med-step-line"></div>
+
+                        <button type="button" class="med-step-btn" id="step-btn-3" data-step="3">
+                            <span class="med-step-circle">3</span>
+                            <span class="med-step-label">Identification</span>
+                        </button>
+                        <div class="med-step-line"></div>
+
+                        <button type="button" class="med-step-btn" id="step-btn-4" data-step="4">
+                            <span class="med-step-circle">4</span>
+                            <span class="med-step-label">Pharmacy & Storage</span>
+                        </button>
+                        <div class="med-step-line"></div>
+
+                        <button type="button" class="med-step-btn" id="step-btn-5" data-step="5">
+                            <span class="med-step-circle">5</span>
+                            <span class="med-step-label">Description</span>
+                        </button>
+                    </nav>
+                </div>
+
+                <!-- ── 7. Form Body ──────────────────────────────────────────────── -->
+                <form method="POST" action="{% url 'medicine_add' %}" enctype="multipart/form-data" id="medicineAddForm" class="p-3.5 p-md-4 p-lg-5">
+                    {% csrf_token %}
+
+                    <!-- Step Validation Error Notice -->
+                    <div id="stepErrorAlert" class="alert alert-warning border border-warning border-opacity-50 small py-2 px-3 mb-4 rounded-3 d-none">
+                        <i class="fas fa-triangle-exclamation me-1 text-warning"></i>
+                        <span id="stepErrorText">Please fill in all required fields highlighted below before proceeding.</span>
+                    </div>
+
+                    <!-- ── STEP 1: BASIC INFO ──────────────────────────────────────── -->
+                    <div class="med-form-step active" id="step-pane-1">
+                        <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                            <i class="fas fa-info-circle text-teal fs-5"></i>
+                            <div>
+                                <h5 class="fw-bold text-navy mb-0">1. Basic Medicine Information</h5>
+                                <span class="text-muted extra-small">Standard clinical and commercial medicine nomenclature.</span>
+                            </div>
+                        </div>
+
+                        <div class="row g-3">
+                            <!-- Medicine Name -->
+                            <div class="col-12">
+                                <label class="form-label text-navy fw-semibold small" for="id_medicine_name">
+                                    Medicine Name <span class="text-danger">*</span>
+                                </label>
+                                {{ form.medicine_name }}
+                                <div class="form-text extra-small text-muted">Complete trade or standard name (e.g. Paracetamol 500mg Film-Coated Tablet).</div>
+                                {% if form.medicine_name.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.medicine_name.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Generic Name (INN) -->
+                            <div class="col-md-6">
+                                <label class="form-label text-navy fw-semibold small" for="id_generic_name">
+                                    Generic Name (INN) <span class="text-danger">*</span>
+                                </label>
+                                {{ form.generic_name }}
+                                <div class="form-text extra-small text-muted">International Nonproprietary Name (e.g. Paracetamol, Amoxicillin).</div>
+                                {% if form.generic_name.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.generic_name.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Brand Name -->
+                            <div class="col-md-6">
+                                <label class="form-label text-navy fw-semibold small" for="id_brand_name">
+                                    Brand / Trade Name <span class="text-muted fw-normal">(Optional)</span>
+                                </label>
+                                {{ form.brand_name }}
+                                <div class="form-text extra-small text-muted">Proprietary brand name if applicable (e.g. Panadol, Crocin, Augmentin).</div>
+                                {% if form.brand_name.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.brand_name.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Manufacturer -->
+                            <div class="col-12">
+                                <label class="form-label text-navy fw-semibold small" for="id_manufacturer">
+                                    Manufacturer / Pharmaceutical Lab
+                                </label>
+                                {{ form.manufacturer }}
+                                <div class="form-text extra-small text-muted">Manufacturing entity or laboratory (e.g. GlaxoSmithKline, Sun Pharma).</div>
+                                {% if form.manufacturer.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.manufacturer.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-end mt-4 pt-3 border-top">
+                            <button type="button" class="btn btn-teal px-4 py-2 text-white fw-semibold next-step-btn" data-target="2">
+                                Continue <i class="fas fa-arrow-right ms-1"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- ── STEP 2: CLASSIFICATION ──────────────────────────────────── -->
+                    <div class="med-form-step d-none" id="step-pane-2">
+                        <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                            <i class="fas fa-tags text-teal fs-5"></i>
+                            <div>
+                                <h5 class="fw-bold text-navy mb-0">2. Drug Classification & Units</h5>
+                                <span class="text-muted extra-small">Therapeutic category, dosage format, and dispensation packaging unit.</span>
+                            </div>
+                        </div>
+
+                        <div class="row g-3">
+                            <!-- Category -->
+                            <div class="col-md-6">
+                                <label class="form-label text-navy fw-semibold small" for="id_category">
+                                    Therapeutic Category <span class="text-danger">*</span>
+                                </label>
+                                {{ form.category }}
+                                <div class="form-text extra-small text-muted">Primary clinical classification for inventory categorization.</div>
+                                {% if form.category.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.category.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Dosage Form -->
+                            <div class="col-md-6">
+                                <label class="form-label text-navy fw-semibold small" for="id_dosage_form">
+                                    Dosage Form <span class="text-danger">*</span>
+                                </label>
+                                {{ form.dosage_form }}
+                                <div class="form-text extra-small text-muted">Form of pharmaceutical delivery (e.g. Tablet, Capsule, Syrup, Injection).</div>
+                                {% if form.dosage_form.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.dosage_form.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Strength -->
+                            <div class="col-md-6">
+                                <label class="form-label text-navy fw-semibold small" for="id_strength">
+                                    Strength & Potency <span class="text-danger">*</span>
+                                </label>
+                                {{ form.strength }}
+                                <div class="form-text extra-small text-muted">Concentration or active unit (e.g. 500 mg, 250 mg/5 mL, 10 IU).</div>
+                                {% if form.strength.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.strength.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Unit of Measure -->
+                            <div class="col-md-6">
+                                <label class="form-label text-navy fw-semibold small" for="id_unit_of_measure">
+                                    Unit of Measure (UOM) <span class="text-danger">*</span>
+                                </label>
+                                {{ form.unit_of_measure }}
+                                <div class="form-text extra-small text-muted">Standard inventory counting unit (e.g. Strip, Box, Bottle, Vial).</div>
+                                {% if form.unit_of_measure.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.unit_of_measure.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4 pt-3 border-top">
+                            <button type="button" class="btn btn-outline-secondary px-3.5 py-2 fw-semibold prev-step-btn" data-target="1">
+                                <i class="fas fa-arrow-left me-1"></i> Previous
+                            </button>
+                            <button type="button" class="btn btn-teal px-4 py-2 text-white fw-semibold next-step-btn" data-target="3">
+                                Continue <i class="fas fa-arrow-right ms-1"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- ── STEP 3: IDENTIFICATION ──────────────────────────────────── -->
+                    <div class="med-form-step d-none" id="step-pane-3">
+                        <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                            <i class="fas fa-barcode text-teal fs-5"></i>
+                            <div>
+                                <h5 class="fw-bold text-navy mb-0">3. Identification & Packaging Visual</h5>
+                                <span class="text-muted extra-small">Barcode GTIN scanning, QR tracking, and product photography.</span>
+                            </div>
+                        </div>
+
+                        <div class="row g-4">
+                            <!-- Image Upload & Preview -->
+                            <div class="col-md-5">
+                                <label class="form-label text-navy fw-semibold small">Packaging Image</label>
+                                <div class="p-3 bg-light rounded-3 text-center border d-flex flex-column align-items-center justify-content-center" style="min-height: 200px; border-style: dashed !important; border-color: #CBD5E1 !important;">
+                                    <div id="imagePreviewContainer" class="d-none mb-2">
+                                        <img id="imagePreview" src="" alt="Selected Preview" class="img-fluid rounded border shadow-sm" style="max-height: 140px; object-fit: contain;">
+                                    </div>
+                                    <div id="imagePlaceholder">
+                                        <i class="fas fa-image fs-1 text-muted opacity-50 mb-2"></i>
+                                        <p class="text-muted extra-small mb-0">No image uploaded</p>
+                                    </div>
+                                    <div class="mt-3 w-100">
+                                        {{ form.image }}
+                                    </div>
+                                </div>
+                                <div class="form-text extra-small text-muted text-center mt-1">Accepts JPG, PNG, WEBP (Max 5MB).</div>
+                                {% if form.image.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.image.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Barcode & QR Code Fields -->
+                            <div class="col-md-7 d-flex flex-column justify-content-center">
+                                <div class="mb-3">
+                                    <label class="form-label text-navy fw-semibold small" for="id_barcode">
+                                        Barcode / GTIN Number <span class="text-muted fw-normal">(Optional)</span>
+                                    </label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light text-muted border-end-0"><i class="fas fa-barcode"></i></span>
+                                        {{ form.barcode }}
+                                    </div>
+                                    <div class="form-text extra-small text-muted">Scan manufacturer 1D barcode (EAN-13, UPC) for POS and receiving lookup.</div>
+                                    {% if form.barcode.errors %}
+                                        <div class="invalid-feedback d-block">{{ form.barcode.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <div>
+                                    <label class="form-label text-navy fw-semibold small" for="id_qr_code">
+                                        Custom QR Code Identifier <span class="text-muted fw-normal">(Optional)</span>
+                                    </label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light text-muted border-end-0"><i class="fas fa-qrcode"></i></span>
+                                        {{ form.qr_code }}
+                                    </div>
+                                    <div class="form-text extra-small text-muted">Internal hospital stock QR identifier or 2D data-matrix tag.</div>
+                                    {% if form.qr_code.errors %}
+                                        <div class="invalid-feedback d-block">{{ form.qr_code.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4 pt-3 border-top">
+                            <button type="button" class="btn btn-outline-secondary px-3.5 py-2 fw-semibold prev-step-btn" data-target="2">
+                                <i class="fas fa-arrow-left me-1"></i> Previous
+                            </button>
+                            <button type="button" class="btn btn-teal px-4 py-2 text-white fw-semibold next-step-btn" data-target="4">
+                                Continue <i class="fas fa-arrow-right ms-1"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- ── STEP 4: PHARMACY & STORAGE ──────────────────────────────── -->
+                    <div class="med-form-step d-none" id="step-pane-4">
+                        <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                            <i class="fas fa-prescription-bottle-medical text-teal fs-5"></i>
+                            <div>
+                                <h5 class="fw-bold text-navy mb-0">4. Pharmacy, Regulatory & Reorder Settings</h5>
+                                <span class="text-muted extra-small">Drug schedule restrictions, prescription controls, and automated reorder points.</span>
+                            </div>
+                        </div>
+
+                        <div class="row g-3">
+                            <!-- Regulatory Schedule Category -->
+                            <div class="col-12">
+                                <label class="form-label text-navy fw-semibold small" for="id_regulatory_category">
+                                    Regulatory Classification & Schedule Category <span class="text-danger">*</span>
+                                </label>
+                                {{ form.regulatory_category }}
+                                <div class="form-text extra-small text-muted mt-1">
+                                    Controls prescription validation and restricted audit registry workflows.
+                                </div>
+                                {% if form.regulatory_category.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.regulatory_category.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Reorder Alert Level -->
+                            <div class="col-md-6">
+                                <label class="form-label text-navy fw-semibold small" for="id_reorder_level">
+                                    Reorder Alert Level <span class="text-danger">*</span>
+                                </label>
+                                {{ form.reorder_level }}
+                                <div class="form-text extra-small text-muted">Stock threshold that triggers automated AI reorder alerts.</div>
+                                {% if form.reorder_level.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.reorder_level.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Safety Stock Buffer -->
+                            <div class="col-md-6">
+                                <label class="form-label text-navy fw-semibold small" for="id_safety_stock">
+                                    Safety Stock Buffer <span class="text-danger">*</span>
+                                </label>
+                                {{ form.safety_stock }}
+                                <div class="form-text extra-small text-muted">Minimum buffer reserve maintained to absorb demand surges.</div>
+                                {% if form.safety_stock.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.safety_stock.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4 pt-3 border-top">
+                            <button type="button" class="btn btn-outline-secondary px-3.5 py-2 fw-semibold prev-step-btn" data-target="3">
+                                <i class="fas fa-arrow-left me-1"></i> Previous
+                            </button>
+                            <button type="button" class="btn btn-teal px-4 py-2 text-white fw-semibold next-step-btn" data-target="5">
+                                Continue <i class="fas fa-arrow-right ms-1"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- ── STEP 5: DESCRIPTION & REVIEW ────────────────────────────── -->
+                    <div class="med-form-step d-none" id="step-pane-5">
+                        <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                            <i class="fas fa-file-waveform text-teal fs-5"></i>
+                            <div>
+                                <h5 class="fw-bold text-navy mb-0">5. Capacity Limits, Clinical Notes & Submission</h5>
+                                <span class="text-muted extra-small">Warehouse storage thresholds, clinical directions, and final registry validation.</span>
+                            </div>
+                        </div>
+
+                        <!-- Live Summary Review Banner -->
+                        <div class="p-3 bg-light rounded-3 border mb-3">
+                            <h6 class="fw-bold text-navy small mb-2"><i class="fas fa-clipboard-check text-teal me-1"></i> Profile Summary Preview</h6>
+                            <div class="row g-2 text-navy" style="font-size: 0.82rem;">
+                                <div class="col-sm-6 col-md-4">
+                                    <span class="text-muted d-block extra-small">Medicine:</span>
+                                    <strong id="rev_name">—</strong>
+                                </div>
+                                <div class="col-sm-6 col-md-4">
+                                    <span class="text-muted d-block extra-small">Generic:</span>
+                                    <span id="rev_generic">—</span>
+                                </div>
+                                <div class="col-sm-6 col-md-4">
+                                    <span class="text-muted d-block extra-small">Form & Strength:</span>
+                                    <span id="rev_dosage">—</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row g-3">
+                            <!-- Minimum Stock -->
+                            <div class="col-md-4">
+                                <label class="form-label text-navy fw-semibold small" for="id_minimum_stock">
+                                    Emergency Minimum Stock <span class="text-danger">*</span>
+                                </label>
+                                {{ form.minimum_stock }}
+                                <div class="form-text extra-small text-muted">Absolute floor before critical stockout escalation.</div>
+                                {% if form.minimum_stock.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.minimum_stock.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Maximum Stock -->
+                            <div class="col-md-4">
+                                <label class="form-label text-navy fw-semibold small" for="id_maximum_stock">
+                                    Maximum Capacity Ceiling <span class="text-danger">*</span>
+                                </label>
+                                {{ form.maximum_stock }}
+                                <div class="form-text extra-small text-muted">Storage limit to prevent overstocking and expiry loss.</div>
+                                {% if form.maximum_stock.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.maximum_stock.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Initial Status -->
+                            <div class="col-md-4">
+                                <label class="form-label text-navy fw-semibold small" for="id_status">
+                                    Initial Status <span class="text-danger">*</span>
+                                </label>
+                                {{ form.status }}
+                                <div class="form-text extra-small text-muted">Active for operational validation or Inactive draft.</div>
+                                {% if form.status.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.status.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Description / Clinical Notes -->
+                            <div class="col-12">
+                                <label class="form-label text-navy fw-semibold small" for="id_description">
+                                    Clinical Description & Therapeutic Notes <span class="text-muted fw-normal">(Optional)</span>
+                                </label>
+                                {{ form.description }}
+                                <div class="form-text extra-small text-muted">Special warnings, therapeutic indications, or handling instructions.</div>
+                                {% if form.description.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.description.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Submission Controls -->
+                        <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+                            <button type="button" class="btn btn-outline-secondary px-3.5 py-2 fw-semibold prev-step-btn" data-target="4">
+                                <i class="fas fa-arrow-left me-1"></i> Previous
+                            </button>
+                            <button type="submit" class="btn btn-teal px-4.5 py-2 text-white fw-bold shadow-sm d-inline-flex align-items-center gap-2" id="submitMedicineBtn">
+                                <i class="fas fa-save"></i>
+                                <span>Save & Submit Medicine</span>
+                            </button>
+                        </div>
+                    </div>
+
+                </form>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<style>
+/* ── Multi-Step Form Stepper Styles ──────────────────────────────────────── */
+.med-stepper-header {
+    padding: 1.25rem 1.5rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+.med-stepper-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-width: 580px;
+}
+.med-step-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: transparent;
+    border: none;
+    padding: 0.4rem 0.6rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+}
+.med-step-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    font-weight: 700;
+    background-color: #E2E8F0;
+    color: #64748B;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+.med-step-label {
+    font-size: 0.84rem;
+    font-weight: 600;
+    color: #64748B;
+    white-space: nowrap;
+}
+.med-step-line {
+    flex: 1;
+    height: 2px;
+    background-color: #E2E8F0;
+    margin: 0 0.5rem;
+    min-width: 16px;
+    transition: background-color 0.2s ease;
+}
+
+/* Active Step */
+.med-step-btn.active .med-step-circle {
+    background-color: var(--color-teal, #00A896);
+    color: #FFFFFF;
+    box-shadow: 0 0 0 4px rgba(0, 168, 150, 0.2);
+}
+.med-step-btn.active .med-step-label {
+    color: #0F2744;
+    font-weight: 700;
+}
+
+/* Completed Step */
+.med-step-btn.completed .med-step-circle {
+    background-color: #10B981;
+    color: #FFFFFF;
+}
+.med-step-btn.completed .med-step-label {
+    color: #10B981;
+}
+.med-step-line.completed {
+    background-color: #10B981;
+}
+
+/* Focus styles for accessibility */
+.med-step-btn:focus-visible {
+    outline: 2px solid var(--color-teal, #00A896);
+    outline-offset: 2px;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    'use strict';
+
+    var currentStep = 1;
+    var totalSteps = 5;
+
+    // Elements
+    var stepButtons = document.querySelectorAll('.med-step-btn');
+    var stepPanes = document.querySelectorAll('.med-form-step');
+    var stepLines = document.querySelectorAll('.med-step-line');
+    var errorAlert = document.getElementById('stepErrorAlert');
+    var form = document.getElementById('medicineAddForm');
+    var submitBtn = document.getElementById('submitMedicineBtn');
+
+    // Live review text sync
+    function updateReviewSummary() {
+        var nameInput = document.getElementById('id_medicine_name');
+        var genInput = document.getElementById('id_generic_name');
+        var formInput = document.getElementById('id_dosage_form');
+        var strInput = document.getElementById('id_strength');
+
+        var revName = document.getElementById('rev_name');
+        var revGen = document.getElementById('rev_generic');
+        var revDos = document.getElementById('rev_dosage');
+
+        if (revName && nameInput) revName.innerText = nameInput.value.trim() || '—';
+        if (revGen && genInput) revGen.innerText = genInput.value.trim() || '—';
+        if (revDos && formInput && strInput) {
+            var f = formInput.value.trim();
+            var s = strInput.value.trim();
+            revDos.innerText = (f || s) ? (f + ' (' + s + ')') : '—';
+        }
+    }
+
+    // Step Validation
+    function validateStep(stepNum) {
+        var pane = document.getElementById('step-pane-' + stepNum);
+        if (!pane) return true;
+
+        var requiredInputs = pane.querySelectorAll('input[required], select[required], textarea[required]');
+        var isValid = true;
+        var firstInvalid = null;
+
+        requiredInputs.forEach(function(input) {
+            var val = input.value.trim();
+            if (!val) {
+                isValid = false;
+                input.classList.add('is-invalid');
+                if (!firstInvalid) firstInvalid = input;
+            } else {
+                input.classList.remove('is-invalid');
+            }
+        });
+
+        if (!isValid) {
+            if (errorAlert) {
+                errorAlert.classList.remove('d-none');
+            }
+            if (firstInvalid) {
+                firstInvalid.focus();
+            }
+            return false;
+        }
+
+        if (errorAlert) {
+            errorAlert.classList.add('d-none');
+        }
+        return true;
+    }
+
+    // Switch step
+    function goToStep(step) {
+        if (step < 1 || step > totalSteps) return;
+
+        // Hide all panes
+        stepPanes.forEach(function(pane) {
+            pane.classList.add('d-none');
+        });
+
+        // Show target pane
+        var targetPane = document.getElementById('step-pane-' + step);
+        if (targetPane) {
+            targetPane.classList.remove('d-none');
+        }
+
+        // Update Stepper indicators
+        stepButtons.forEach(function(btn, idx) {
+            var bStep = idx + 1;
+            btn.classList.remove('active');
+            if (bStep === step) {
+                btn.classList.add('active');
+            } else if (bStep < step) {
+                btn.classList.add('completed');
+                var circle = btn.querySelector('.med-step-circle');
+                if (circle) circle.innerHTML = '<i class="fas fa-check"></i>';
+            } else {
+                btn.classList.remove('completed');
+                var circle = btn.querySelector('.med-step-circle');
+                if (circle) circle.innerText = bStep;
+            }
+        });
+
+        // Update connector lines
+        stepLines.forEach(function(line, idx) {
+            if (idx + 1 < step) {
+                line.classList.add('completed');
+            } else {
+                line.classList.remove('completed');
+            }
+        });
+
+        currentStep = step;
+        if (currentStep === 5) {
+            updateReviewSummary();
+        }
+
+        // Smooth scroll to form container
+        var formCard = form.closest('.card');
+        if (formCard) {
+            formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+
+    // Next button clicks
+    document.querySelectorAll('.next-step-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var target = parseInt(btn.getAttribute('data-target'), 10);
+            if (validateStep(currentStep)) {
+                goToStep(target);
+            }
+        });
+    });
+
+    // Previous button clicks
+    document.querySelectorAll('.prev-step-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var target = parseInt(btn.getAttribute('data-target'), 10);
+            if (errorAlert) errorAlert.classList.add('d-none');
+            goToStep(target);
+        });
+    });
+
+    // Direct stepper button clicks (only allow backwards or validated forwards)
+    stepButtons.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var target = parseInt(btn.getAttribute('data-step'), 10);
+            if (target < currentStep) {
+                goToStep(target);
+            } else if (target > currentStep) {
+                if (validateStep(currentStep)) {
+                    goToStep(target);
+                }
+            }
+        });
+    });
+
+    // Clear invalid class on user typing
+    form.querySelectorAll('input, select, textarea').forEach(function(field) {
+        field.addEventListener('input', function() {
+            if (field.value.trim()) {
+                field.classList.remove('is-invalid');
+            }
+        });
+    });
+
+    // Image preview
+    var imgInput = document.getElementById('id_image');
+    if (imgInput) {
+        imgInput.addEventListener('change', function() {
+            var file = imgInput.files[0];
+            var preview = document.getElementById('imagePreview');
+            var container = document.getElementById('imagePreviewContainer');
+            var placeholder = document.getElementById('imagePlaceholder');
+
+            if (file) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    if (preview && container && placeholder) {
+                        preview.src = e.target.result;
+                        container.classList.remove('d-none');
+                        placeholder.classList.add('d-none');
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+
+    // Prevent duplicate form submissions
+    if (form && submitBtn) {
+        form.addEventListener('submit', function(e) {
+            if (!validateStep(5)) {
+                e.preventDefault();
+                return;
+            }
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Saving Medicine...';
+        });
+    }
+
+    // AJAX Duplicate Check
+    var genericInput = document.getElementById('id_generic_name');
+    var strengthInput = document.getElementById('id_strength');
+    var dosageInput = document.getElementById('id_dosage_form');
+    var brandInput = document.getElementById('id_brand_name');
+    var mfgInput = document.getElementById('id_manufacturer');
+
+    function checkForDuplicates() {
+        if (!genericInput || !strengthInput || !dosageInput) return;
+        var generic = genericInput.value.trim();
+        var strength = strengthInput.value.trim();
+        var dosage = dosageInput.value.trim();
+        var brand = brandInput ? brandInput.value.trim() : '';
+        var mfg = mfgInput ? mfgInput.value.trim() : '';
+
+        if (!generic || !strength || !dosage) return;
+
+        var url = '{% url "medicine_duplicate_check" %}?generic_name=' + encodeURIComponent(generic) +
+                  '&strength=' + encodeURIComponent(strength) +
+                  '&dosage_form=' + encodeURIComponent(dosage) +
+                  '&brand_name=' + encodeURIComponent(brand) +
+                  '&manufacturer=' + encodeURIComponent(mfg);
+
+        fetch(url)
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+                var warningBox = document.getElementById('duplicateWarningBox');
+                if (warningBox) {
+                    if (data && data.exists) {
+                        var idEl = document.getElementById('dupMedicineId');
+                        var btnEl = document.getElementById('viewDuplicateBtn');
+                        if (idEl) idEl.innerText = data.medicine_id || 'ID #' + data.id;
+                        if (btnEl) btnEl.href = data.detail_url || '#';
+                        warningBox.classList.remove('d-none');
+                    } else {
+                        warningBox.classList.add('d-none');
+                    }
+                }
+            })
+            .catch(function() {});
+    }
+
+    if (genericInput) genericInput.addEventListener('blur', checkForDuplicates);
+    if (strengthInput) strengthInput.addEventListener('blur', checkForDuplicates);
+    if (dosageInput) dosageInput.addEventListener('blur', checkForDuplicates);
+
+})();
+</script>
+{% endblock %}

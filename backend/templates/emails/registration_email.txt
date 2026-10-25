@@ -1,0 +1,24 @@
+Sanalogx | Pharmacist Registration Received
+=============================================
+
+Dear {{ user.full_name|default:user.username }},
+
+Thank you for submitting your application to access the Sanalogx Hospital Pharmacy Management Platform. Your registration details have been received and are currently under formal administrative review.
+
+Application Details:
+- Registration ID: {{ user.registration_id|default:"Pending Assignment" }}
+- Professional Username: {{ user.username }}
+- Registered Email: {{ user.email }}
+- Current Status: Under Administrator Review
+
+What Happens Next:
+1. Hospital pharmacy administration verifies your licensure, qualifications, and credentials.
+2. Upon approval, you will receive an official approval notification with secure workspace onboarding instructions.
+3. Account privileges become active immediately following verification.
+
+Security Notice:
+Sanalogx will never request your login credentials via email or phone. If you did not initiate this request, notify hospital administration immediately.
+
+---
+Sanalogx Pharmacy Operations & Intelligence System
+Automated Notification — Please do not reply directly.

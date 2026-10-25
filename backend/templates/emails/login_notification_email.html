@@ -1,0 +1,56 @@
+{% extends 'emails/base_email.html' %}
+
+{% block email_title %}Sanalogx | Successful Sign-In Notification{% endblock %}
+
+{% block email_content %}
+<div style="margin-bottom: 20px;">
+  <span style="display: inline-block; padding: 4px 10px; background-color: #DEF7EC; color: #03543F; border-radius: 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">
+    Security Alert
+  </span>
+  <h2 style="margin: 10px 0 6px 0; color: #0F2744; font-size: 20px; font-weight: 700;">
+    Successful Sign-In to Your Workspace
+  </h2>
+  <p style="margin: 0; font-size: 14px; color: #64748B;">
+    We detected a new sign-in to your authorized Sanalogx account.
+  </p>
+</div>
+
+<p style="margin: 0 0 16px 0; font-size: 14px; color: #475569; line-height: 1.6;">
+  Hello <strong>{{ user.full_name|default:user.username }}</strong>,
+</p>
+<p style="margin: 0 0 20px 0; font-size: 14px; color: #475569; line-height: 1.6;">
+  This notification confirms that your Sanalogx account was successfully accessed. Please review the activity details below:
+</p>
+
+<!-- Session Details Table -->
+<table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; margin-bottom: 24px;">
+  <tr>
+    <td style="padding: 18px 20px;">
+      <table border="0" cellpadding="0" cellspacing="0" width="100%">
+        <tr>
+          <td style="padding-bottom: 8px; font-size: 12px; font-weight: 600; color: #64748B; text-transform: uppercase; width: 35%;">Username:</td>
+          <td style="padding-bottom: 8px; font-size: 13px; font-weight: 700; color: #0F2744;">{{ user.username }}</td>
+        </tr>
+        <tr>
+          <td style="padding-bottom: 8px; font-size: 12px; font-weight: 600; color: #64748B; text-transform: uppercase;">Timestamp:</td>
+          <td style="padding-bottom: 8px; font-size: 13px; color: #334155;">{{ login_time }}</td>
+        </tr>
+        <tr>
+          <td style="padding-bottom: 8px; font-size: 12px; font-weight: 600; color: #64748B; text-transform: uppercase;">IP Address:</td>
+          <td style="padding-bottom: 8px; font-size: 13px; font-family: monospace; color: #0F2744;">{{ ip_address|default:"Authorized Network" }}</td>
+        </tr>
+        <tr>
+          <td style="font-size: 12px; font-weight: 600; color: #64748B; text-transform: uppercase;">Access Client:</td>
+          <td style="font-size: 12px; color: #64748B;">{{ user_agent|default:"Standard Healthcare Browser"|truncatechars:60 }}</td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+<div style="background-color: #FFFBEB; border: 1px solid #FCD34D; border-radius: 6px; padding: 14px 16px; margin-bottom: 20px;">
+  <p style="margin: 0; font-size: 13px; color: #92400E; line-height: 1.5;">
+    <strong>Was this you?</strong> If you initiated this session, you can safely ignore this email. If you did not sign in, someone else may have accessed your account. Please change your password immediately and inform your hospital system administrator.
+  </p>
+</div>
+{% endblock %}

@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Import Historical Consumption — Sanalogx{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 px-4" style="max-width: 1100px;">
+
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="fw-bold text-navy mb-1" style="font-size:1.75rem;">
+        <i class="fas fa-file-import text-primary me-2"></i>Import Historical Consumption Data
+      </h1>
+      <p class="text-muted small mb-0">Upload past sales and dispensing records in CSV or Excel format to calibrate the AI Demand Forecasting engine</p>
+    </div>
+    <a href="{% url 'inventory_consumption_analytics' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="fas fa-arrow-left me-1"></i>Back to Consumption Analytics
+    </a>
+  </div>
+
+  {% if not preview_data %}
+  <!-- Upload Section -->
+  <div class="row g-4">
+    <div class="col-lg-7">
+      <div class="card border-0 shadow-sm rounded-4 p-4">
+        <h5 class="fw-bold text-navy mb-3"><i class="fas fa-cloud-arrow-up text-primary me-2"></i>Upload File</h5>
+        <form method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="preview">
+
+          <div class="mb-4">
+            <label class="form-label fw-semibold text-secondary small">Select File (.CSV or .XLSX)</label>
+            <input type="file" name="import_file" class="form-control" accept=".csv, .xlsx, .xls" required>
+            <div class="form-text small text-muted">Maximum file size: 5MB. Must contain medicine names and quantities.</div>
+          </div>
+
+          <button type="submit" class="btn btn-primary px-4">
+            <i class="fas fa-magnifying-glass me-2"></i>Validate & Preview Data
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Format Guide -->
+    <div class="col-lg-5">
+      <div class="card border-0 shadow-sm rounded-4 p-4 bg-light">
+        <h6 class="fw-bold text-navy mb-2"><i class="fas fa-circle-info text-teal me-2"></i>Expected Columns</h6>
+        <p class="small text-muted mb-3">Your spreadsheet must have the following column headers (case-insensitive):</p>
+        <div class="table-responsive small">
+          <table class="table table-sm table-bordered bg-white">
+            <thead class="table-light">
+              <tr><th>Column</th><th>Required</th><th>Example</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>medicine</code></td><td><span class="badge bg-danger">Yes</span></td><td>Paracetamol 500mg</td></tr>
+              <tr><td><code>quantity</code></td><td><span class="badge bg-danger">Yes</span></td><td>25</td></tr>
+              <tr><td><code>date</code></td><td>Optional</td><td>2026-08-15</td></tr>
+              <tr><td><code>transaction_type</code></td><td>Optional</td><td>SALE or DISPENSE</td></tr>
+              <tr><td><code>reference</code></td><td>Optional</td><td>INV-2026-001</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if preview_data %}
+  <!-- Preview Results Section -->
+  <div class="card border-0 shadow-sm rounded-4 mb-4">
+    <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <div>
+        <h5 class="fw-bold text-navy mb-0"><i class="fas fa-list-check text-success me-2"></i>Validation Results</h5>
+        <span class="text-muted small">
+          Total rows: <strong>{{ preview_data.total_rows }}</strong> | 
+          Valid: <strong class="text-success">{{ preview_data.valid_count }}</strong> | 
+          Errors: <strong class="text-danger">{{ preview_data.error_count }}</strong> |
+          Matched Medicines: <strong>{{ preview_data.matched_medicines }}</strong>
+        </span>
+      </div>
+
+      <div class="d-flex gap-2">
+        <a href="{% url 'inventory_historical_import' %}" class="btn btn-outline-secondary btn-sm">
+          <i class="fas fa-rotate-left me-1"></i>Upload Different File
+        </a>
+        {% if preview_data.valid_count > 0 %}
+        <form method="post" class="d-inline">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="confirm">
+          <button type="submit" class="btn btn-success btn-sm px-3" onclick="return confirm('Are you sure you want to commit {{ preview_data.valid_count }} historical records to the database?');">
+            <i class="fas fa-check-circle me-1"></i>Confirm & Import {{ preview_data.valid_count }} Records
+          </button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Errors list if any -->
+    {% if preview_data.errors %}
+    <div class="card-body border-top bg-light py-3">
+      <h6 class="fw-bold text-danger small mb-2"><i class="fas fa-triangle-exclamation me-1"></i>Validation Warnings / Errors (Skipped Rows)</h6>
+      <ul class="list-unstyled mb-0 small text-muted">
+        {% for err in preview_data.errors|slice:":10" %}
+        <li><span class="badge bg-danger-subtle text-danger me-1">Row {{ err.row_num }}</span> {{ err.message }}</li>
+        {% endfor %}
+        {% if preview_data.errors|length > 10 %}
+        <li class="text-muted fst-italic">...and {{ preview_data.errors|length|add:"-10" }} more errors.</li>
+        {% endif %}
+      </ul>
+    </div>
+    {% endif %}
+
+    <!-- Preview Table -->
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 small">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-3">Row</th>
+              <th>Medicine Name</th>
+              <th class="text-end">Quantity</th>
+              <th>Transaction Date</th>
+              <th>Type</th>
+              <th>Reference</th>
+              <th class="pe-3">Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in preview_data.preview_rows|slice:":25" %}
+            <tr>
+              <td class="ps-3 text-muted">{{ r.row_num }}</td>
+              <td class="fw-semibold text-navy">{{ r.medicine_name }}</td>
+              <td class="text-end fw-bold text-primary">{{ r.quantity }}</td>
+              <td>{{ r.date }}</td>
+              <td><span class="badge bg-light text-dark border">{{ r.transaction_type }}</span></td>
+              <td class="text-muted">{{ r.reference }}</td>
+              <td class="text-muted pe-3">{{ r.notes }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% if preview_data.preview_rows|length > 25 %}
+      <div class="p-3 text-center text-muted small border-top">
+        Showing first 25 of {{ preview_data.valid_count }} valid records to be imported.
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

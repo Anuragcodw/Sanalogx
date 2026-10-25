@@ -1,0 +1,85 @@
+<!-- Sanalogx Reusable Camera Barcode & QR Scanner Modal -->
+<div class="modal fade" id="cameraScannerModal" tabindex="-1" aria-labelledby="cameraScannerModalLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
+            <div class="modal-header text-white" style="background: #0f2744;">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="bg-teal-subtle text-teal p-2 rounded-3" style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: rgba(0, 169, 157, 0.15); color: #00A99D;">
+                        <i class="fas fa-camera"></i>
+                    </div>
+                    <div>
+                        <h6 class="modal-title fw-bold mb-0 text-white" id="cameraScannerModalLabel">Live Camera Barcode &amp; QR Scanner</h6>
+                        <span class="text-white-50 extra-small">Supports EAN-13, EAN-8, UPC-A, Code 128, Code 39 &amp; 2D QR Codes</span>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" onclick="MedivaultScanner.stopCamera()"></button>
+            </div>
+            <div class="modal-body p-3 p-md-4">
+                <!-- Permission & Error Alerts -->
+                <div id="cameraAlertBox" class="alert alert-warning py-2 px-3 small d-none mb-3">
+                    <i class="fas fa-triangle-exclamation me-1"></i> <span id="cameraAlertText"></span>
+                </div>
+
+                <!-- Live Camera Viewfinder Box -->
+                <div class="scanner-viewport-box mb-3" id="scannerViewport">
+                    <div id="cameraReader" class="scanner-video-container"></div>
+                    <div class="scanner-reticle-overlay" id="scannerReticle"></div>
+                    <div class="scanner-laser-line" id="scannerLaser"></div>
+                    <div class="scanner-status-pill" id="scannerStatusPill">
+                        <span class="spinner-grow spinner-grow-sm text-teal" style="width: 8px; height: 8px;" role="status"></span>
+                        <span id="scannerStatusText">Initializing Camera...</span>
+                    </div>
+                </div>
+
+                <!-- Camera Controls Toolbar -->
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 bg-light p-2.5 rounded-3 border">
+                    <div class="d-flex flex-wrap gap-2">
+                        <button type="button" class="btn btn-sm btn-outline-teal fw-semibold" id="btnStartCamera" onclick="MedivaultScanner.startCamera()">
+                            <i class="fas fa-play me-1"></i> Start Camera
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-danger fw-semibold" id="btnStopCamera" onclick="MedivaultScanner.stopCamera()">
+                            <i class="fas fa-stop me-1"></i> Stop Camera
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="btnSwitchCamera" onclick="MedivaultScanner.switchCamera()" title="Switch Front/Rear Camera" style="display: none;">
+                            <i class="fas fa-camera-rotate me-1"></i> Switch Camera
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-warning btn-scanner-torch" id="btnToggleTorch" onclick="MedivaultScanner.toggleTorch()" title="Toggle Flashlight / Torch" style="display: none;">
+                            <i class="fas fa-bolt me-1"></i> Flashlight
+                        </button>
+                    </div>
+                    <div class="text-muted small" style="font-size: 0.72rem;">
+                        <i class="fas fa-shield-halved text-success me-1"></i> Secure Local Stream · Lookup Only
+                    </div>
+                </div>
+
+                <!-- Decoded Value Review Panel -->
+                <div class="card border p-3 mb-2 bg-light" id="decodedValuePanel" style="border-radius: 12px;">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <label class="form-label small fw-semibold text-muted mb-0">Decoded Code Value:</label>
+                        <span id="decodedPillBadge" class="badge bg-secondary font-monospace">AWAITING CODE</span>
+                    </div>
+                    <div class="input-group">
+                        <input type="text" id="modalDecodedValue" class="form-control font-monospace fw-bold text-navy" placeholder="Point camera at barcode or prescription QR..." readonly>
+                        <button type="button" class="btn btn-teal px-3" id="btnModalSearchVerify" onclick="MedivaultScanner.confirmAndLookup()" disabled>
+                            <i class="fas fa-check-circle me-1"></i> Confirm &amp; Verify
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Guidance Notes -->
+                <div class="d-flex align-items-center justify-content-between text-muted small mt-2" style="font-size: 0.73rem;">
+                    <span><i class="fas fa-lightbulb text-amber me-1"></i> Hold code steady within the targeting frame. Auto-detects in under 200ms.</span>
+                    <span class="text-teal fw-semibold"><i class="fas fa-lock me-1"></i> Non-deducting validation</span>
+                </div>
+            </div>
+            <div class="modal-footer bg-light py-2" style="border-bottom-left-radius: 16px; border-bottom-right-radius: 16px;">
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="btnRescan" onclick="MedivaultScanner.restartScanning()">
+                    <i class="fas fa-rotate-right me-1"></i> Rescan
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal" onclick="MedivaultScanner.stopCamera()">
+                    <i class="fas fa-times me-1"></i> Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

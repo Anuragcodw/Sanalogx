@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Goods Receipt Notes — Sanalogx{% endblock %}
+{% block admin_breadcrumb %}Goods Receipt Notes{% endblock %}
+{% block pharmacist_breadcrumb %}Goods Receipt{% endblock %}
+
+{% block content %}
+<div class="ambient-healthcare-bg" style="min-height:100vh;">
+<div class="container-fluid py-4 px-lg-4" style="position:relative;z-index:1;">
+
+    <!-- Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1" style="font-size:0.78rem;">
+                    <li class="breadcrumb-item">
+                        <a href="{% url 'purchase_orders_list' %}" class="text-decoration-none" style="color:#00A99D;">
+                            <i class="fas fa-file-invoice me-1"></i>Procurement
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item active text-muted">Goods Receipt Notes (GRN)</li>
+                </ol>
+            </nav>
+            <h3 class="fw-bold mb-0" style="color:#0F2744;">
+                <i class="fas fa-boxes-packing me-2" style="color:#00A99D;"></i> Goods Receipt Notes (GRN) &amp; Receiving Queue
+            </h3>
+            <p class="text-muted small mb-0 mt-1">Pharmacist physical verification workspace for incoming pharmaceutical shipments and batch intake.</p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{% url 'delivery_tracking' %}" class="btn btn-sm fw-semibold"
+               style="background:#FFFFFF;color:#0F2744;border:1px solid #CBD5E1;border-radius:9px;padding:0.45rem 1rem;">
+                <i class="fas fa-truck-fast me-1"></i> Delivery Tracking
+            </a>
+            <a href="{% url 'purchase_orders_list' %}" class="btn btn-sm fw-semibold text-white"
+               style="background:linear-gradient(135deg,#00A99D,#008779);border:none;border-radius:9px;padding:0.5rem 1.1rem;box-shadow:0 2px 6px rgba(0,169,157,0.25);">
+                <i class="fas fa-file-contract me-1"></i> View Purchase Orders
+            </a>
+        </div>
+    </div>
+
+    <!-- Summary KPI Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6">
+            <div class="kpi-card-compact">
+                <div>
+                    <div class="kpi-label">Pending Physical Verification</div>
+                    <div class="kpi-value" style="color:#F59E0B;">{{ pending_count }}</div>
+                </div>
+                <div class="kpi-icon-pill" style="background:rgba(245,158,11,0.10);color:#F59E0B;">
+                    <i class="fas fa-clock"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6">
+            <div class="kpi-card-compact">
+                <div>
+                    <div class="kpi-label">Verified &amp; Added to Stock</div>
+                    <div class="kpi-value" style="color:#10B981;">{{ verified_count }}</div>
+                </div>
+                <div class="kpi-icon-pill" style="background:rgba(16,185,129,0.10);color:#10B981;">
+                    <i class="fas fa-circle-check"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Table Card -->
+    <div class="bg-white border rounded-3 shadow-sm" style="overflow:hidden;">
+        <div class="table-responsive">
+            <table class="table-medivault-compact table mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-3">GRN Number</th>
+                        <th>PO Reference</th>
+                        <th>Supplier / Vendor</th>
+                        <th>Invoice Number</th>
+                        <th class="text-center">Status</th>
+                        <th class="text-end">Invoice Amount</th>
+                        <th class="pe-3 text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for grn in grns %}
+                    <tr>
+                        <td class="ps-3">
+                            <div class="fw-bold font-monospace" style="color:#00A99D;font-size:0.83rem;">{{ grn.grn_number }}</div>
+                            <div style="font-size:0.7rem;color:#94A3B8;">{{ grn.receipt_date|date:"d M Y" }}</div>
+                        </td>
+                        <td>
+                            <a href="{% url 'po_detail' grn.purchase_order.pk %}" class="fw-semibold text-decoration-none font-monospace" style="color:#0F2744;font-size:0.83rem;">
+                                {{ grn.purchase_order.po_number }}
+                            </a>
+                        </td>
+                        <td>
+                            <div class="fw-semibold" style="color:#0F2744;font-size:0.83rem;">{{ grn.supplier.company_name }}</div>
+                        </td>
+                        <td>
+                            <span class="badge" style="background:#F1F5F9;color:#0F2744;border:1px solid #E2E8F0;font-size:0.72rem;font-family:monospace;">
+                                {{ grn.invoice_number|default:"N/A" }}
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            {% if grn.status == 'PENDING_VERIFICATION' %}
+                                <span class="badge bg-warning text-dark" style="font-size:0.72rem;"><i class="fas fa-clock me-1"></i>Pending Verification</span>
+                            {% elif grn.status == 'VERIFIED' %}
+                                <span class="badge bg-success" style="font-size:0.72rem;"><i class="fas fa-check-circle me-1"></i>Verified &amp; In Stock</span>
+                            {% else %}
+                                <span class="badge bg-secondary" style="font-size:0.72rem;">{{ grn.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <span class="fw-bold font-monospace" style="color:#0F2744;font-size:0.88rem;">₹{{ grn.invoice_amount }}</span>
+                        </td>
+                        <td class="pe-3 text-end">
+                            <a href="{% url 'grn_detail' grn.pk %}" class="btn btn-sm"
+                               style="background:#F0FDFA;color:#00A99D;border:1px solid #CCFBF1;border-radius:7px;padding:0.25rem 0.65rem;font-size:0.78rem;">
+                                <i class="fas fa-clipboard-check me-1"></i>Inspect &amp; Verify
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7">
+                            <div class="empty-state-compact">
+                                <div class="empty-icon-wrap"><i class="fas fa-boxes-packing"></i></div>
+                                <div class="empty-title">No Goods Receipt Notes Recorded</div>
+                                <div class="empty-desc">Incoming physical shipments will appear here for verification and batch inspection.</div>
+                                <a href="{% url 'purchase_orders_list' %}" class="btn btn-sm"
+                                   style="background:#00A99D;color:#fff;border:none;border-radius:8px;font-size:0.8rem;">
+                                    <i class="fas fa-file-contract me-1"></i> View Purchase Orders
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+</div>
+{% endblock %}

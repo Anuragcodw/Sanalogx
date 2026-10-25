@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Add New Supplier — Sanalogx{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-9">
+            <div class="card card-medivault bg-white shadow-lg p-4 p-md-5">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h4 class="fw-bold text-navy mb-0"><i class="fas fa-truck-field text-teal me-2"></i> Add New Medicine Supplier</h4>
+                    <a href="{% url 'supplier_list' %}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i> Back to Suppliers</a>
+                </div>
+
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-muted">Company Name <span class="text-danger">*</span></label>
+                            <input type="text" name="company_name" class="form-control" placeholder="e.g. HealthCare Pharma Distributors" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-muted">Contact Person</label>
+                            <input type="text" name="contact_person" class="form-control" placeholder="e.g. Rajesh Sharma">
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-muted">Email Address</label>
+                            <input type="email" name="email" class="form-control" placeholder="orders@healthcarepharma.com">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-muted">Phone Number</label>
+                            <input type="text" name="phone" class="form-control" placeholder="+91 98765 43210">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-muted">Address</label>
+                        <input type="text" name="address_line1" class="form-control mb-2" placeholder="Street Address / Industrial Estate">
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <input type="text" name="city" class="form-control" placeholder="City">
+                            </div>
+                            <div class="col-md-6">
+                                <input type="text" name="state" class="form-control" placeholder="State">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-muted">GST Number</label>
+                            <input type="text" name="gst_number" class="form-control" placeholder="27AAACH7409R1ZZ">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-muted">Drug License Number</label>
+                            <input type="text" name="drug_license_number" class="form-control" placeholder="DL-2024-MH-9942">
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-muted">Average Delivery Days</label>
+                            <input type="number" name="average_delivery_days" min="1" value="3" class="form-control font-monospace fw-bold">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-muted">Payment Terms</label>
+                            <select name="payment_terms" class="form-select">
+                                {% for code, label in payment_terms %}
+                                    <option value="{{ code }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label small fw-semibold text-muted">Notes / Internal Guidelines</label>
+                        <textarea name="notes" class="form-control" rows="2" placeholder="Authorized vendor for ICU and emergency injectables."></textarea>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{% url 'supplier_list' %}" class="btn btn-outline-secondary py-2 px-3">Cancel</a>
+                        <button type="submit" class="btn btn-teal text-white py-2 px-4 fw-bold">
+                            <i class="fas fa-check-circle me-1"></i> Save Supplier
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

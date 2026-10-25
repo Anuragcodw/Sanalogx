@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Import Preview — Sanalogx{% endblock %}
+{% block admin_breadcrumb %}Import Preview{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 px-md-4 py-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex align-items-center gap-3">
+      <div class="page-header-glow-badge flex-shrink-0"><i class="fas fa-eye"></i></div>
+      <div>
+        <h2 class="fw-bold text-navy mb-0 fs-3">Import Preview</h2>
+        <p class="text-muted small mb-0">File: <strong>{{ filename }}</strong> — Review each sheet before confirming.</p>
+      </div>
+    </div>
+    <a href="{% url 'medicine_import_upload' %}" class="btn btn-outline-secondary btn-sm fw-semibold">
+      <i class="fas fa-arrow-left me-1"></i> Back / Re-upload
+    </a>
+  </div>
+
+  {% if messages %}
+    {% for msg in messages %}
+      <div class="alert alert-{{ msg.tags|default:'info' }} alert-dismissible fade show" role="alert">
+        {{ msg }} <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <form method="post" action="{% url 'medicine_import_confirm' %}">
+    {% csrf_token %}
+
+    {% for sheet_name, sheet in previews.items %}
+    {% with data=sheet.data %}
+    <div class="card shadow-sm border-0 mb-4" style="border-radius:14px;">
+      <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center py-3">
+        <div>
+          <input type="checkbox" name="sheets" value="{{ sheet_name }}" id="sheet_{{ forloop.counter }}"
+                 class="form-check-input me-2" checked
+                 {% if data.error_count == data.total_rows %}disabled title="All rows have errors — cannot import"{% endif %}>
+          <label for="sheet_{{ forloop.counter }}" class="fw-bold text-navy mb-0 me-2">
+            {{ sheet_name }}
+          </label>
+          <span class="badge bg-secondary">{{ sheet.import_type }}</span>
+        </div>
+        <div class="d-flex gap-3 small text-muted">
+          <span><i class="fas fa-list me-1"></i>{{ data.total_rows }} rows</span>
+          <span class="text-success fw-semibold"><i class="fas fa-check me-1"></i>{{ data.valid_count }} valid</span>
+          {% if data.duplicate_count %}<span class="text-warning"><i class="fas fa-copy me-1"></i>{{ data.duplicate_count }} dup</span>{% endif %}
+          {% if data.draft_count %}<span class="text-info"><i class="fas fa-pencil me-1"></i>{{ data.draft_count }} draft</span>{% endif %}
+          {% if data.error_count %}<span class="text-danger fw-semibold"><i class="fas fa-exclamation-triangle me-1"></i>{{ data.error_count }} errors</span>{% endif %}
+        </div>
+      </div>
+
+      <!-- Valid / Preview Rows -->
+      {% if data.preview_rows %}
+      <div class="table-responsive" style="max-height: 340px; overflow-y:auto;">
+        <table class="table table-sm table-hover mb-0 small">
+          <thead class="table-light sticky-top">
+            <tr>
+              <th>#</th>
+              {% if sheet.import_type == 'CATEGORY_MASTER' %}
+                <th>Category Name</th><th>Code</th><th>Status</th>
+              {% else %}
+                <th>Medicine Name</th><th>Generic Name</th><th>Strength</th><th>Dosage Form</th><th>Category</th><th>Status</th>
+              {% endif %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in data.preview_rows %}
+            <tr class="{% if row.status == 'duplicate' %}table-warning{% elif row.status == 'draft' %}table-info{% elif row.status == 'new' %}table-success{% endif %}">
+              <td class="text-muted">{{ row.row_num }}</td>
+              {% if sheet.import_type == 'CATEGORY_MASTER' %}
+                <td class="fw-medium">{{ row.name }}</td>
+                <td><code class="small">{{ row.code|default:"—" }}</code></td>
+                <td>
+                  {% if row.status == 'duplicate' %}<span class="badge bg-warning text-dark">Exists (map)</span>
+                  {% else %}<span class="badge bg-success">New</span>{% endif %}
+                </td>
+              {% else %}
+                <td class="fw-medium">{{ row.medicine_name }}</td>
+                <td>{{ row.generic_name }}</td>
+                <td><code>{{ row.strength }}</code></td>
+                <td>{{ row.dosage_form }}</td>
+                <td>{{ row.category_name|default:"—" }}</td>
+                <td>
+                  {% if row.status == 'duplicate' %}<span class="badge bg-warning text-dark">Duplicate</span>
+                  {% elif row.status == 'draft' %}<span class="badge bg-info text-dark">Draft</span>
+                  {% else %}<span class="badge bg-success">New</span>{% endif %}
+                </td>
+              {% endif %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+
+      <!-- Row Errors -->
+      {% if data.errors %}
+      <div class="card-footer bg-danger bg-opacity-10 border-0 py-3">
+        <h6 class="text-danger fw-bold mb-2"><i class="fas fa-exclamation-circle me-1"></i>Row Errors (will be skipped)</h6>
+        <div class="table-responsive" style="max-height:200px;overflow-y:auto;">
+          <table class="table table-sm mb-0 small">
+            <thead><tr><th>Row #</th><th>Field</th><th>Error</th></tr></thead>
+            <tbody>
+              {% for err in data.errors %}
+              <tr class="table-danger">
+                <td>{{ err.row_num }}</td>
+                <td><code>{{ err.field|default:"—" }}</code></td>
+                <td>{{ err.message }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+    {% endwith %}
+    {% endfor %}
+
+    <!-- Legend -->
+    <div class="d-flex flex-wrap gap-3 mb-4 small">
+      <span><span class="badge bg-success me-1">New</span> Will be created</span>
+      <span><span class="badge bg-info text-dark me-1">Draft</span> Created as PENDING_REVIEW (starter example)</span>
+      <span><span class="badge bg-warning text-dark me-1">Duplicate</span> Already exists — will be mapped/skipped</span>
+      <span><span class="badge bg-danger me-1">Error</span> Invalid row — will be skipped, downloadable after import</span>
+    </div>
+
+    <div class="d-flex gap-3">
+      <button type="submit" class="btn btn-teal fw-bold text-white px-5">
+        <i class="fas fa-check me-2"></i> Confirm & Execute Import
+      </button>
+      <a href="{% url 'medicine_import_upload' %}" class="btn btn-outline-secondary fw-semibold">
+        Cancel
+      </a>
+    </div>
+  </form>
+
+</div>
+{% endblock %}

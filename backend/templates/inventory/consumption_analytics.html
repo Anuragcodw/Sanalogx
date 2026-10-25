@@ -1,0 +1,392 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Consumption Analytics — Sanalogx{% endblock %}
+
+{% block admin_breadcrumb %}Consumption Analytics{% endblock %}
+{% block pharmacist_breadcrumb %}Consumption Analytics{% endblock %}
+
+{% block extra_css %}
+<style>
+  .kpi-card {
+    border-radius: 14px;
+    border: 1px solid rgba(0,0,0,0.06);
+    background: #fff;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+    transition: transform 0.15s ease;
+  }
+  .kpi-card:hover { transform: translateY(-2px); }
+  .kpi-icon-box {
+    width: 48px; height: 48px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center; font-size: 1.35rem;
+  }
+  .dq-good      { background:#d1fae5; color:#065f46; font-weight:600; }
+  .dq-warning   { background:#fef3c7; color:#92400e; font-weight:600; }
+  .dq-insufficient { background:#fee2e2; color:#991b1b; font-weight:600; }
+  .trend-up     { color:#16a34a; }
+  .trend-down   { color:#dc2626; }
+  .trend-stable { color:#64748b; }
+  .risk-critical { background:#fee2e2; color:#991b1b; font-weight:700; }
+  .risk-high     { background:#fef3c7; color:#92400e; font-weight:600; }
+  .risk-medium   { background:#dbeafe; color:#1e40af; }
+  .risk-low      { background:#d1fae5; color:#065f46; }
+  .risk-no_data  { background:#f1f5f9; color:#64748b; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 px-4">
+
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+      <h1 class="fw-bold text-navy mb-1" style="font-size:1.75rem;">
+        <i class="fas fa-chart-line text-teal me-2"></i>Consumption Analytics
+      </h1>
+      <p class="text-muted small mb-0">
+        Deduplicated SALE + DISPENSE consumption — DAMAGE, EXPIRY, PURCHASE excluded from demand
+      </p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <a href="{% url 'inventory_reorder_recommendations' %}" class="btn btn-primary btn-sm">
+        <i class="fas fa-cart-shopping me-1"></i>Reorder Recommendations
+        {% if critical_risk_count > 0 %}
+        <span class="badge bg-danger ms-1">{{ critical_risk_count }}</span>
+        {% endif %}
+      </a>
+      {% if request.user.role == 'ADMIN' %}
+      <a href="{% url 'inventory_historical_import' %}" class="btn btn-outline-primary btn-sm">
+        <i class="fas fa-file-import me-1"></i>Import Historical
+      </a>
+      {% endif %}
+      <a href="{% url 'inventory_dashboard' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-boxes-stacked me-1"></i>Inventory
+      </a>
+    </div>
+  </div>
+
+  <!-- KPI Cards Row 1: Volume -->
+  <div class="row g-3 mb-3">
+    <div class="col-6 col-md-2">
+      <div class="kpi-card p-3">
+        <div class="text-muted small mb-1"><i class="fas fa-sun me-1 text-warning"></i>Today</div>
+        <div class="fw-bold fs-4">{{ summary.consumed_today|default:"0" }}</div>
+        <div class="text-muted" style="font-size:.75rem;">units consumed</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-2">
+      <div class="kpi-card p-3">
+        <div class="text-muted small mb-1"><i class="fas fa-calendar-week me-1 text-primary"></i>7-Day</div>
+        <div class="fw-bold fs-4">{{ summary.total_units_7d|default:"0" }}</div>
+        <div class="text-muted" style="font-size:.75rem;">{{ summary.daily_avg_7d|default:"0" }}/day avg</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-2">
+      <div class="kpi-card p-3">
+        <div class="text-muted small mb-1"><i class="fas fa-calendar-days me-1 text-teal"></i>30-Day</div>
+        <div class="fw-bold fs-4 text-teal">{{ summary.total_units_30d|default:"0" }}</div>
+        <div class="text-muted" style="font-size:.75rem;">{{ summary.daily_avg_30d|default:"0" }}/day avg</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-2">
+      <div class="kpi-card p-3">
+        <div class="text-muted small mb-1"><i class="fas fa-calendar me-1 text-purple"></i>90-Day</div>
+        <div class="fw-bold fs-4">{{ summary.total_units_90d|default:"0" }}</div>
+        <div class="text-muted" style="font-size:.75rem;">{{ summary.daily_avg_90d|default:"0" }}/day avg</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-2">
+      <div class="kpi-card p-3">
+        <div class="text-muted small mb-1"><i class="fas fa-arrow-trend-up me-1 text-success"></i>Increasing</div>
+        <div class="fw-bold fs-4 text-success">{{ summary.increasing_demand|default:"0" }}</div>
+        <div class="text-muted" style="font-size:.75rem;">medicines &gt;10% up</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-2">
+      <div class="kpi-card p-3">
+        <div class="text-muted small mb-1"><i class="fas fa-triangle-exclamation me-1 text-danger"></i>Critical Risk</div>
+        <div class="fw-bold fs-4 text-danger">{{ critical_risk_count|default:"0" }}</div>
+        <div class="text-muted" style="font-size:.75rem;">stockout risk now</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Daily Trend Chart -->
+  <div class="card border-0 shadow-sm rounded-4 mb-4">
+    <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+      <h6 class="fw-bold mb-0 text-navy">
+        <i class="fas fa-chart-column text-teal me-2"></i>Daily Consumption Trend — Last 30 Days
+      </h6>
+      <span class="badge bg-light text-muted border small">Deduplicated SALE + DISPENSE</span>
+    </div>
+    <div class="card-body">
+      <canvas id="dailyTrendChart" style="max-height:200px;"></canvas>
+    </div>
+  </div>
+
+  <!-- Fast & Slow Movers -->
+  <div class="row g-3 mb-4">
+    <!-- Fast Movers -->
+    <div class="col-md-6">
+      <div class="card border-0 shadow-sm rounded-4 h-100">
+        <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+          <h6 class="fw-bold mb-0 text-navy"><i class="fas fa-bolt text-warning me-2"></i>Top Fast Movers (30-Day)</h6>
+          <span class="badge bg-success-subtle text-success small">High Velocity</span>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 small">
+              <thead class="table-light">
+                <tr>
+                  <th class="ps-3">Medicine</th>
+                  <th>Category</th>
+                  <th class="text-end">30D Total</th>
+                  <th class="text-end pe-3">Daily Avg</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for item in fast_movers %}
+                <tr>
+                  <td class="ps-3">
+                    <a href="{% url 'medicine_inventory_detail' item.medicine.id %}" class="fw-semibold text-decoration-none text-navy">
+                      {{ item.medicine.medicine_name }}
+                    </a>
+                  </td>
+                  <td><span class="badge bg-light text-dark border">{{ item.category }}</span></td>
+                  <td class="text-end fw-bold text-teal">{{ item.total_consumed }}</td>
+                  <td class="text-end pe-3 text-muted">{{ item.daily_avg }}/day</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" class="text-center text-muted py-3">No fast movers recorded yet.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slow Movers -->
+    <div class="col-md-6">
+      <div class="card border-0 shadow-sm rounded-4 h-100">
+        <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+          <h6 class="fw-bold mb-0 text-navy"><i class="fas fa-snowflake text-info me-2"></i>Slow / Inactive Medicines (30-Day)</h6>
+          <span class="badge bg-warning-subtle text-warning small">≤ 5 Units</span>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 small">
+              <thead class="table-light">
+                <tr>
+                  <th class="ps-3">Medicine</th>
+                  <th>Current Stock</th>
+                  <th class="text-end">30D Consumed</th>
+                  <th class="text-end pe-3">Days Inactive</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for item in slow_movers %}
+                <tr>
+                  <td class="ps-3">
+                    <a href="{% url 'medicine_inventory_detail' item.medicine.id %}" class="fw-semibold text-decoration-none text-navy">
+                      {{ item.medicine.medicine_name }}
+                    </a>
+                  </td>
+                  <td><span class="badge bg-secondary-subtle text-secondary">{{ item.current_stock }} units</span></td>
+                  <td class="text-end fw-bold">{{ item.total_consumed }}</td>
+                  <td class="text-end pe-3 text-muted">
+                    {% if item.days_since_last_move is not None %}{{ item.days_since_last_move }}d ago{% else %}No movement{% endif %}
+                  </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" class="text-center text-muted py-3">No slow movers detected.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Full Consumption Table -->
+  <div class="card border-0 shadow-sm rounded-4">
+    <div class="card-header bg-white border-0 py-3">
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h6 class="fw-bold mb-0 text-navy">
+          <i class="fas fa-list-check text-teal me-2"></i>Medicine Consumption Breakdown
+          <span class="text-muted fw-normal small ms-2">({{ total_analyzed }} medicines)</span>
+        </h6>
+        <!-- Filters -->
+        <form method="get" class="d-flex gap-2 align-items-center flex-wrap">
+          <input type="text" name="search" class="form-control form-control-sm" placeholder="Search medicine..." value="{{ search_q }}" style="max-width:160px;">
+          <select name="category" class="form-select form-select-sm" style="max-width:150px;">
+            <option value="">All Categories</option>
+            {% for cat in categories %}
+            <option value="{{ cat.id }}" {% if category_filter == cat.id|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
+            {% endfor %}
+          </select>
+          <select name="trend" class="form-select form-select-sm" style="max-width:140px;">
+            <option value="">All Trends</option>
+            <option value="INCREASING" {% if trend_filter == 'INCREASING' %}selected{% endif %}>📈 Increasing</option>
+            <option value="STABLE" {% if trend_filter == 'STABLE' %}selected{% endif %}>➡ Stable</option>
+            <option value="DECREASING" {% if trend_filter == 'DECREASING' %}selected{% endif %}>📉 Decreasing</option>
+            <option value="INSUFFICIENT_DATA" {% if trend_filter == 'INSUFFICIENT_DATA' %}selected{% endif %}>⚠ Insufficient</option>
+          </select>
+          <select name="dq" class="form-select form-select-sm" style="max-width:140px;">
+            <option value="">All Quality</option>
+            <option value="GOOD" {% if dq_filter == 'GOOD' %}selected{% endif %}>Good (≥15 tx)</option>
+            <option value="WARNING" {% if dq_filter == 'WARNING' %}selected{% endif %}>Warning (5–14)</option>
+            <option value="INSUFFICIENT_DATA" {% if dq_filter == 'INSUFFICIENT_DATA' %}selected{% endif %}>Insufficient</option>
+          </select>
+          <button type="submit" class="btn btn-sm btn-primary"><i class="fas fa-filter me-1"></i>Filter</button>
+          {% if search_q or category_filter or dq_filter or trend_filter %}
+          <a href="{% url 'inventory_consumption_analytics' %}" class="btn btn-sm btn-outline-secondary">Reset</a>
+          {% endif %}
+        </form>
+      </div>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 small">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-3">Medicine</th>
+              <th class="text-end">Today</th>
+              <th class="text-end">7D</th>
+              <th class="text-end">30D</th>
+              <th class="text-end">90D</th>
+              <th class="text-end">Daily Avg</th>
+              <th class="text-center">Trend</th>
+              <th class="text-center">Stockout Risk</th>
+              <th class="text-center">Data Quality</th>
+              <th class="text-center pe-3">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in page_obj %}
+            <tr>
+              <td class="ps-3">
+                <div class="fw-bold text-navy">{{ row.medicine_name }}</div>
+                <div class="text-muted" style="font-size:.72rem;">{{ row.generic_name }}</div>
+                <div class="text-muted" style="font-size:.7rem;">Stock: {{ row.current_stock }} units</div>
+              </td>
+              <td class="text-end">{{ row.consumed_today|default:"0" }}</td>
+              <td class="text-end">{{ row.consumed_7d }}</td>
+              <td class="text-end fw-bold text-teal">{{ row.consumed_30d }}</td>
+              <td class="text-end">{{ row.consumed_90d }}</td>
+              <td class="text-end text-muted">{{ row.daily_avg_30d }}/day</td>
+              <td class="text-center">
+                {% if row.trend_label == 'INCREASING' %}
+                <span class="badge bg-success-subtle text-success"><i class="fas fa-arrow-trend-up me-1"></i>Rising</span>
+                {% elif row.trend_label == 'DECREASING' %}
+                <span class="badge bg-danger-subtle text-danger"><i class="fas fa-arrow-trend-down me-1"></i>Falling</span>
+                {% elif row.trend_label == 'STABLE' %}
+                <span class="badge bg-secondary-subtle text-secondary">Stable</span>
+                {% else %}
+                <span class="badge bg-light text-muted border">Insufficient</span>
+                {% endif %}
+              </td>
+              <td class="text-center">
+                {% if row.stockout_risk == 'CRITICAL' %}
+                <span class="badge risk-critical px-2 py-1">
+                  <i class="fas fa-circle-exclamation me-1"></i>Critical
+                  {% if row.days_until_stockout is not None %}<br><small>~{{ row.days_until_stockout }}d</small>{% endif %}
+                </span>
+                {% elif row.stockout_risk == 'HIGH' %}
+                <span class="badge risk-high px-2 py-1">High Risk</span>
+                {% elif row.stockout_risk == 'MEDIUM' %}
+                <span class="badge risk-medium px-2 py-1">Medium</span>
+                {% elif row.stockout_risk == 'LOW' %}
+                <span class="badge risk-low px-2 py-1">Low</span>
+                {% else %}
+                <span class="badge risk-no_data px-2 py-1">No Data</span>
+                {% endif %}
+              </td>
+              <td class="text-center">
+                {% if row.data_quality == 'GOOD' %}
+                <span class="badge dq-good px-2 py-1"><i class="fas fa-check-circle me-1"></i>Good</span>
+                {% elif row.data_quality == 'WARNING' %}
+                <span class="badge dq-warning px-2 py-1"><i class="fas fa-triangle-exclamation me-1"></i>Warning</span>
+                {% else %}
+                <span class="badge dq-insufficient px-2 py-1"><i class="fas fa-circle-exclamation me-1"></i>Insufficient</span>
+                {% endif %}
+              </td>
+              <td class="text-center pe-3">
+                <a href="{% url 'medicine_inventory_detail' row.medicine_id %}" class="btn btn-outline-primary btn-sm py-0 px-2" title="View Detail">
+                  <i class="fas fa-eye"></i>
+                </a>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="10" class="text-center text-muted py-4">
+                <i class="fas fa-search fa-2x mb-2 d-block opacity-25"></i>
+                No consumption records match your criteria.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="card-footer bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+      <span class="text-muted small">Showing page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+      <nav>
+        <ul class="pagination pagination-sm mb-0">
+          {% if page_obj.has_previous %}
+          <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&search={{ search_q }}&category={{ category_filter }}&dq={{ dq_filter }}&trend={{ trend_filter }}">Previous</a></li>
+          {% endif %}
+          <li class="page-item active"><span class="page-link">{{ page_obj.number }}</span></li>
+          {% if page_obj.has_next %}
+          <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&search={{ search_q }}&category={{ category_filter }}&dq={{ dq_filter }}&trend={{ trend_filter }}">Next</a></li>
+          {% endif %}
+        </ul>
+      </nav>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Daily Trend Chart
+const ctx = document.getElementById('dailyTrendChart');
+if (ctx) {
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: {{ daily_labels|safe }},
+      datasets: [{
+        label: 'Net Consumption (units)',
+        data: {{ daily_values|safe }},
+        backgroundColor: 'rgba(13,148,136,0.5)',
+        borderColor: '#0d9488',
+        borderWidth: 1,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => `${ctx.raw} units`
+          }
+        }
+      },
+      scales: {
+        y: { beginAtZero: true, title: { display: true, text: 'Units Consumed' } },
+        x: { ticks: { maxRotation: 45, minRotation: 30 } }
+      }
+    }
+  });
+}
+</script>
+{% endblock %}

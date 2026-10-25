@@ -1,0 +1,207 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Welcome — Sanalogx{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-sm-10 col-md-7 col-lg-5 col-xl-4">
+
+                <div class="welcome-card text-center">
+
+                    <!-- Animated Checkmark -->
+                    <div class="checkmark-wrapper" id="checkmarkWrapper">
+                        <svg class="checkmark-svg" viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg">
+                            <circle class="checkmark-circle" cx="26" cy="26" r="25" fill="none"/>
+                            <path class="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+                        </svg>
+                    </div>
+
+                    <!-- Brand -->
+                    <div class="mb-2 mt-4">
+                        <span class="brand-icon-sm">
+                            <i class="fas fa-prescription-bottle-alt"></i>
+                        </span>
+                    </div>
+                    <p class="text-muted small fw-medium mb-1 text-uppercase ls-wide">MediVault</p>
+
+                    <!-- Role-aware heading -->
+                    {% if is_admin %}
+                        <h2 class="fw-bold text-navy mb-2 mt-2">Welcome, Admin</h2>
+                        <p class="text-muted mb-1 small">Your administrator account has been<br>authenticated successfully.</p>
+                        <div class="role-badge role-badge-admin mt-3">
+                            <i class="fas fa-shield-alt me-1"></i> Administrator
+                        </div>
+                    {% else %}
+                        <h2 class="fw-bold text-navy mb-2 mt-2">Welcome back!</h2>
+                        <p class="text-muted mb-1 small">
+                            Hello, <strong>{{ user.full_name|default:user.username }}</strong>.<br>
+                            Your pharmacist account is ready.
+                        </p>
+                        <div class="role-badge role-badge-pharmacist mt-3">
+                            <i class="fas fa-user-nurse me-1"></i> Pharmacist
+                        </div>
+                    {% endif %}
+
+                    <!-- Divider -->
+                    <div class="welcome-divider my-4"></div>
+
+                    <!-- Auth details strip -->
+                    <div class="auth-meta d-flex justify-content-center gap-3 mb-4">
+                        <div class="auth-meta-item">
+                            <i class="fas fa-clock text-teal me-1"></i>
+                            <span class="small text-muted">{{ login_time }}</span>
+                        </div>
+                        <div class="auth-meta-item">
+                            <i class="fas fa-lock text-teal me-1"></i>
+                            <span class="small text-muted">Secure Session</span>
+                        </div>
+                    </div>
+
+                    <!-- Continue Button -->
+                    <a href="{{ continue_url }}" class="btn btn-medivault-primary w-100 py-2 fw-bold continue-btn" id="continueBtn">
+                        <i class="fas fa-arrow-right me-2"></i> Continue to Dashboard
+                    </a>
+
+                    <p class="text-muted mt-3 mb-0" style="font-size: 0.78rem;">
+                        Not you?
+                        <form method="post" action="{% url 'logout' %}" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-link p-0 text-teal text-decoration-none fw-medium" style="font-size: inherit; vertical-align: baseline;">Sign out</button>
+                        </form>
+                    </p>
+
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<style>
+    /* ─── Welcome Card ─────────────────────────────────────── */
+    .welcome-card {
+        background: #ffffff;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-lg);
+        padding: 2.75rem 2.25rem;
+        animation: cardFadeUp 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    @keyframes cardFadeUp {
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ─── Checkmark Animation ───────────────────────────────── */
+    .checkmark-wrapper {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto;
+    }
+
+    .checkmark-svg {
+        width: 80px;
+        height: 80px;
+    }
+
+    .checkmark-circle {
+        stroke: var(--color-teal);
+        stroke-width: 2.5;
+        stroke-dasharray: 166;
+        stroke-dashoffset: 166;
+        stroke-miterlimit: 10;
+        animation: strokeCircle 0.6s cubic-bezier(0.65, 0, 0.45, 1) 0.2s forwards;
+    }
+
+    .checkmark-check {
+        stroke: var(--color-teal);
+        stroke-width: 2.5;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-dasharray: 48;
+        stroke-dashoffset: 48;
+        animation: strokeCheck 0.4s cubic-bezier(0.65, 0, 0.45, 1) 0.75s forwards;
+    }
+
+    @keyframes strokeCircle {
+        100% { stroke-dashoffset: 0; }
+    }
+
+    @keyframes strokeCheck {
+        100% { stroke-dashoffset: 0; }
+    }
+
+    /* ─── Brand icon small ──────────────────────────────────── */
+    .brand-icon-sm {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        background: var(--bg-teal-light);
+        color: var(--color-teal);
+        border-radius: var(--radius-md);
+        font-size: 1.1rem;
+    }
+
+    .ls-wide { letter-spacing: 0.1em; }
+
+    /* ─── Role badge ────────────────────────────────────────── */
+    .role-badge {
+        display: inline-block;
+        padding: 0.4rem 1.1rem;
+        border-radius: var(--radius-full);
+        font-size: 0.8rem;
+        font-weight: 600;
+        letter-spacing: 0.03em;
+    }
+
+    .role-badge-admin {
+        background: #EEF2FF;
+        color: #3730A3;
+        border: 1px solid #C7D2FE;
+    }
+
+    .role-badge-pharmacist {
+        background: var(--bg-teal-light);
+        color: var(--color-teal-dark);
+        border: 1px solid #A7F3D0;
+    }
+
+    /* ─── Divider ────────────────────────────────────────────── */
+    .welcome-divider {
+        height: 1px;
+        background: linear-gradient(90deg, transparent, var(--border-color), transparent);
+    }
+
+    /* ─── Continue button pulse ─────────────────────────────── */
+    .continue-btn {
+        animation: buttonAppear 0.4s ease 1.2s backwards;
+    }
+
+    @keyframes buttonAppear {
+        from { opacity: 0; transform: translateY(8px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+</style>
+
+<script>
+    // Auto-redirect after 8 seconds if user doesn't click
+    setTimeout(function () {
+        window.location.href = "{{ continue_url }}";
+    }, 8000);
+
+    // Loading state on Continue click
+    document.getElementById('continueBtn').addEventListener('click', function () {
+        this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Loading…';
+        this.classList.add('disabled');
+    });
+</script>
+{% endblock %}

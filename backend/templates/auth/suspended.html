@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Account Suspended — Sanalogx{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="container py-5 text-center">
+        <div class="max-width-600 mx-auto auth-card p-5 bg-white shadow-lg border-top border-5 border-danger">
+            <div class="card-icon-wrapper mx-auto mb-4" style="width: 72px; height: 72px; font-size: 2.2rem; background: #FEE2E2; color: #DC2626;">
+                <i class="fas fa-user-slash"></i>
+            </div>
+
+            <span class="badge badge-soft-danger fs-6 mb-3 px-3 py-2">
+                <i class="fas fa-ban me-1"></i> STATUS: SUSPENDED
+            </span>
+
+            <h2 class="fw-bold text-navy mb-3">Account Temporarily Suspended</h2>
+            
+            <p class="text-secondary fs-6 mb-4">
+                Your pharmacist access privileges have been temporarily suspended by the system administrator. 
+                You are currently blocked from logging in or access pharmacy operations.
+            </p>
+
+            <div class="p-3 bg-light rounded-3 text-start mb-4 border">
+                <h6 class="fw-bold text-navy mb-2"><i class="fas fa-circle-info text-teal me-2"></i> What should you do?</h6>
+                <ul class="small text-muted mb-0 ps-3">
+                    <li>Verify your status with your hospital pharmacy department head.</li>
+                    <li>Contact the system administrator to query the suspension reason or request reinstatement.</li>
+                    <li>Your credentials are still securely stored but login access is restricted.</li>
+                </ul>
+            </div>
+
+            <div class="d-flex justify-content-center gap-3">
+                <a href="{% url 'home' %}" class="btn btn-medivault-secondary px-4">
+                    <i class="fas fa-house me-2"></i> Return to Home
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

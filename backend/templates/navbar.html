@@ -1,0 +1,76 @@
+<nav class="navbar navbar-expand-lg navbar-medivault-float public-navbar sticky-top">
+    <div class="container">
+        <div class="navbar-float-inner w-100 d-flex align-items-center justify-content-between">
+            <!-- Left: Brand Logo & Name -->
+            <a class="navbar-brand text-decoration-none" href="{% url 'home' %}">
+                <span class="brand-icon"><i class="fas fa-prescription-bottle-alt"></i></span>
+                <span class="brand-text">Sanalog<span style="color: var(--color-teal);">x</span></span>
+            </a>
+
+            <!-- Mobile Hamburger Toggle -->
+            <button class="navbar-toggler border-0 p-1" type="button" data-bs-toggle="collapse" data-bs-target="#medivaultNavbar" aria-controls="medivaultNavbar" aria-expanded="false" aria-label="Toggle navigation">
+                <i class="fas fa-bars text-navy fs-4"></i>
+            </button>
+
+            <!-- Center (Public Links) & Right (Auth Buttons) -->
+            <div class="collapse navbar-collapse" id="medivaultNavbar">
+                <!-- Center: 5 Public Links -->
+                <ul class="navbar-nav mx-auto mb-2 mb-lg-0 align-items-lg-center">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{% url 'home' %}#home">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'home' %}#features">Features</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'home' %}#workflow">How It Works</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'home' %}#intelligence">Intelligence</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'home' %}#security">Security</a>
+                    </li>
+                </ul>
+
+                <!-- Right: Auth Action Buttons — context-aware -->
+                <div class="d-flex align-items-center gap-2 mt-3 mt-lg-0 public-nav-actions">
+                    {% if user.is_authenticated %}
+                        {# Authenticated users get a direct link to their own dashboard #}
+                        {% if user.role == 'ADMIN' or user.is_superuser %}
+                            <a href="{% url 'admin_approvals' %}" class="btn btn-nav-register py-2 px-3 text-decoration-none">
+                                <i class="fas fa-gauge-high me-1"></i> Admin Dashboard
+                            </a>
+                        {% elif user.status == 'APPROVED' %}
+                            <a href="{% url 'approved' %}" class="btn btn-nav-register py-2 px-3 text-decoration-none">
+                                <i class="fas fa-gauge me-1"></i> My Dashboard
+                            </a>
+                        {% elif user.status == 'PENDING' %}
+                            <a href="{% url 'pending' %}" class="btn btn-nav-login py-2 px-3 text-decoration-none">
+                                <i class="fas fa-clock me-1"></i> Pending Approval
+                            </a>
+                        {% else %}
+                            <a href="{% url 'rejected' %}" class="btn btn-nav-login py-2 px-3 text-decoration-none">
+                                <i class="fas fa-circle-info me-1"></i> Account Status
+                            </a>
+                        {% endif %}
+                        <form method="post" action="{% url 'logout' %}" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-nav-login py-2 px-3" style="border:none;">
+                                <i class="fas fa-sign-out-alt me-1"></i> Sign Out
+                            </button>
+                        </form>
+                    {% else %}
+                        {# Anonymous visitors see Login + Register #}
+                        <a href="{% url 'pharmacist_login' %}" class="btn btn-nav-login py-2 px-3 text-decoration-none">
+                            <i class="fas fa-sign-in-alt me-1"></i> Login
+                        </a>
+                        <a href="{% url 'pharmacist_register' %}" class="btn btn-nav-register py-2 px-3 text-decoration-none">
+                            <i class="fas fa-user-plus me-1"></i> Register
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>

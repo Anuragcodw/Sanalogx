@@ -1,0 +1,679 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Sanalogx — Smart Hospital Pharmacy Stock Optimization{% endblock %}
+
+{% block content %}
+
+<!-- HERO SECTION -->
+<section id="home" class="hero-premium public-hero position-relative overflow-hidden">
+    <!-- Subtle Hospital / Pharmacy Background Image with soft white & teal overlay -->
+    <div class="hero-bg-image" aria-hidden="true" style="background-image: url('{% static 'images/pharma.png' %}');"></div>
+    <div class="hero-bg-overlay" aria-hidden="true"></div>
+
+    <!-- Subtle Decorative Flow Line (behind content, restrained 10% opacity) -->
+    <div class="hero-tech-flow" aria-hidden="true">
+        <svg class="hero-flow-svg" viewBox="0 0 1200 500" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+            <path class="flow-track" d="M 60 400 C 240 370, 360 280, 560 270 C 760 260, 880 160, 1140 140" stroke="url(#flowGrad1)" stroke-width="1.5" stroke-dasharray="6 8" />
+            <defs>
+                <linearGradient id="flowGrad1" x1="0%" y1="100%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#00A896" stop-opacity="0.16" />
+                    <stop offset="50%" stop-color="#0077B6" stop-opacity="0.12" />
+                    <stop offset="100%" stop-color="#10B981" stop-opacity="0.16" />
+                </linearGradient>
+            </defs>
+        </svg>
+    </div>
+
+    <div class="container position-relative pt-2 pb-4" style="z-index: 2;">
+        <div class="row align-items-center g-4 g-lg-5">
+            <!-- Left Hero Content -->
+            <div class="col-lg-6 hero-text-col">
+                <div class="hero-text-container">
+                    <!-- Badge -->
+                    <div class="mb-3">
+                        <span class="badge-soft-teal px-3 py-1-5 rounded-pill d-inline-flex align-items-center gap-2" style="font-size: 0.84rem; font-weight: 600; box-shadow: 0 2px 8px rgba(0, 168, 150, 0.1);">
+                            <span class="hero-badge-dot"></span>
+                            <i class="fas fa-prescription-bottle-alt text-teal"></i>
+                            Smart Hospital Pharmacy Management
+                        </span>
+                    </div>
+
+                    <!-- Main Heading -->
+                    <h1 class="hero-heading fw-extrabold mb-3" style="line-height: 1.2; font-family: 'Outfit', sans-serif;">
+                        <span class="text-navy">Smarter Medicine </span><span class="text-teal">Inventory.</span><br class="d-none d-sm-inline">
+                        <span class="text-navy">Better Pharmacy Management.</span>
+                    </h1>
+
+                    <!-- Description -->
+                    <p class="hero-description text-secondary mb-4">
+                        Manage medicine inventory, monitor stock levels, track expiry dates, streamline procurement, compare supplier prices, and make informed pharmacy decisions from one centralized platform.
+                    </p>
+
+                    <!-- Hero CTA Buttons -->
+                    <div class="d-flex flex-wrap gap-3 mb-0">
+                        <a href="{% url 'pharmacist_register' %}" class="btn hero-cta-primary text-decoration-none">
+                            <span>Get Started</span>
+                            <i class="fas fa-arrow-right ms-2"></i>
+                        </a>
+                        <a href="#features" class="btn hero-cta-secondary text-decoration-none">
+                            <i class="fas fa-compass me-2"></i> Explore Platform
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Hero Dashboard Visual -->
+            <div class="col-lg-6">
+                <div class="hero-dashboard-container">
+                    <!-- Subtle ambient cyan/teal glow behind the floating dashboard -->
+                    <div class="hero-dashboard-glow" aria-hidden="true"></div>
+                    <div class="hero-dashboard-accent-node top-accent" aria-hidden="true"></div>
+                    <div class="hero-dashboard-accent-node bottom-accent" aria-hidden="true"></div>
+
+                    <!-- Floating SaaS Glass Preview Card -->
+                    <div class="hero-dashboard-card">
+                        <!-- Dashboard Card Header -->
+                        <div class="d-flex justify-content-between align-items-center pb-2 border-bottom mb-3">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-teal-soft text-teal p-2 rounded"><i class="fas fa-chart-pie fs-5"></i></span>
+                                <div>
+                                    <h6 class="fw-bold mb-0 text-navy" style="font-size: 0.92rem;">Pharmacy Inventory Overview</h6>
+                                    <span class="text-muted" style="font-size: 0.72rem;"><span class="hero-status-dot"></span> System Active · Sample Metrics</span>
+                                </div>
+                            </div>
+                            <span class="badge bg-light text-muted border" style="font-size: 0.72rem;">Illustrative Preview</span>
+                        </div>
+
+                        <!-- Mini Visual Stats Grid (Illustrative) -->
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <div class="hero-stat-card">
+                                    <span class="text-muted d-block mb-1" style="font-size: 0.72rem;">Stock Optimum Rate</span>
+                                    <span class="fs-5 fw-bold text-teal">94.8%</span>
+                                    <span class="text-success small ms-1" style="font-size: 0.7rem;"><i class="fas fa-arrow-up"></i> +3.2%</span>
+                                    <div class="hero-stat-bar mt-2">
+                                        <div class="hero-stat-bar-fill" style="width: 94.8%;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="hero-stat-card">
+                                    <span class="text-muted d-block mb-1" style="font-size: 0.72rem;">Near-Expiry Alerts</span>
+                                    <span class="fs-5 fw-bold text-amber">4 Batches</span>
+                                    <span class="text-muted small ms-1" style="font-size: 0.7rem;">Action Req.</span>
+                                    <div class="d-flex gap-1 mt-2">
+                                        <span class="hero-expiry-dot bg-danger"></span>
+                                        <span class="hero-expiry-dot bg-warning"></span>
+                                        <span class="hero-expiry-dot bg-warning"></span>
+                                        <span class="hero-expiry-dot bg-info"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Mini Demand Forecast Canvas with Illustrative Badge -->
+                        <div class="hero-chart-container p-2-5 rounded-3 border">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="text-muted fw-semibold" style="font-size: 0.74rem;"><i class="fas fa-brain text-purple me-1"></i> AI Demand Forecast — Upcoming 30 Days</span>
+                                <span class="badge bg-white text-muted border px-1-5 py-0-5" style="font-size: 0.62rem;">Illustrative</span>
+                            </div>
+                            <canvas id="demandForecastChart" height="110"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+
+<!-- STATISTICS / TRUST SECTION -->
+<section class="py-5 bg-white border-top border-bottom">
+    <div class="container">
+        <div class="row g-4 text-center">
+            <div class="col-md-3 col-sm-6">
+                <div class="card card-medivault h-100 p-4 border-0 bg-light">
+                    <div class="card-icon-wrapper mx-auto"><i class="fas fa-boxes-stacked"></i></div>
+                    <h5 class="fw-bold text-navy mb-1">Active Monitoring</h5>
+                    <p class="text-muted small mb-0">Real-time stock levels and batch numbers</p>
+                </div>
+            </div>
+
+            <div class="col-md-3 col-sm-6">
+                <div class="card card-medivault h-100 p-4 border-0 bg-light">
+                    <div class="card-icon-wrapper mx-auto"><i class="fas fa-calendar-check"></i></div>
+                    <h5 class="fw-bold text-navy mb-1">Expiry Control</h5>
+                    <p class="text-muted small mb-0">Prevent stock waste with early alerts</p>
+                </div>
+            </div>
+
+            <div class="col-md-3 col-sm-6">
+                <div class="card card-medivault h-100 p-4 border-0 bg-light">
+                    <div class="card-icon-wrapper mx-auto"><i class="fas fa-truck-field"></i></div>
+                    <h5 class="fw-bold text-navy mb-1">Procurement</h5>
+                    <p class="text-muted small mb-0">Streamlined supplier purchase workflow</p>
+                </div>
+            </div>
+
+            <div class="col-md-3 col-sm-6">
+                <div class="card card-medivault h-100 p-4 border-0 bg-light">
+                    <div class="card-icon-wrapper mx-auto"><i class="fas fa-file-shield"></i></div>
+                    <h5 class="fw-bold text-navy mb-1">Data-Driven Insights</h5>
+                    <p class="text-muted small mb-0">Reports to support stock decisions</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+<!-- PROBLEM-SOLUTION SECTION -->
+<section class="py-5 bg-healthcare-accent">
+    <div class="container py-lg-4">
+        <div class="text-center max-width-700 mx-auto mb-5">
+            <span class="badge badge-soft-warning mb-2">Hospital Challenges</span>
+            <h2 class="display-6 fw-bold text-navy">Pharmacy Inventory Shouldn't Be a Guessing Game</h2>
+            <p class="text-muted">Unpredictable demand and manual tracking create costly hospital pharmacy bottlenecks.</p>
+        </div>
+
+        <div class="row g-4 mb-5">
+            <div class="col-lg-3 col-md-6">
+                <div class="card card-medivault h-100 p-4 border-danger-soft">
+                    <div class="text-danger fs-3 mb-3"><i class="fas fa-store-slash"></i></div>
+                    <h5 class="fw-bold text-navy">1. Stock Shortages</h5>
+                    <p class="text-muted small mb-0">Essential medicines become unavailable when emergency demand spikes unexpectedly.</p>
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-md-6">
+                <div class="card card-medivault h-100 p-4 border-warning-soft">
+                    <div class="text-warning fs-3 mb-3"><i class="fas fa-warehouse"></i></div>
+                    <h5 class="fw-bold text-navy">2. Overstocking</h5>
+                    <p class="text-muted small mb-0">Excess inventory ties up hospital working capital and inflates storage costs.</p>
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-md-6">
+                <div class="card card-medivault h-100 p-4 border-danger-soft">
+                    <div class="text-danger fs-3 mb-3"><i class="fas fa-calendar-times"></i></div>
+                    <h5 class="fw-bold text-navy">3. Medicine Expiry</h5>
+                    <p class="text-muted small mb-0">Manual batch tracking leads to expired stocks and avoidable financial losses.</p>
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-md-6">
+                <div class="card card-medivault h-100 p-4 border-info-soft">
+                    <div class="text-primary fs-3 mb-3"><i class="fas fa-arrow-trend-up"></i></div>
+                    <h5 class="fw-bold text-navy">4. Price Fluctuations</h5>
+                    <p class="text-muted small mb-0">Untracked supplier price changes make procurement decisions slow and expensive.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Solution Banner -->
+        <div class="p-4 p-lg-5 rounded-4 bg-navy text-white text-center shadow-lg position-relative overflow-hidden" style="background: linear-gradient(135deg, #0F2744, #023E8A);">
+            <h3 class="fw-bold text-white mb-2"><i class="fas fa-cubes text-teal me-2"></i> Everything Your Pharmacy Needs to Stay in Control</h3>
+            <p class="text-light opacity-75 mb-0 fs-5">From daily stock monitoring to procurement and expiry tracking, Sanalogx brings essential pharmacy operations together in one place.</p>
+        </div>
+    </div>
+</section>
+
+
+<!-- CORE FEATURES -->
+<section id="features" class="py-5 bg-white">
+    <div class="container py-lg-4">
+        <div class="text-center max-width-700 mx-auto mb-5">
+            <span class="badge badge-soft-teal mb-2">Capabilities</span>
+            <h2 class="display-6 fw-bold text-navy">Pharmacy Management Suite</h2>
+            <p class="text-muted">A complete suite of smart tools engineered specifically for hospital inventory management.</p>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-lg-3 col-md-6">
+                <div class="card card-medivault h-100 p-4">
+                    <div class="card-icon-wrapper"><i class="fas fa-boxes"></i></div>
+                    <h5 class="fw-bold text-navy">Inventory Management</h5>
+                    <p class="text-muted small mb-0">Keep track of medicine quantities, batches, stock movement, and reorder levels in one place.</p>
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-md-6">
+                <div class="card card-medivault h-100 p-4">
+                    <div class="card-icon-wrapper"><i class="fas fa-lightbulb"></i></div>
+                    <h5 class="fw-bold text-navy">Smart Recommendations</h5>
+                    <p class="text-muted small mb-0">Use historical stock and consumption data to support better reorder and inventory decisions.</p>
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-md-6">
+                <div class="card card-medivault h-100 p-4">
+                    <div class="card-icon-wrapper"><i class="fas fa-truck-field"></i></div>
+                    <h5 class="fw-bold text-navy">Supplier Management</h5>
+                    <p class="text-muted small mb-0">Maintain supplier information and compare medicine prices to support better purchasing decisions.</p>
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-md-6">
+                <div class="card card-medivault h-100 p-4">
+                    <div class="card-icon-wrapper"><i class="fas fa-file-invoice"></i></div>
+                    <h5 class="fw-bold text-navy">Procurement Management</h5>
+                    <p class="text-muted small mb-0">Manage purchase requirements, purchase orders, suppliers, and incoming stock efficiently.</p>
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-md-6">
+                <div class="card card-medivault h-100 p-4">
+                    <div class="card-icon-wrapper"><i class="fas fa-hourglass-half"></i></div>
+                    <h5 class="fw-bold text-navy">Expiry Management</h5>
+                    <p class="text-muted small mb-0">Monitor approaching expiry dates and prioritize medicines before they become unusable.</p>
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-md-6">
+                <div class="card card-medivault h-100 p-4">
+                    <div class="card-icon-wrapper"><i class="fas fa-triangle-exclamation"></i></div>
+                    <h5 class="fw-bold text-navy">Stock Monitoring</h5>
+                    <p class="text-muted small mb-0">Identify low-stock medicines, excess inventory, and medicines that need attention.</p>
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-md-6">
+                <div class="card card-medivault h-100 p-4">
+                    <div class="card-icon-wrapper"><i class="fas fa-chart-line"></i></div>
+                    <h5 class="fw-bold text-navy">Reports & Analytics</h5>
+                    <p class="text-muted small mb-0">View pharmacy activity, consumption trends, purchase history, expiry reports, and stock performance.</p>
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-md-6">
+                <div class="card card-medivault h-100 p-4">
+                    <div class="card-icon-wrapper"><i class="fas fa-qrcode"></i></div>
+                    <h5 class="fw-bold text-navy">Barcode & QR Support</h5>
+                    <p class="text-muted small mb-0">Scan barcodes and QR codes for swift verification and quick stock updates.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+<!-- DATA-DRIVEN INTELLIGENCE SECTION -->
+<section id="intelligence" class="py-5 bg-healthcare-accent">
+    <div class="container py-lg-4">
+        <div class="row align-items-center g-5">
+            <div class="col-lg-5">
+                <span class="badge badge-soft-teal mb-2">Optimized Stock Levels</span>
+                <h2 class="display-6 fw-bold text-navy mb-3">Make Better Stock Decisions with Data</h2>
+                <p class="text-secondary mb-4">
+                    Sanalogx analyzes inventory and consumption patterns to help identify upcoming stock requirements, expiry risks, and purchasing priorities.
+                </p>
+                
+                <div class="d-flex flex-column gap-3">
+                    <div class="p-3 bg-white rounded-3 border">
+                        <div class="d-flex align-items-start gap-3">
+                            <i class="fas fa-chart-simple text-teal fs-4 mt-1"></i>
+                            <div>
+                                <h6 class="fw-bold mb-1 text-navy">Demand Forecasting</h6>
+                                <p class="text-muted small mb-0">Estimate future medicine requirements using historical consumption patterns.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-3 bg-white rounded-3 border">
+                        <div class="d-flex align-items-start gap-3">
+                            <i class="fas fa-triangle-exclamation text-warning fs-4 mt-1"></i>
+                            <div>
+                                <h6 class="fw-bold mb-1 text-navy">Stock Risk Detection</h6>
+                                <p class="text-muted small mb-0">Identify medicines that may run out before the next procurement cycle.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-3 bg-white rounded-3 border">
+                        <div class="d-flex align-items-start gap-3">
+                            <i class="fas fa-calendar-xmark text-danger fs-4 mt-1"></i>
+                            <div>
+                                <h6 class="fw-bold mb-1 text-navy">Expiry Risk Analysis</h6>
+                                <p class="text-muted small mb-0">Highlight batches that are approaching expiry so pharmacists can take timely action.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-3 bg-white rounded-3 border">
+                        <div class="d-flex align-items-start gap-3">
+                            <i class="fas fa-cart-shopping text-blue fs-4 mt-1"></i>
+                            <div>
+                                <h6 class="fw-bold mb-1 text-navy">Purchase Recommendations</h6>
+                                <p class="text-muted small mb-0">Support purchasing decisions using stock levels, consumption trends, and reorder requirements.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Visual Panel (Realistic Pharmacy Insights Preview) -->
+            <div class="col-lg-7">
+                <div class="card card-medivault p-4 shadow-lg border-teal">
+                    <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+                        <h6 class="fw-bold text-navy mb-0"><i class="fas fa-chart-line text-teal me-2"></i> Smart Supplier Recommendations</h6>
+                        <span class="badge bg-success text-white">Analysis Engine Active</span>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="p-3 rounded bg-light border">
+                                <div class="d-flex justify-content-between text-muted small mb-1">
+                                    <span>Demand Forecast</span>
+                                    <span class="text-teal font-monospace fw-bold">+18%</span>
+                                </div>
+                                <h6 class="fw-bold text-navy mb-0">Paracetamol 500mg</h6>
+                                <span class="text-muted small">Next 30 Days Consumption</span>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="p-3 rounded bg-light border">
+                                <div class="d-flex justify-content-between text-muted small mb-1">
+                                    <span>Stock Out Risk</span>
+                                    <span class="text-danger font-monospace fw-bold">HIGH RISK</span>
+                                </div>
+                                <h6 class="fw-bold text-navy mb-0">Amoxicillin 250mg</h6>
+                                <span class="text-muted small">Current Level: 14 Units</span>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="p-3 rounded bg-light border">
+                                <div class="d-flex justify-content-between text-muted small mb-1">
+                                    <span>Recommended Vendor</span>
+                                    <span class="badge badge-soft-success">Best Score</span>
+                                </div>
+                                <h6 class="fw-bold text-navy mb-0">ABC Pharma Ltd.</h6>
+                                <span class="text-muted small">Score: 92/100 (Price & Lead Time)</span>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="p-3 rounded bg-light border">
+                                <div class="d-flex justify-content-between text-muted small mb-1">
+                                    <span>Price Trend</span>
+                                    <span class="text-success font-monospace fw-bold">↓ 8% Drop</span>
+                                </div>
+                                <h6 class="fw-bold text-navy mb-0">₹120 → ₹112 / Box</h6>
+                                <span class="text-muted small">Price intelligence monitored</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+<!-- SUPPLIER PRICE INTELLIGENCE -->
+<section class="py-5 bg-white border-top border-bottom">
+    <div class="container py-lg-4">
+        <div class="text-center max-width-700 mx-auto mb-5">
+            <span class="badge badge-soft-teal mb-2">Procurement Advantage</span>
+            <h2 class="display-6 fw-bold text-navy">Know Which Supplier Offers the Better Deal</h2>
+            <p class="text-muted">Compare prices, delivery lead times, and vendor performance history in real time.</p>
+        </div>
+
+        <div class="row align-items-center g-4">
+            <div class="col-lg-7">
+                <div class="card card-medivault p-3 shadow-sm">
+                    <div class="table-responsive">
+                        <table class="table table-medivault align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Medicine</th>
+                                    <th>Supplier</th>
+                                    <th>Current Price</th>
+                                    <th>Previous Price</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="fw-bold text-navy">Paracetamol 500mg</td>
+                                    <td>ABC Pharma</td>
+                                    <td class="fw-bold text-success">₹18.00</td>
+                                    <td class="text-muted text-decoration-line-through">₹20.00</td>
+                                    <td><span class="badge badge-soft-success"><i class="fas fa-arrow-down"></i> Best Price</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold text-navy">Paracetamol 500mg</td>
+                                    <td>MedLife Distributors</td>
+                                    <td>₹19.00</td>
+                                    <td class="text-muted">₹18.00</td>
+                                    <td><span class="badge badge-soft-warning"><i class="fas fa-arrow-up"></i> +5%</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold text-navy">Paracetamol 500mg</td>
+                                    <td>HealthCare Ltd.</td>
+                                    <td class="fw-bold text-teal">₹17.50</td>
+                                    <td class="text-muted">₹18.50</td>
+                                    <td><span class="badge badge-soft-teal"><i class="fas fa-truck"></i> Fast Delivery</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Price History Chart -->
+            <div class="col-lg-5">
+                <div class="card card-medivault p-4 bg-light">
+                    <h6 class="fw-bold text-navy mb-3"><i class="fas fa-chart-line text-teal me-2"></i> Vendor Price History Chart</h6>
+                    <canvas id="supplierPriceChart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+<!-- SECTION 9: BUILT AROUND THE PHARMACY WORKFLOW -->
+<section id="workflow" class="py-5 bg-healthcare-accent position-relative border-top border-bottom">
+    <div class="container py-lg-4">
+        <div class="text-center max-width-700 mx-auto mb-5">
+            <span class="badge badge-soft-teal mb-2">Seamless Process</span>
+            <h2 class="display-6 fw-bold text-navy">How Sanalogx Fits Into Your Pharmacy Workflow</h2>
+            <p class="text-muted">Connect everyday pharmacy operations into one clear and manageable workflow.</p>
+        </div>
+
+        <div class="row g-3 text-center justify-content-center">
+            <div class="col-md-4 col-lg-3">
+                <div class="p-3 bg-white rounded-3 border card-medivault h-100 shadow-sm">
+                    <span class="badge bg-teal-soft text-teal mb-2">1</span>
+                    <h6 class="fw-bold text-navy mb-1">Monitor Stock</h6>
+                    <p class="text-muted small mb-0">Track real-time inventory counts and batch availability.</p>
+                </div>
+            </div>
+
+            <div class="col-md-4 col-lg-3">
+                <div class="p-3 bg-white rounded-3 border card-medivault h-100 shadow-sm">
+                    <span class="badge bg-teal-soft text-teal mb-2">2</span>
+                    <h6 class="fw-bold text-navy mb-1">Identify Requirements</h6>
+                    <p class="text-muted small mb-0">Detect low-stock conditions and expiry alerts immediately.</p>
+                </div>
+            </div>
+
+            <div class="col-md-4 col-lg-3">
+                <div class="p-3 bg-white rounded-3 border card-medivault h-100 shadow-sm">
+                    <span class="badge bg-teal-soft text-teal mb-2">3</span>
+                    <h6 class="fw-bold text-navy mb-1">Review Purchase Needs</h6>
+                    <p class="text-muted small mb-0">Calculate optimum reorder limits for missing medicine stock.</p>
+                </div>
+            </div>
+
+            <div class="col-md-4 col-lg-3">
+                <div class="p-3 bg-white rounded-3 border card-medivault h-100 shadow-sm">
+                    <span class="badge bg-teal-soft text-teal mb-2">4</span>
+                    <h6 class="fw-bold text-navy mb-1">Manage Suppliers</h6>
+                    <p class="text-muted small mb-0">Compare available vendors by price, rating, and lead time.</p>
+                </div>
+            </div>
+
+            <div class="col-md-4 col-lg-3 mt-lg-3">
+                <div class="p-3 bg-white rounded-3 border card-medivault h-100 shadow-sm">
+                    <span class="badge bg-teal-soft text-teal mb-2">5</span>
+                    <h6 class="fw-bold text-navy mb-1">Receive & Verify Medicines</h6>
+                    <p class="text-muted small mb-0">Record and inspect incoming batches and invoice details.</p>
+                </div>
+            </div>
+
+            <div class="col-md-4 col-lg-3 mt-lg-3">
+                <div class="p-3 bg-white rounded-3 border card-medivault h-100 shadow-sm">
+                    <span class="badge bg-teal-soft text-teal mb-2">6</span>
+                    <h6 class="fw-bold text-navy mb-1">Update Inventory</h6>
+                    <p class="text-muted small mb-0">Save batches to database with transaction logs and audit trail.</p>
+                </div>
+            </div>
+
+            <div class="col-md-4 col-lg-3 mt-lg-3">
+                <div class="p-3 bg-white rounded-3 border card-medivault h-100 shadow-sm">
+                    <span class="badge bg-teal-soft text-teal mb-2">7</span>
+                    <h6 class="fw-bold text-navy mb-1">Monitor Consumption</h6>
+                    <p class="text-muted small mb-0">Track everyday dispensing metrics and utilization history.</p>
+                </div>
+            </div>
+
+            <div class="col-md-4 col-lg-3 mt-lg-3">
+                <div class="p-3 bg-white rounded-3 border card-medivault h-100 shadow-sm">
+                    <span class="badge bg-teal-soft text-teal mb-2">8</span>
+                    <h6 class="fw-bold text-navy mb-1">Review Recommendations</h6>
+                    <p class="text-muted small mb-0">Utilize smart reorder guidelines to control inventory spend.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+<!-- PHARMACY SNAPSHOT SECTION (MOCK PREVIEW) -->
+<section class="py-5 bg-white">
+    <div class="container py-lg-4">
+        <div class="text-center max-width-700 mx-auto mb-5">
+            <span class="badge badge-soft-teal mb-2">Live Metrics Preview</span>
+            <h2 class="display-6 fw-bold text-navy">Pharmacy Operations at a Glance</h2>
+            <p class="text-muted">A high-level view of hospital stock metrics and demand trends.</p>
+        </div>
+
+        <div class="row g-4 align-items-center">
+            <!-- 4 Mock Metric Cards -->
+            <div class="col-lg-5">
+                <div class="row g-3">
+                    <div class="col-6">
+                        <div class="card card-medivault p-3 bg-light border-0">
+                            <span class="text-muted small font-heading">Total Medicines</span>
+                            <h3 class="fw-bold text-navy my-1">1,248</h3>
+                            <span class="text-teal small"><i class="fas fa-pills me-1"></i> Active Catalog</span>
+                        </div>
+                    </div>
+
+                    <div class="col-6">
+                        <div class="card card-medivault p-3 bg-light border-0">
+                            <span class="text-muted small font-heading">Low Stock</span>
+                            <h3 class="fw-bold text-warning my-1">18</h3>
+                            <span class="text-warning small"><i class="fas fa-triangle-exclamation me-1"></i> Reorder Req.</span>
+                        </div>
+                    </div>
+
+                    <div class="col-6">
+                        <div class="card card-medivault p-3 bg-light border-0">
+                            <span class="text-muted small font-heading">Near Expiry</span>
+                            <h3 class="fw-bold text-danger my-1">27</h3>
+                            <span class="text-danger small"><i class="fas fa-clock me-1"></i> Within 30 Days</span>
+                        </div>
+                    </div>
+
+                    <div class="col-6">
+                        <div class="card card-medivault p-3 bg-light border-0">
+                            <span class="text-muted small font-heading">Pending Purchases</span>
+                            <h3 class="fw-bold text-blue my-1">12</h3>
+                            <span class="text-blue small"><i class="fas fa-truck-fast me-1"></i> In Transit</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-3 bg-light rounded-3 border mt-3 text-center text-muted small">
+                    <i class="fas fa-lock text-teal me-1"></i> Live insights will appear here after system authentication.
+                </div>
+            </div>
+
+            <!-- Mock Chart Canvas -->
+            <div class="col-lg-7">
+                <div class="card card-medivault p-4 bg-light shadow-sm">
+                    <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                        <h6 class="fw-bold text-navy mb-0"><i class="fas fa-chart-area text-teal me-2"></i> Medicine Demand Trend</h6>
+                        <span class="badge bg-white text-dark border">Sample Data</span>
+                    </div>
+                    <canvas id="snapshotDemandChart" height="180"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+<!-- SECURITY SECTION -->
+<section id="security" class="py-5 bg-healthcare-accent border-top">
+    <div class="container py-lg-4 text-center">
+        <span class="badge badge-soft-teal mb-2">Protected Environment</span>
+        <h2 class="display-6 fw-bold text-navy mb-4">Built for Controlled Pharmacy Access</h2>
+        <p class="text-muted max-width-700 mx-auto mb-5">Role-based access and approval workflows help ensure that pharmacy information is accessed only by authorized users.</p>
+
+        <div class="row g-4 max-width-900 mx-auto text-start">
+            <div class="col-md-6 col-lg-3">
+                <div class="p-4 bg-white rounded-3 border card-medivault h-100 shadow-sm">
+                    <i class="fas fa-user-shield text-navy fs-2 mb-3"></i>
+                    <h5 class="fw-bold text-navy small mb-2">Admin Approvals</h5>
+                    <p class="text-muted small mb-0">Admin-controlled pharmacist registration approval workflow.</p>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-3">
+                <div class="p-4 bg-white rounded-3 border card-medivault h-100 shadow-sm">
+                    <i class="fas fa-key text-teal fs-2 mb-3"></i>
+                    <h5 class="fw-bold text-navy small mb-2">Role Controls</h5>
+                    <p class="text-muted small mb-0">Strict role-based access limits for pharmacy actions.</p>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-3">
+                <div class="p-4 bg-white rounded-3 border card-medivault h-100 shadow-sm">
+                    <i class="fas fa-envelope-circle-check text-blue fs-2 mb-3"></i>
+                    <h5 class="fw-bold text-navy small mb-2">Verification</h5>
+                    <p class="text-muted small mb-0">Secure email verification and session token authentication.</p>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-3">
+                <div class="p-4 bg-white rounded-3 border card-medivault h-100 shadow-sm">
+                    <i class="fas fa-database text-green fs-2 mb-3"></i>
+                    <h5 class="fw-bold text-navy small mb-2">Data Protection</h5>
+                    <p class="text-muted small mb-0">Password hashing protection and secure session management.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CALL TO ACTION BANNER -->
+<section class="py-5 bg-navy text-white text-center" style="background: linear-gradient(135deg, #0F2744, #023E8A);">
+    <div class="container py-3">
+        <h3 class="fw-bold text-white mb-3">Optimize Your Hospital Pharmacy Inventory Today</h3>
+        <p class="text-light opacity-75 max-width-700 mx-auto mb-4">
+            Sanalogx helps hospitals manage medicines more efficiently by bringing inventory, expiry, procurement, suppliers, analytics, and intelligent recommendations together in one platform.
+        </p>
+        <a href="{% url 'pharmacist_register' %}" class="btn btn-medivault-primary btn-lg shadow-lg">
+            Register Pharmacist Account <i class="fas fa-user-plus ms-2"></i>
+        </a>
+    </div>
+</section>
+
+{% endblock %}

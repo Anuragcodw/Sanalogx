@@ -1,0 +1,393 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Physical Stock Reconciliation — Sanalogx{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-lg-5 py-4">
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div>
+            <h2 class="fw-bold text-navy mb-1">
+                <i class="fas fa-scale-balanced text-teal me-2"></i> Physical Stock Count & Reconciliation
+            </h2>
+            <p class="text-muted small mb-0">
+                Reconcile physical batch count with system inventory. Auto-generates adjustment StockTransaction and updates Controlled Drug ledger.
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'discrepancy_list' %}" class="btn btn-outline-warning btn-sm">
+                <i class="fas fa-triangle-exclamation me-1"></i> Discrepancy Queue
+            </a>
+            {% if user.role == 'PHARMACIST' %}
+            <a href="{% url 'secure_dispensing_workspace' %}" class="btn btn-outline-teal btn-sm">
+                <i class="fas fa-shield-virus me-1"></i> Dispensing Workspace
+            </a>
+            {% else %}
+            <a href="{% url 'dispensing_history' %}" class="btn btn-outline-teal btn-sm">
+                <i class="fas fa-clock-rotate-left me-1"></i> Dispensing History
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Left: Reconciliation Form -->
+        <div class="col-lg-5">
+            <div class="card card-medivault bg-white shadow-sm p-4">
+                <h5 class="fw-bold text-navy mb-3">
+                    <i class="fas fa-clipboard-list text-teal me-2"></i> Submit Physical Count
+                </h5>
+                <p class="text-muted small mb-3">
+                    Select medicine and batch, enter the physical quantity you counted.
+                    If it differs from system stock, an ADJUSTMENT transaction will be created automatically.
+                </p>
+
+                <form method="POST" id="reconcileForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-muted">Select Medicine <span class="text-danger">*</span></label>
+                        <select id="medicineSelectRecon" name="medicine_id" class="form-select form-select-sm" onchange="loadBatchesForRecon(this.value)" required>
+                            <option value="">-- Choose Medicine --</option>
+                            {% for m in medicines %}
+                            <option value="{{ m.id }}">{{ m.medicine_name }} ({{ m.dosage_form }} {{ m.strength }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-muted">Select Batch <span class="text-danger">*</span></label>
+                        <select id="batchSelectRecon" name="batch_id" class="form-select form-select-sm" required>
+                            <option value="">-- Select Medicine First --</option>
+                        </select>
+                    </div>
+
+                    <!-- Live Batch Info Panel -->
+                    <div id="batchInfoPanel" class="alert alert-light border p-3 small mb-3 d-none">
+                        <div class="d-flex gap-3 flex-wrap">
+                            <div>
+                                <span class="text-muted d-block" style="font-size: 0.72rem;">System Stock</span>
+                                <strong id="batchSystemStock" class="fs-5 text-navy">—</strong>
+                            </div>
+                            <div>
+                                <span class="text-muted d-block" style="font-size: 0.72rem;">Batch Expiry</span>
+                                <strong id="batchExpiry" class="text-teal">—</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-muted">Physical Count (Actual Units Counted) <span class="text-danger">*</span></label>
+                        <input type="number" name="physical_count" id="physicalCount" class="form-control" min="0" placeholder="Enter physical count..." oninput="calculateVariance()" required>
+                    </div>
+
+                    <!-- Live Variance Calculation -->
+                    <div id="variancePanel" class="d-none mb-3">
+                        <div class="p-3 border rounded small">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="text-muted">System Stock:</span>
+                                <strong id="varSystemVal">—</strong>
+                            </div>
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="text-muted">Physical Count:</span>
+                                <strong id="varPhysicalVal">—</strong>
+                            </div>
+                            <hr class="my-2">
+                            <div class="d-flex justify-content-between fw-bold">
+                                <span>Variance:</span>
+                                <span id="varVarianceVal" class="fs-5">—</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label small fw-semibold text-muted">Reason for Reconciliation <span class="text-danger">*</span></label>
+                        <input type="text" name="reason" class="form-control form-control-sm" placeholder="e.g. Routine physical audit, Post-dispense count, Quarterly stocktake..." required>
+                    </div>
+
+                    <button type="button" class="btn btn-teal w-100 py-2 fw-semibold" onclick="openConfirmModal()">
+                        <i class="fas fa-scale-balanced me-2"></i> Review & Submit Reconciliation
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Right: Recent Reconciliation History -->
+        <div class="col-lg-7">
+            <div class="card card-medivault bg-white shadow-sm p-4">
+                <h5 class="fw-bold text-navy mb-3">
+                    <i class="fas fa-history text-teal me-2"></i> Recent Reconciliation Sessions
+                </h5>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle table-sm mb-0" style="min-width: 750px;">
+                        <thead class="table-light small">
+                            <tr>
+                                <th>Session ID</th>
+                                <th>Timestamp</th>
+                                <th>Medicine</th>
+                                <th>Batch</th>
+                                <th class="text-center">System</th>
+                                <th class="text-center">Physical</th>
+                                <th class="text-center">Variance</th>
+                                <th>Type</th>
+                                <th>Pharmacist</th>
+                            </tr>
+                        </thead>
+                        <tbody class="small">
+                            {% for rec in recent_reconciliations %}
+                            <tr>
+                                <td class="fw-bold text-teal font-monospace" style="font-size: 0.75rem;">{{ rec.session_id }}</td>
+                                <td>
+                                    <div style="font-size: 0.78rem;">{{ rec.created_at|date:"d M Y" }}</div>
+                                    <span class="text-muted" style="font-size: 0.72rem;">{{ rec.created_at|date:"H:i" }}</span>
+                                </td>
+                                <td class="fw-semibold text-navy" style="font-size: 0.78rem;">{{ rec.medicine.medicine_name|default:"General Stock Audit" }}</td>
+                                <td>
+                                    {% if rec.batch %}
+                                    <span class="badge bg-light text-navy border font-monospace">{{ rec.batch.batch_number }}</span>
+                                    {% else %}
+                                    <span class="text-muted small">Batch Audit</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">{{ rec.system_quantity }}</td>
+                                <td class="text-center fw-bold text-navy">{{ rec.physical_quantity }}</td>
+                                <td class="text-center fw-bold">
+                                    {% if rec.variance > 0 %}
+                                    <span class="text-success">+{{ rec.variance }}</span>
+                                    {% elif rec.variance < 0 %}
+                                    <span class="text-danger">{{ rec.variance }}</span>
+                                    {% else %}
+                                    <span class="badge bg-success-subtle text-success border">Match</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if rec.variance_type == 'MATCH' %}
+                                    <span class="badge bg-success-subtle text-success border" style="font-size: 0.7rem;">Match</span>
+                                    {% elif rec.variance_type == 'SURPLUS' %}
+                                    <span class="badge bg-primary-subtle text-primary border" style="font-size: 0.7rem;">Surplus</span>
+                                    {% elif rec.variance_type == 'DEFICIT' %}
+                                    <span class="badge bg-danger-subtle text-danger border" style="font-size: 0.7rem;">Deficit</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary" style="font-size: 0.7rem;">{{ rec.get_variance_type_display }}</span>
+                                    {% endif %}
+                                </td>
+                                <td style="font-size: 0.75rem;">{{ rec.performed_by.username|default:rec.pharmacist.username }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="9" class="text-center text-muted py-4 small">
+                                    <i class="fas fa-inbox d-block mb-2 fs-3 opacity-50"></i>
+                                    No reconciliation sessions yet.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Pre-Commit Confirmation Modal -->
+<div class="modal fade" id="reconConfirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+            <div class="modal-header bg-navy text-white" style="border-top-left-radius: 16px; border-top-right-radius: 16px;">
+                <h5 class="modal-title fw-bold">
+                    <i class="fas fa-shield-halved text-teal me-2"></i> Confirm Stock Reconciliation
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="alert alert-warning py-2 px-3 small mb-3">
+                    <i class="fas fa-triangle-exclamation me-1"></i>
+                    <strong>Important:</strong> Submitting will adjust the actual batch stock in inventory and append an immutable audit record to the inventory transaction ledger.
+                </div>
+                <div class="list-group list-group-flush small border rounded">
+                    <div class="list-group-item d-flex justify-content-between py-2">
+                        <span class="text-muted">Medicine:</span>
+                        <strong id="modalMedName" class="text-navy">—</strong>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between py-2">
+                        <span class="text-muted">Batch Number:</span>
+                        <strong id="modalBatchNo" class="font-monospace text-teal">—</strong>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between py-2">
+                        <span class="text-muted">System Stock:</span>
+                        <span id="modalSystemStock" class="fw-semibold">—</span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between py-2">
+                        <span class="text-muted">Physical Count:</span>
+                        <span id="modalPhysicalCount" class="fw-bold text-navy">—</span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between py-2">
+                        <span class="text-muted">Variance:</span>
+                        <span id="modalVariance" class="fw-bold">—</span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between py-2">
+                        <span class="text-muted">Audit Reason:</span>
+                        <span id="modalReason" class="text-wrap text-end" style="max-width: 250px;">—</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel / Edit</button>
+                <button type="button" class="btn btn-teal btn-sm px-3 fw-bold" onclick="commitReconciliation()">
+                    <i class="fas fa-check-double me-1"></i> Confirm & Commit Adjustment
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentSystemStock = 0;
+let selectedBatchText = '';
+
+function loadBatchesForRecon(medId) {
+    const batchSel = document.getElementById('batchSelectRecon');
+    batchSel.innerHTML = '<option value="">Loading batches...</option>';
+    batchSel.disabled = true;
+    document.getElementById('batchInfoPanel').classList.add('d-none');
+    document.getElementById('variancePanel').classList.add('d-none');
+
+    if (!medId) {
+        batchSel.innerHTML = '<option value="">-- Select Medicine First --</option>';
+        batchSel.disabled = true;
+        return;
+    }
+
+    fetch("{% url 'api_secure_barcode_scan' %}?code=" + encodeURIComponent(medId))
+        .then(res => res.json())
+        .then(data => {
+            batchSel.innerHTML = '<option value="">-- Select Batch --</option>';
+            if (data.success && data.type === 'MEDICINE' && data.medicine.batches && data.medicine.batches.length > 0) {
+                data.medicine.batches.forEach(b => {
+                    const opt = document.createElement('option');
+                    opt.value = b.id;
+                    opt.text = b.batch_number + ' (Exp: ' + b.expiry_date + ', Stock: ' + b.quantity_available + ' units)';
+                    opt.setAttribute('data-qty', b.quantity_available);
+                    opt.setAttribute('data-expiry', b.expiry_date);
+                    opt.setAttribute('data-batchno', b.batch_number);
+                    batchSel.appendChild(opt);
+                });
+                batchSel.disabled = false;
+            } else {
+                batchSel.innerHTML = '<option value="">No batches found for this medicine</option>';
+            }
+        })
+        .catch(err => {
+            batchSel.innerHTML = '<option value="">Error loading batches</option>';
+        });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const batchSel = document.getElementById('batchSelectRecon');
+    batchSel.addEventListener('change', function() {
+        const opt = this.options[this.selectedIndex];
+        const qty = opt ? opt.getAttribute('data-qty') : null;
+        const expiry = opt ? opt.getAttribute('data-expiry') : null;
+        if (qty !== null && qty !== undefined && opt.value) {
+            currentSystemStock = parseInt(qty);
+            selectedBatchText = opt.getAttribute('data-batchno') || opt.text;
+            document.getElementById('batchSystemStock').innerText = qty + ' units';
+            document.getElementById('batchExpiry').innerText = expiry;
+            document.getElementById('batchInfoPanel').classList.remove('d-none');
+            calculateVariance();
+        } else {
+            document.getElementById('batchInfoPanel').classList.add('d-none');
+            document.getElementById('variancePanel').classList.add('d-none');
+        }
+    });
+});
+
+function calculateVariance() {
+    const physInput = document.getElementById('physicalCount');
+    if (!physInput.value.trim()) {
+        document.getElementById('variancePanel').classList.add('d-none');
+        return;
+    }
+    const physVal = parseInt(physInput.value) || 0;
+    if (isNaN(currentSystemStock)) return;
+
+    const variance = physVal - currentSystemStock;
+    document.getElementById('varSystemVal').innerText = currentSystemStock + ' units';
+    document.getElementById('varPhysicalVal').innerText = physVal + ' units';
+
+    const varEl = document.getElementById('varVarianceVal');
+    if (variance > 0) {
+        varEl.innerText = '+' + variance + ' (Surplus)';
+        varEl.className = 'fs-5 text-success fw-bold';
+    } else if (variance < 0) {
+        varEl.innerText = variance + ' (Deficit)';
+        varEl.className = 'fs-5 text-danger fw-bold';
+    } else {
+        varEl.innerText = '0 (Match ✓)';
+        varEl.className = 'fs-5 text-success fw-bold';
+    }
+    document.getElementById('variancePanel').classList.remove('d-none');
+}
+
+function openConfirmModal() {
+    const medSel = document.getElementById('medicineSelectRecon');
+    const batchSel = document.getElementById('batchSelectRecon');
+    const physInput = document.getElementById('physicalCount');
+    const reasonInput = document.querySelector('input[name="reason"]');
+
+    if (!medSel.value) {
+        alert('Please select a medicine.');
+        medSel.focus();
+        return;
+    }
+    if (!batchSel.value) {
+        alert('Please select a batch.');
+        batchSel.focus();
+        return;
+    }
+    if (physInput.value.trim() === '' || isNaN(parseInt(physInput.value)) || parseInt(physInput.value) < 0) {
+        alert('Please enter a valid physical count (0 or greater).');
+        physInput.focus();
+        return;
+    }
+    if (!reasonInput.value.trim()) {
+        alert('Please provide a reason for reconciliation.');
+        reasonInput.focus();
+        return;
+    }
+
+    const medName = medSel.options[medSel.selectedIndex].text;
+    const batchOpt = batchSel.options[batchSel.selectedIndex];
+    const batchNo = batchOpt.getAttribute('data-batchno') || batchOpt.text;
+    const physVal = parseInt(physInput.value);
+    const variance = physVal - currentSystemStock;
+
+    document.getElementById('modalMedName').innerText = medName;
+    document.getElementById('modalBatchNo').innerText = batchNo;
+    document.getElementById('modalSystemStock').innerText = currentSystemStock + ' units';
+    document.getElementById('modalPhysicalCount').innerText = physVal + ' units';
+
+    const modalVarEl = document.getElementById('modalVariance');
+    if (variance > 0) {
+        modalVarEl.innerText = '+' + variance + ' units (Surplus)';
+        modalVarEl.className = 'fw-bold text-success';
+    } else if (variance < 0) {
+        modalVarEl.innerText = variance + ' units (Deficit)';
+        modalVarEl.className = 'fw-bold text-danger';
+    } else {
+        modalVarEl.innerText = '0 units (Balanced / Match)';
+        modalVarEl.className = 'fw-bold text-success';
+    }
+    document.getElementById('modalReason').innerText = reasonInput.value.trim();
+
+    const modal = new bootstrap.Modal(document.getElementById('reconConfirmModal'));
+    modal.show();
+}
+
+function commitReconciliation() {
+    document.getElementById('reconcileForm').submit();
+}
+</script>
+{% endblock %}

@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Record Doctor Prescription — Sanalogx{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card card-medivault bg-white shadow-lg p-4 p-md-5">
+                <h4 class="fw-bold text-navy mb-3"><i class="fas fa-file-signature text-teal me-2"></i> Record & Verify Doctor Prescription</h4>
+                <p class="text-muted small mb-4">Input prescription details, prescribing doctor, and medication quantities for operational verification.</p>
+
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-muted">Patient Name <span class="text-danger">*</span></label>
+                            <input type="text" name="patient_name" class="form-control" placeholder="e.g. Anish Kumar" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-muted">Patient ID / UHID <span class="text-danger">*</span></label>
+                            <input type="text" name="patient_id" class="form-control" placeholder="e.g. UHID-1088" required>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-muted">Prescribing Doctor</label>
+                            <input type="text" name="doctor_name" class="form-control" placeholder="e.g. Dr. Rajesh Gupta, MD">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-muted">Doctor License / Reg No.</label>
+                            <input type="text" name="doctor_license" class="form-control" placeholder="e.g. MCI-2018-9942">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-muted">Hospital Department / Ward</label>
+                        <input type="text" name="department" class="form-control" value="General Medicine">
+                    </div>
+
+                    <hr class="my-4">
+
+                    <h6 class="fw-bold text-navy mb-3"><i class="fas fa-pills text-teal me-2"></i> Prescription Medicine Line Item</h6>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-8">
+                            <label class="form-label small fw-semibold text-muted">Prescribed Medicine <span class="text-danger">*</span></label>
+                            <select name="medicine_id" class="form-select" required>
+                                <option value="">-- Choose Medicine --</option>
+                                {% for med in medicines %}
+                                    <option value="{{ med.id }}">{{ med.medicine_name }} ({{ med.dosage_form }} - {{ med.strength }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold text-muted">Prescribed Quantity <span class="text-danger">*</span></label>
+                            <input type="number" name="quantity" min="1" value="10" class="form-control font-monospace fw-bold" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label small fw-semibold text-muted">Clinical Notes / Dosage Instructions</label>
+                        <textarea name="notes" class="form-control" rows="2" placeholder="e.g. 1 tablet twice daily after meals for 5 days."></textarea>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{% url 'prescription_list' %}" class="btn btn-outline-secondary py-2 px-3">Cancel</a>
+                        <button type="submit" class="btn btn-teal text-white py-2 px-4 fw-bold">
+                            <i class="fas fa-check-double me-1"></i> Verify & Save Prescription
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

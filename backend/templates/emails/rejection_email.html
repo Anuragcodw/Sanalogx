@@ -1,0 +1,46 @@
+{% extends 'emails/base_email.html' %}
+
+{% block email_title %}Sanalogx | Registration Decision{% endblock %}
+
+{% block email_content %}
+<h2 style="margin: 0 0 12px 0; color: #0F2744; font-size: 20px; font-weight: 700;">
+  Pharmacist Registration Update
+</h2>
+<p style="margin: 0 0 20px 0; font-size: 14px; color: #475569; line-height: 1.6;">
+  Dear <strong>{{ user.full_name|default:user.username }}</strong>,
+</p>
+<p style="margin: 0 0 20px 0; font-size: 14px; color: #475569; line-height: 1.6;">
+  Following thorough review by hospital administration, we regret to inform you that your request for pharmacist authorization on the Sanalogx platform could not be approved at this time.
+</p>
+
+<!-- Decision Details -->
+<table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #FEF2F2; border: 1px solid #FCA5A5; border-radius: 8px; margin-bottom: 24px;">
+  <tr>
+    <td style="padding: 18px 20px;">
+      <table border="0" cellpadding="0" cellspacing="0" width="100%">
+        {% if user.registration_id %}
+        <tr>
+          <td style="padding-bottom: 8px; font-size: 12px; font-weight: 600; color: #991B1B; text-transform: uppercase; width: 35%;">Registration ID:</td>
+          <td style="padding-bottom: 8px; font-size: 13px; font-weight: 700; color: #0F2744;">{{ user.registration_id }}</td>
+        </tr>
+        {% endif %}
+        <tr>
+          <td style="padding-bottom: 8px; font-size: 12px; font-weight: 600; color: #991B1B; text-transform: uppercase;">Decision:</td>
+          <td style="padding-bottom: 8px; font-size: 13px; font-weight: 700; color: #DC2626;">Application Not Approved</td>
+        </tr>
+        <tr>
+          <td style="vertical-align: top; font-size: 12px; font-weight: 600; color: #991B1B; text-transform: uppercase;">Reason / Notes:</td>
+          <td style="font-size: 13px; color: #1E293B; line-height: 1.5;">{{ rejection_reason|default:"Documentation or credential verification requirements were not met." }}</td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+<h3 style="margin: 0 0 8px 0; color: #0F2744; font-size: 14px; font-weight: 600;">
+  Next Steps &amp; Inquiries:
+</h3>
+<p style="margin: 0 0 16px 0; font-size: 13px; color: #475569; line-height: 1.6;">
+  If you believe this determination was made in error, or if you need to submit supplementary professional documentation, please reach out to the hospital pharmacy department or your supervisor.
+</p>
+{% endblock %}

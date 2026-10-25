@@ -1,0 +1,305 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Controlled Medicine Register — Sanalogx{% endblock %}
+
+{% block content %}
+<div class="ambient-healthcare-bg" style="min-height:100vh;">
+<div class="container-fluid px-lg-5 py-4" style="position:relative;z-index:1;">
+
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div>
+            <h2 class="fw-bold mb-1" style="color:#0F2744;">
+                <i class="fas fa-book-medical me-2" style="color:#DC2626;"></i> Controlled Medicine Running Register
+            </h2>
+            <p class="text-muted small mb-0">
+                Statutory audit ledger for Schedule H1, Schedule X, Narcotic &amp; Controlled medications. Immutable transaction log.
+            </p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            {% if user.role == 'PHARMACIST' %}
+            <a href="{% url 'secure_dispensing_workspace' %}" class="btn btn-sm fw-semibold text-white"
+               style="background:linear-gradient(135deg,#00A99D,#008779);border:none;border-radius:9px;padding:0.45rem 1rem;">
+                <i class="fas fa-shield-virus me-1"></i> Dispensing Workspace
+            </a>
+            {% else %}
+            <a href="{% url 'dispensing_history' %}" class="btn btn-sm fw-semibold text-white"
+               style="background:linear-gradient(135deg,#0F2744,#1A365D);border:none;border-radius:9px;padding:0.45rem 1rem;">
+                <i class="fas fa-clock-rotate-left me-1"></i> Dispensing History
+            </a>
+            {% endif %}
+            <a href="{% url 'reports_center' %}" class="btn btn-sm fw-semibold"
+               style="background:#FFFFFF;color:#0F2744;border:1px solid #CBD5E1;border-radius:9px;padding:0.45rem 1rem;">
+                <i class="fas fa-file-export me-1"></i> Export Register
+            </a>
+        </div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-sm-4">
+            <div class="kpi-card-compact">
+                <div>
+                    <div class="kpi-label">Controlled Drug SKUs (Active)</div>
+                    <div class="kpi-value" style="color:#DC2626;">{{ controlled_sku_count }}</div>
+                </div>
+                <div class="kpi-icon-pill" style="background:rgba(220,38,38,0.10);color:#DC2626;">
+                    <i class="fas fa-biohazard"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-4">
+            <div class="kpi-card-compact">
+                <div>
+                    <div class="kpi-label">Units Dispensed (Filtered)</div>
+                    <div class="kpi-value" style="color:#0F2744;">
+                        {{ total_dispensed }}
+                        {% if q or regulatory_category or transaction_type or start_date or end_date %}
+                        <span style="font-size:0.72rem;color:#64748B;font-weight:normal;">({{ all_time_dispensed }} all-time)</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="kpi-icon-pill" style="background:rgba(8,117,185,0.10);color:#0875B9;">
+                    <i class="fas fa-arrow-down-to-bracket"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-4">
+            <div class="kpi-card-compact">
+                <div>
+                    <div class="kpi-label">Units Received (Filtered)</div>
+                    <div class="kpi-value" style="color:#10B981;">
+                        {{ total_received }}
+                        {% if q or regulatory_category or transaction_type or start_date or end_date %}
+                        <span style="font-size:0.72rem;color:#64748B;font-weight:normal;">({{ all_time_received }} all-time)</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="kpi-icon-pill" style="background:rgba(16,185,129,0.10);color:#10B981;">
+                    <i class="fas fa-arrow-up-from-bracket"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="bg-white border rounded-3 p-3 mb-4 shadow-sm">
+        <form method="GET" class="row g-2 align-items-end">
+            <div class="col-md-3 col-sm-6">
+                <label class="form-label mb-1" style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#64748B;">Search Register</label>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-light border-end-0"><i class="fas fa-search text-muted" style="font-size:0.75rem;"></i></span>
+                    <input type="text" name="q" class="form-control border-start-0 ps-0" placeholder="Register ID, Medicine, Batch, Patient, Doctor..." value="{{ q }}" style="font-size:0.82rem;">
+                </div>
+            </div>
+            <div class="col-md-2 col-sm-6">
+                <label class="form-label mb-1" style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#64748B;">Regulatory Category</label>
+                <select name="regulatory_category" class="form-select form-select-sm" style="font-size:0.82rem;">
+                    <option value="">-- All Categories --</option>
+                    {% for code, label in categories %}
+                    <option value="{{ code }}" {% if regulatory_category == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2 col-sm-6">
+                <label class="form-label mb-1" style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#64748B;">Transaction Type</label>
+                <select name="transaction_type" class="form-select form-select-sm" style="font-size:0.82rem;">
+                    <option value="">-- All Types --</option>
+                    {% for code, label in transaction_types %}
+                    <option value="{{ code }}" {% if transaction_type == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2 col-sm-6">
+                <label class="form-label mb-1" style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#64748B;">From Date</label>
+                <input type="date" name="start_date" class="form-control form-control-sm" value="{{ start_date }}" style="font-size:0.82rem;">
+            </div>
+            <div class="col-md-2 col-sm-6">
+                <label class="form-label mb-1" style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#64748B;">To Date</label>
+                <input type="date" name="end_date" class="form-control form-control-sm" value="{{ end_date }}" style="font-size:0.82rem;">
+            </div>
+            <div class="col-md-1 col-sm-6 d-flex gap-1">
+                <button type="submit" class="btn btn-sm text-white fw-semibold flex-grow-1"
+                        style="background:#DC2626;border:none;border-radius:8px;font-size:0.8rem;" title="Apply Filter">
+                    <i class="fas fa-filter"></i>
+                </button>
+                <a href="{% url 'controlled_register' %}" class="btn btn-sm btn-light border" style="border-radius:8px;" title="Reset Filters">
+                    <i class="fas fa-rotate-left" style="font-size:0.75rem;"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Register Ledger Table -->
+    <div class="bg-white border rounded-3 shadow-sm" style="overflow:hidden;">
+        <div class="table-responsive">
+            <table class="table-medivault-compact table mb-0 align-middle" style="min-width: 1250px;">
+                <thead>
+                    <tr>
+                        <th class="ps-3" style="width: 125px;">Register ID</th>
+                        <th style="width: 100px;">Timestamp</th>
+                        <th>Type</th>
+                        <th>Medicine</th>
+                        <th>Regulatory Class</th>
+                        <th>Batch</th>
+                        <th>Patient Details</th>
+                        <th>Prescribing Doctor</th>
+                        <th class="text-center">Opening</th>
+                        <th class="text-center text-success">In</th>
+                        <th class="text-center text-danger">Out</th>
+                        <th class="text-center">Closing</th>
+                        <th>Pharmacist</th>
+                        <th class="pe-3">Reference</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for entry in page_obj %}
+                    <tr>
+                        <td class="ps-3">
+                            <span class="fw-bold font-monospace" style="color:#DC2626;font-size:0.78rem;">{{ entry.register_id }}</span>
+                        </td>
+                        <td style="white-space:nowrap;">
+                            <div style="font-size:0.82rem;color:#1E293B;">{{ entry.transaction_date|date:"d M Y" }}</div>
+                            <div style="font-size:0.7rem;color:#94A3B8;">{{ entry.transaction_date|date:"H:i" }}</div>
+                        </td>
+                        <td>
+                            {% if entry.transaction_type == 'DISPENSE' %}
+                            <span class="badge bg-danger-subtle text-danger border" style="font-size:0.68rem;">Dispense</span>
+                            {% elif entry.transaction_type == 'PURCHASE' %}
+                            <span class="badge bg-success-subtle text-success border" style="font-size:0.68rem;">Purchase</span>
+                            {% elif entry.transaction_type == 'RETURN' %}
+                            <span class="badge bg-primary-subtle text-primary border" style="font-size:0.68rem;">Return</span>
+                            {% elif entry.transaction_type == 'ADJUSTMENT' %}
+                            <span class="badge bg-warning-subtle text-warning border" style="font-size:0.68rem;">Adjustment</span>
+                            {% elif entry.transaction_type == 'OPENING' %}
+                            <span class="badge bg-info-subtle text-info border" style="font-size:0.68rem;">Opening</span>
+                            {% else %}
+                            <span class="badge bg-secondary-subtle text-secondary border" style="font-size:0.68rem;">{{ entry.get_transaction_type_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="fw-semibold" style="color:#0F2744;font-size:0.82rem;">{{ entry.medicine.medicine_name }}</div>
+                            <div style="font-size:0.7rem;color:#94A3B8;">{{ entry.medicine.strength }} ({{ entry.medicine.dosage_form }})</div>
+                        </td>
+                        <td>
+                            <span class="badge" style="background:rgba(220,38,38,0.10);color:#DC2626;border:1px solid rgba(220,38,38,0.2);font-size:0.7rem;font-weight:600;">
+                                {{ entry.get_regulatory_category_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge font-monospace" style="background:#F1F5F9;color:#0F2744;border:1px solid #E2E8F0;font-size:0.72rem;">
+                                {{ entry.batch.batch_number }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="fw-semibold" style="color:#1E293B;font-size:0.82rem;">{{ entry.patient_name }}</div>
+                            <div style="font-size:0.7rem;color:#94A3B8;">UHID: {{ entry.patient_id }}</div>
+                        </td>
+                        <td>
+                            <div class="fw-semibold" style="color:#0F2744;font-size:0.8rem;">{{ entry.prescribing_doctor }}</div>
+                            {% if entry.doctor_registration %}
+                            <div style="font-size:0.7rem;color:#94A3B8;">Reg: {{ entry.doctor_registration }}</div>
+                            {% endif %}
+                        </td>
+                        <td class="text-center fw-semibold" style="font-size:0.82rem;">{{ entry.opening_balance }}</td>
+                        <td class="text-center">
+                            {% if entry.quantity_in > 0 %}
+                            <span class="fw-bold" style="color:#10B981;font-size:0.82rem;">+{{ entry.quantity_in }}</span>
+                            {% else %}
+                            <span style="color:#CBD5E1;">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if entry.quantity_dispensed > 0 %}
+                            <span class="fw-bold" style="color:#DC2626;font-size:0.82rem;">-{{ entry.quantity_dispensed }}</span>
+                            {% else %}
+                            <span style="color:#CBD5E1;">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center fw-bold" style="color:#0F2744;font-size:0.9rem;">{{ entry.closing_balance }}</td>
+                        <td>
+                            <span class="badge" style="background:#F1F5F9;color:#374151;border:1px solid #E2E8F0;font-size:0.7rem;">
+                                <i class="fas fa-user-check me-1" style="color:#00A99D;"></i>{{ entry.pharmacist.username }}
+                            </span>
+                        </td>
+                        <td class="pe-3">
+                            {% if entry.dispensing_record %}
+                            <a href="{% url 'dispensing_detail' entry.dispensing_record.dispensing_id %}"
+                               class="badge text-decoration-none font-monospace"
+                               style="background:rgba(0,169,157,0.08);color:#00A99D;border:1px solid rgba(0,169,157,0.25);font-size:0.7rem;">
+                                <i class="fas fa-link me-1"></i>{{ entry.dispensing_record.dispensing_id }}
+                            </a>
+                            {% else %}
+                            <span style="font-size:0.75rem;color:#94A3B8;">Rx: {{ entry.prescription_number }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="13">
+                            <div class="empty-state-compact">
+                                <div class="empty-icon-wrap"><i class="fas fa-book-medical"></i></div>
+                                <div class="empty-title">No Register Entries Found</div>
+                                <div class="empty-desc">
+                                    {% if q or regulatory_category or start_date or end_date %}
+                                    No entries match the current filters. Try adjusting the search criteria.
+                                    {% else %}
+                                    No controlled medicine register entries have been recorded yet.
+                                    {% endif %}
+                                </div>
+                                {% if q or regulatory_category or start_date or end_date %}
+                                <a href="{% url 'controlled_register' %}" class="btn btn-sm"
+                                   style="background:#DC2626;color:#fff;border:none;border-radius:8px;font-size:0.8rem;">
+                                    <i class="fas fa-rotate-left me-1"></i> Reset Filters
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+        <div class="d-flex align-items-center justify-content-between px-3 py-2 border-top" style="background:#FAFBFD;">
+            <div style="font-size:0.78rem;color:#64748B;">
+                Showing {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ page_obj.paginator.count }} entries
+            </div>
+            <nav>
+                <ul class="pagination pagination-sm mb-0 gap-1">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ q }}&regulatory_category={{ regulatory_category }}&start_date={{ start_date }}&end_date={{ end_date }}"
+                           style="border-radius:6px;font-size:0.78rem;"><i class="fas fa-chevron-left"></i></a>
+                    </li>
+                    {% endif %}
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link" style="background:#DC2626;border-color:#DC2626;border-radius:6px;font-size:0.78rem;">{{ num }}</span>
+                        </li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}&q={{ q }}&regulatory_category={{ regulatory_category }}&start_date={{ start_date }}&end_date={{ end_date }}"
+                               style="border-radius:6px;font-size:0.78rem;">{{ num }}</a>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ q }}&regulatory_category={{ regulatory_category }}&start_date={{ start_date }}&end_date={{ end_date }}"
+                           style="border-radius:6px;font-size:0.78rem;"><i class="fas fa-chevron-right"></i></a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+</div>
+{% endblock %}

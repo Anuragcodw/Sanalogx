@@ -1,0 +1,58 @@
+{% extends 'emails/base_email.html' %}
+
+{% block email_title %}Sanalogx | Pharmacist Registration Received{% endblock %}
+
+{% block email_content %}
+<h2 style="margin: 0 0 12px 0; color: #0F2744; font-size: 20px; font-weight: 700;">
+  Pharmacist Registration Received
+</h2>
+<p style="margin: 0 0 20px 0; font-size: 14px; color: #475569; line-height: 1.6;">
+  Dear <strong>{{ user.full_name|default:user.username }}</strong>,
+</p>
+<p style="margin: 0 0 20px 0; font-size: 14px; color: #475569; line-height: 1.6;">
+  Thank you for submitting your application to access the Sanalogx Hospital Pharmacy Management Platform. Your registration details have been received and are currently under formal administrative review.
+</p>
+
+<!-- Registration Details Summary Box -->
+<table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; margin-bottom: 24px;">
+  <tr>
+    <td style="padding: 18px 20px;">
+      <table border="0" cellpadding="0" cellspacing="0" width="100%">
+        <tr>
+          <td style="padding-bottom: 8px; font-size: 12px; font-weight: 600; color: #64748B; text-transform: uppercase; width: 40%;">Registration ID:</td>
+          <td style="padding-bottom: 8px; font-size: 13px; font-weight: 700; color: #0F2744;">{{ user.registration_id|default:"Pending Assignment" }}</td>
+        </tr>
+        <tr>
+          <td style="padding-bottom: 8px; font-size: 12px; font-weight: 600; color: #64748B; text-transform: uppercase;">Professional Username:</td>
+          <td style="padding-bottom: 8px; font-size: 13px; font-weight: 700; color: #0F2744;">{{ user.username }}</td>
+        </tr>
+        <tr>
+          <td style="padding-bottom: 8px; font-size: 12px; font-weight: 600; color: #64748B; text-transform: uppercase;">Registered Email:</td>
+          <td style="padding-bottom: 8px; font-size: 13px; color: #334155;">{{ user.email }}</td>
+        </tr>
+        <tr>
+          <td style="font-size: 12px; font-weight: 600; color: #64748B; text-transform: uppercase;">Review Status:</td>
+          <td style="font-size: 12px; font-weight: 700;">
+            <span style="display: inline-block; padding: 3px 10px; background-color: #FEF3C7; color: #92400E; border-radius: 12px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">
+              Under Administrator Review
+            </span>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+<h3 style="margin: 0 0 8px 0; color: #0F2744; font-size: 15px; font-weight: 600;">
+  What Happens Next?
+</h3>
+<ol style="margin: 0 0 24px 0; padding-left: 20px; font-size: 13px; color: #475569; line-height: 1.7;">
+  <li style="margin-bottom: 6px;">Hospital pharmacy administration verifies your licensure, qualifications, and credentials.</li>
+  <li style="margin-bottom: 6px;">Upon administrative approval, you will receive an official approval notification with secure onboarding instructions.</li>
+  <li style="margin-bottom: 6px;">Account credentials and inventory privileges become active immediately following verification.</li>
+</ol>
+
+<p style="margin: 0; font-size: 13px; color: #64748B; line-height: 1.5;">
+  If you have questions regarding the status of your registration, please contact your hospital pharmacy administrator or compliance department.
+</p>
+{% endblock %}

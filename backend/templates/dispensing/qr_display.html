@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Pharmacy Counter QR Code — Sanalogx{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Breadcrumb & Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1 small text-muted">
+                    <li class="breadcrumb-item"><a href="{% url 'inventory_dashboard' %}" class="text-decoration-none text-teal"><i class="fas fa-boxes-stacked me-1"></i> Inventory</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Medicine Request QR</li>
+                </ol>
+            </nav>
+            <h3 class="fw-bold text-navy mb-0"><i class="fas fa-qrcode text-teal me-2"></i> Pharmacy Counter Medicine Request QR</h3>
+            <p class="text-muted small mb-0">Display or print this QR at the pharmacy counter for mobile patient requests.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'live_requests_queue' %}" class="btn btn-medivault-primary py-2 px-3">
+                <i class="fas fa-list-check me-1"></i> Live Request Queue
+            </a>
+        </div>
+    </div>
+
+    <!-- Messages -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show small mb-4" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="row g-4 justify-content-center">
+        <!-- QR Code Display Card -->
+        <div class="col-lg-6 col-md-8">
+            <div class="card card-medivault bg-white shadow-lg p-4 text-center border-top border-4 border-teal">
+                <div class="mb-3">
+                    <span class="badge badge-soft-success py-2 px-3 fs-6">
+                        <i class="fas fa-circle-check me-1"></i> QR STATUS: ACTIVE
+                    </span>
+                </div>
+
+                <h4 class="fw-bold text-navy mb-1">Sanalogx Hospital Pharmacy</h4>
+                <p class="text-muted small mb-3">Scan with Mobile Camera to Request Medicines</p>
+
+                <!-- Printable QR Container -->
+                <div id="printableQrCard" class="p-4 bg-light rounded-3 border d-inline-block shadow-sm mb-3">
+                    <img src="{{ qr_image_base64 }}" alt="Pharmacy Medicine Request QR Code" class="img-fluid rounded" style="max-width: 260px; height: auto;">
+                    <div class="mt-3">
+                        <span class="fw-bold text-navy d-block">Counter Token</span>
+                        <code class="text-teal small">{{ qr_obj.token|truncatechars:18 }}</code>
+                    </div>
+                </div>
+
+                <!-- Direct Request URL -->
+                <div class="input-group mb-4">
+                    <span class="input-group-text bg-light text-navy"><i class="fas fa-link"></i></span>
+                    <input type="text" id="qrUrlInput" class="form-control form-control-sm bg-white" value="{{ request_url }}" readonly>
+                    <button class="btn btn-outline-secondary btn-sm" type="button" onclick="copyQrUrl()">
+                        <i class="fas fa-copy me-1"></i> Copy
+                    </button>
+                    <a href="{{ request_url }}" target="_blank" class="btn btn-teal btn-sm text-white">
+                        <i class="fas fa-external-link-alt me-1"></i> Open
+                    </a>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="d-flex flex-wrap gap-2 justify-content-center">
+                    <button type="button" onclick="window.print()" class="btn btn-medivault-primary py-2 px-3">
+                        <i class="fas fa-print me-1"></i> Print Counter Poster
+                    </button>
+                    <a href="{{ qr_image_base64 }}" download="MediVault_Pharmacy_QR.png" class="btn btn-outline-teal py-2 px-3">
+                        <i class="fas fa-download me-1"></i> Download PNG
+                    </a>
+                    <form method="POST" class="d-inline" onsubmit="return confirm('Regenerating will deactivate the current QR token. Continue?');">
+                        {% csrf_token %}
+                        <button type="submit" name="regenerate_qr" class="btn btn-outline-danger py-2 px-3">
+                            <i class="fas fa-arrows-rotate me-1"></i> Regenerate Token
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Instructions Panel -->
+        <div class="col-lg-5">
+            <div class="card card-medivault bg-white shadow-sm p-4 h-100">
+                <h5 class="fw-bold text-navy mb-3"><i class="fas fa-info-circle text-teal me-2"></i> How It Works</h5>
+                <ol class="list-group list-group-numbered border-0 mb-4">
+                    <li class="list-group-item border-0 px-0 d-flex gap-2">
+                        <div class="ms-2 me-auto">
+                            <div class="fw-bold text-navy">Display QR at Counter</div>
+                            <span class="text-muted small">Place this printed poster or tablet screen at the pharmacy counter.</span>
+                        </div>
+                    </li>
+                    <li class="list-group-item border-0 px-0 d-flex gap-2">
+                        <div class="ms-2 me-auto">
+                            <div class="fw-bold text-navy">Patient Scans QR</div>
+                            <span class="text-muted small">The patient scans the code using any smartphone camera without app installation.</span>
+                        </div>
+                    </li>
+                    <li class="list-group-item border-0 px-0 d-flex gap-2">
+                        <div class="ms-2 me-auto">
+                            <div class="fw-bold text-navy">Multi-Medicine Selection</div>
+                            <span class="text-muted small">Patient inputs info, filters by category, and adds multiple medicines to their request cart.</span>
+                        </div>
+                    </li>
+                    <li class="list-group-item border-0 px-0 d-flex gap-2">
+                        <div class="ms-2 me-auto">
+                            <div class="fw-bold text-navy">Pharmacist Processing</div>
+                            <span class="text-muted small">Request lands instantly in the Live Request Queue for barcode verification & smart FEFO dispensing.</span>
+                        </div>
+                    </li>
+                </ol>
+
+                <div class="p-3 bg-light rounded-3 border">
+                    <div class="d-flex align-items-center gap-2 text-navy fw-bold mb-1">
+                        <i class="fas fa-shield-halved text-success"></i> Secure Token System
+                    </div>
+                    <p class="text-muted small mb-0">No internal database IDs are exposed to patients. Each submission is validated server-side inside atomic database transactions.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function copyQrUrl() {
+    var copyText = document.getElementById("qrUrlInput");
+    copyText.select();
+    copyText.setSelectionRange(0, 99999);
+    navigator.clipboard.writeText(copyText.value);
+    alert("Medicine Request Link copied to clipboard!");
+}
+</script>
+{% endblock %}

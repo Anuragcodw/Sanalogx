@@ -1,0 +1,73 @@
+<footer class="bg-navy text-white pt-5 pb-4 mt-5" style="background-color: var(--color-navy-dark); border-top: 1px solid var(--border-color);">
+    <div class="container">
+        <div class="row g-4 mb-4">
+            <!-- About MediVault Section -->
+            <div class="col-lg-3 col-md-6">
+                <a class="navbar-brand text-white mb-3" href="{% url 'home' %}">
+                    <span class="brand-icon"><i class="fas fa-prescription-bottle-alt"></i></span>
+                    <span class="fs-4 fw-bold">Sanalog<span style="color: var(--color-teal);">x</span></span>
+                </a>
+                <p class="text-secondary-light small mt-2" style="color: #CBD5E1; line-height: 1.6;">
+                    Sanalogx is a hospital pharmacy stock optimization platform designed to improve inventory visibility, procurement decisions, expiry management, and medicine availability.
+                </p>
+                <!-- Follow Us Social Section -->
+                <div class="mt-3">
+                    <span class="text-white-50 small d-block mb-2 font-heading fw-semibold">Follow Us</span>
+                    <div class="d-flex gap-2">
+                        <a href="#" class="social-icon-btn" title="Instagram"><i class="fab fa-instagram"></i></a>
+                        <a href="#" class="social-icon-btn" title="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+                        <a href="#" class="social-icon-btn" title="Facebook"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" class="social-icon-btn" title="X / Twitter"><i class="fab fa-x-twitter"></i></a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Access & Navigation -->
+            <div class="col-lg-2 col-md-6">
+                <h6 class="text-white fw-bold mb-3 font-heading">Access</h6>
+                <ul class="list-unstyled small mb-0" style="line-height: 2.2; color: #CBD5E1;">
+                    <li><a href="{% url 'home' %}#home" class="text-decoration-none text-light opacity-75 hover-teal"><i class="fas fa-house me-1.5 small text-teal"></i> Home</a></li>
+                    <li><a href="{% url 'pharmacist_login' %}" class="text-decoration-none text-light opacity-75 hover-teal"><i class="fas fa-right-to-bracket me-1.5 small text-teal"></i> Pharmacist Login</a></li>
+                    <li><a href="{% url 'pharmacist_register' %}" class="text-decoration-none text-light opacity-75 hover-teal"><i class="fas fa-user-plus me-1.5 small text-teal"></i> Pharmacist Register</a></li>
+                    <li><a href="{% url 'admin_login' %}" class="text-decoration-none text-light opacity-75 hover-teal"><i class="fas fa-shield-halved me-1.5 small text-teal"></i> Admin Login</a></li>
+                </ul>
+            </div>
+
+            <!-- Pharmacy Operations -->
+            <div class="col-lg-3 col-md-6">
+                <h6 class="text-white fw-bold mb-3 font-heading">Pharmacy Operations</h6>
+                <ul class="list-unstyled small mb-0" style="line-height: 2.2; color: #CBD5E1;">
+                    <li><i class="fas fa-cubes text-teal me-2 fs-7"></i> Inventory</li>
+                    <li><i class="fas fa-cart-shopping text-teal me-2 fs-7"></i> Procurement</li>
+                    <li><i class="fas fa-truck-field text-teal me-2 fs-7"></i> Suppliers</li>
+                    <li><i class="fas fa-hourglass-half text-teal me-2 fs-7"></i> Expiry Tracking</li>
+                    <li><i class="fas fa-chart-line text-teal me-2 fs-7"></i> Reports</li>
+                    <li><i class="fas fa-lightbulb text-teal me-2 fs-7"></i> Recommendations</li>
+                </ul>
+            </div>
+
+            <!-- Platform Capabilities -->
+            <div class="col-lg-4 col-md-6">
+                <h6 class="text-white fw-bold mb-3 font-heading">Platform Capabilities</h6>
+                <ul class="list-unstyled small mb-0" style="line-height: 2.2; color: #CBD5E1;">
+                    <li><i class="fas fa-boxes-stacked text-teal me-2"></i> Smart Inventory Management</li>
+                    <li><i class="fas fa-prescription-bottle-alt text-blue me-2"></i> Medicine & Batch Tracking</li>
+                    <li><i class="fas fa-triangle-exclamation text-amber me-2"></i> Expiry & Stock Monitoring</li>
+                    <li><i class="fas fa-handshake text-green me-2"></i> Procurement & Supplier Management</li>
+                    <li><i class="fas fa-file-invoice-dollar text-teal me-2"></i> Reports & Analytics</li>
+                    <li><i class="fas fa-circle-check text-blue me-2"></i> Data-Driven Recommendations</li>
+                </ul>
+            </div>
+        </div>
+
+        <hr style="border-color: rgba(255,255,255,0.1);">
+
+        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-center small text-muted pt-2" style="color: #718096;">
+            <div>&copy; 2026 Sanalogx. Hospital Pharmacy Stock Optimization Project.</div>
+            <div class="mt-2 mt-sm-0">
+                <span class="badge bg-dark border border-secondary text-light me-1"><i class="fas fa-shield-alt text-teal me-1"></i> Enterprise Grade</span>
+                <span class="badge bg-dark border border-secondary text-light"><i class="fas fa-chart-line text-green me-1"></i> Pharmacy Intelligence</span>
+            </div>
+        </div>
+    </div>
+</footer>

@@ -1,0 +1,112 @@
+{% extends 'emails/base_email.html' %}
+
+{% block email_title %}Sanalogx | Pharmacist Account Approved{% endblock %}
+
+{% block email_content %}
+<div style="text-align: center; margin-bottom: 24px;">
+  <span style="display: inline-block; width: 48px; height: 48px; line-height: 48px; background-color: #E6FFFA; color: #00A896; border-radius: 50%; font-size: 24px; font-weight: bold;">
+    &#10003;
+  </span>
+  <h2 style="margin: 12px 0 6px 0; color: #0F2744; font-size: 22px; font-weight: 700;">
+    Account Approved &amp; Authorized
+  </h2>
+  <p style="margin: 0; font-size: 14px; color: #64748B;">
+    Your Sanalogx pharmacist workspace is ready for operational access.
+  </p>
+</div>
+
+<p style="margin: 0 0 16px 0; font-size: 14px; color: #475569; line-height: 1.6;">
+  Dear <strong>{{ user.full_name|default:user.username }}</strong>,
+</p>
+<p style="margin: 0 0 20px 0; font-size: 14px; color: #475569; line-height: 1.6;">
+  We are pleased to inform you that your application for pharmacist access to the Sanalogx Hospital Pharmacy Management Platform has been formally verified and approved by the hospital administration.
+</p>
+
+<!-- Credential & Identity Box -->
+<table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #F8FAFC; border: 1px solid #CBD5E1; border-radius: 8px; margin-bottom: 24px;">
+  <tr>
+    <td style="padding: 20px;">
+      <table border="0" cellpadding="0" cellspacing="0" width="100%">
+        <tr>
+          <td style="padding-bottom: 10px; font-size: 12px; font-weight: 600; color: #64748B; text-transform: uppercase; width: 40%;">Pharmacist ID:</td>
+          <td style="padding-bottom: 10px; font-size: 14px; font-weight: 700; color: #0F2744;">{{ user.registration_id }}</td>
+        </tr>
+        <tr>
+          <td style="padding-bottom: 10px; font-size: 12px; font-weight: 600; color: #64748B; text-transform: uppercase;">System Username:</td>
+          <td style="padding-bottom: 10px; font-size: 14px; font-weight: 700; color: #00A896;">{{ user.username }}</td>
+        </tr>
+        <tr>
+          <td style="padding-bottom: 10px; font-size: 12px; font-weight: 600; color: #64748B; text-transform: uppercase;">Registered Email:</td>
+          <td style="padding-bottom: 10px; font-size: 13px; color: #334155;">{{ user.email }}</td>
+        </tr>
+        <tr>
+          <td style="font-size: 12px; font-weight: 600; color: #64748B; text-transform: uppercase;">Workspace Status:</td>
+          <td style="font-size: 12px; font-weight: 700;">
+            <span style="display: inline-block; padding: 3px 10px; background-color: #DEF7EC; color: #03543F; border-radius: 12px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">
+              Active &bull; Approved
+            </span>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+{% if setup_url %}
+<!-- Secure Password Onboarding CTA -->
+<div style="text-align: center; margin: 28px 0 16px 0;">
+  <a href="{{ setup_url }}" style="display: inline-block; background: linear-gradient(135deg, #00A896 0%, #0077B6 100%); color: #FFFFFF; font-weight: 700; font-size: 14px; padding: 14px 32px; border-radius: 6px; text-decoration: none; box-shadow: 0 4px 12px rgba(0, 168, 150, 0.25);">
+    Setup Workspace &rarr;
+  </a>
+  <p style="margin: 10px 0 0 0; font-size: 12px; color: #94A3B8;">
+    This single-use onboarding link expires in 48 hours.
+  </p>
+</div>
+
+<div style="text-align: center; margin: 16px 0 24px 0; padding-top: 14px; border-top: 1px dashed #E2E8F0;">
+  <p style="margin: 0 0 6px 0; font-size: 12px; color: #64748B;">
+    Already set up your password during registration?
+  </p>
+  <a href="{{ login_url }}" style="display: inline-block; font-size: 13px; font-weight: 600; color: #00A896; text-decoration: none;">
+    Sign In Directly to Workspace (<span style="text-decoration: underline;">{{ login_url }}</span>) &rarr;
+  </a>
+</div>
+{% elif temp_password %}
+<div style="background-color: #FEF3C7; border: 1px solid #F59E0B; border-radius: 6px; padding: 16px; margin-bottom: 24px; text-align: center;">
+  <div style="font-size: 12px; font-weight: 600; color: #92400E; text-transform: uppercase; margin-bottom: 4px;">Temporary Access Credential</div>
+  <div style="font-family: monospace; font-size: 18px; font-weight: 700; color: #B45309; letter-spacing: 2px;">{{ temp_password }}</div>
+  <div style="font-size: 11px; color: #78350F; margin-top: 6px;">You will be prompted to change this password immediately upon first sign-in.</div>
+</div>
+
+<div style="text-align: center; margin: 24px 0;">
+  <a href="{{ login_url }}" style="display: inline-block; background-color: #0F2744; color: #FFFFFF; font-weight: 700; font-size: 14px; padding: 12px 28px; border-radius: 6px; text-decoration: none;">
+    Sign In to Pharmacy Workspace &rarr;
+  </a>
+</div>
+{% else %}
+<div style="text-align: center; margin: 28px 0;">
+  <a href="{{ login_url }}" style="display: inline-block; background: linear-gradient(135deg, #00A896 0%, #0077B6 100%); color: #FFFFFF; font-weight: 700; font-size: 14px; padding: 14px 32px; border-radius: 6px; text-decoration: none; box-shadow: 0 4px 12px rgba(0, 168, 150, 0.25);">
+    Sign In to Pharmacy Workspace &rarr;
+  </a>
+  <p style="margin: 10px 0 0 0; font-size: 12px; color: #94A3B8;">
+    Use the credentials specified during your registration.
+  </p>
+</div>
+{% if forgot_password_url %}
+<div style="text-align: center; margin: 12px 0 24px 0; padding-top: 12px; border-top: 1px dashed #E2E8F0;">
+  <p style="margin: 0; font-size: 12px; color: #64748B;">
+    Need to reset your password? <a href="{{ forgot_password_url }}" style="color: #00A896; font-weight: 600; text-decoration: underline;">Reset Password via Verification Code &rarr;</a>
+  </p>
+</div>
+{% endif %}
+{% endif %}
+
+<h3 style="margin: 20px 0 8px 0; color: #0F2744; font-size: 14px; font-weight: 600;">
+  Important Operating Guidelines:
+</h3>
+<ul style="margin: 0; padding-left: 20px; font-size: 13px; color: #475569; line-height: 1.6;">
+  <li>Never share your credentials with colleagues or unverified personnel.</li>
+  <li>All dispensing transactions, stock adjustments, and intelligence reports are tracked in the immutable audit log.</li>
+  <li>Always sign out of shared clinical pharmacy terminals after completing your shift.</li>
+</ul>
+{% endblock %}

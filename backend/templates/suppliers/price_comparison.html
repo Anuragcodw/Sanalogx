@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Supplier Price Comparison — Sanalogx{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 px-lg-4">
+    <!-- Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1 small text-muted">
+                    <li class="breadcrumb-item"><a href="{% url 'supplier_list' %}" class="text-decoration-none text-teal"><i class="fas fa-truck-field me-1"></i> Suppliers</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Price Comparison Matrix</li>
+                </ol>
+            </nav>
+            <h3 class="fw-bold text-navy mb-0"><i class="fas fa-chart-line text-teal me-2"></i> Supplier Price Intelligence & Best Offer Matrix</h3>
+            <p class="text-muted small mb-0">Multi-supplier unit price evaluation, price trends (↑ / ↓ / =), and best current purchase recommendations.</p>
+        </div>
+    </div>
+
+    <!-- Matrix Card -->
+    <div class="card card-medivault bg-white shadow-sm border-0">
+        <div class="table-responsive">
+            <table class="table table-bordered align-middle mb-0 small">
+                <thead class="bg-light text-navy fw-bold">
+                    <tr>
+                        <th class="ps-3 py-3">MEDICINE NAME</th>
+                        <th class="py-3 text-center">VENDORS COMPARED</th>
+                        <th class="py-3">BEST CURRENT OFFER (LOWEST PRICE)</th>
+                        <th class="py-3 text-end">HIGHEST OFFER</th>
+                        <th class="py-3 text-end">AVG PRICE</th>
+                        <th class="pe-3 py-3 text-center">PRICE TREND</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in comparison_data %}
+                    <tr>
+                        <td class="ps-3 fw-bold text-navy">
+                            {{ item.medicine.medicine_name }}
+                            <span class="text-muted extra-small d-block">{{ item.medicine.generic_name }}</span>
+                        </td>
+                        <td class="text-center font-monospace fw-bold">{{ item.suppliers_count }} Suppliers</td>
+                        <td>
+                            {% if item.best_offer %}
+                            <div class="p-2 bg-success bg-opacity-10 border border-success rounded d-inline-block">
+                                <span class="badge bg-success mb-1">BEST PRICE</span>
+                                <strong class="text-navy d-block">{{ item.best_offer.supplier.company_name }}</strong>
+                                <span class="text-teal font-monospace fw-bold">₹{{ item.best_offer.unit_price }}</span> / unit
+                                <span class="text-muted extra-small d-block">Lead Time: {{ item.best_offer.delivery_days }} days</span>
+                            </div>
+                            {% else %}
+                            <span class="text-muted">No Active Offers</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end font-monospace text-muted">
+                            {% if item.highest_offer %}₹{{ item.highest_offer.unit_price }}{% else %}—{% endif %}
+                        </td>
+                        <td class="text-end font-monospace fw-bold text-navy">
+                            ₹{{ item.avg_price|stringformat:".2f" }}
+                        </td>
+                        <td class="pe-3 text-center">
+                            {% if item.price_trend == 'INCREASED' %}
+                                <span class="badge bg-danger"><i class="fas fa-arrow-trend-up me-1"></i> PRICE INCREASED</span>
+                            {% elif item.price_trend == 'DECREASED' %}
+                                <span class="badge bg-success"><i class="fas fa-arrow-trend-down me-1"></i> PRICE DECREASED</span>
+                            {% else %}
+                                <span class="badge bg-secondary"><i class="fas fa-minus me-1"></i> STABLE</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5 text-muted">
+                            <i class="fas fa-chart-line fs-1 mb-2 text-secondary opacity-50 d-block"></i>
+                            No multi-supplier price comparison data available yet.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

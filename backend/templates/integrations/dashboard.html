@@ -1,0 +1,624 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Hospital & EHR Integration — Sanalogx{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── MediVault EHR Integration Styling ── */
+.ehr-summary-bar {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 14px;
+    padding: 0.85rem 1.25rem;
+    box-shadow: 0 2px 10px rgba(15, 39, 68, 0.04);
+}
+
+.ehr-workflow-card {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 16px;
+    padding: 1.15rem 1.35rem;
+    box-shadow: 0 4px 18px rgba(15, 39, 68, 0.04);
+}
+
+.ehr-workflow-track {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.55rem;
+    position: relative;
+    overflow-x: auto;
+    padding: 0.25rem 0.1rem;
+}
+
+.ehr-workflow-step {
+    flex: 1;
+    min-width: 170px;
+    max-width: 220px;
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    padding: 0.85rem 0.95rem;
+    text-decoration: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    color: inherit;
+    cursor: pointer;
+}
+
+.ehr-workflow-step:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 168, 150, 0.12);
+    border-color: #00A896;
+    background: #FFFFFF;
+    color: inherit;
+}
+
+.ehr-workflow-step.is-selected {
+    border-color: #00A896;
+    background: #FFFFFF;
+    box-shadow: 0 0 0 2px rgba(0, 168, 150, 0.2), 0 4px 14px rgba(15, 39, 68, 0.08);
+}
+
+.ehr-workflow-step-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.ehr-workflow-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    transition: transform 0.2s ease;
+}
+
+.ehr-workflow-step:hover .ehr-workflow-icon {
+    transform: scale(1.08);
+}
+
+.step-receive .ehr-workflow-icon { background: rgba(8, 117, 185, 0.12); color: #0875B9; }
+.step-validate .ehr-workflow-icon { background: rgba(0, 168, 150, 0.12); color: #00A896; }
+.step-review .ehr-workflow-icon { background: rgba(217, 119, 6, 0.14); color: #D97706; }
+.step-dispense .ehr-workflow-icon { background: rgba(16, 185, 129, 0.12); color: #10B981; }
+.step-sync .ehr-workflow-icon { background: rgba(100, 116, 139, 0.12); color: #475569; }
+
+.ehr-step-badge {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0.18rem 0.45rem;
+    border-radius: 6px;
+}
+
+.ehr-workflow-step-name {
+    font-size: 0.86rem;
+    font-weight: 700;
+    color: #0F2744;
+    margin: 0;
+    line-height: 1.25;
+}
+
+.ehr-workflow-step-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.74rem;
+    color: #64748B;
+}
+
+.ehr-workflow-arrow {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #CBD5E1;
+    font-size: 0.85rem;
+    transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.ehr-workflow-step:hover + .ehr-workflow-arrow {
+    color: #00A896;
+    transform: translateX(2px);
+}
+
+.ehr-table-card {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 16px;
+    box-shadow: 0 4px 18px rgba(15, 39, 68, 0.04);
+    overflow: hidden;
+}
+
+.ehr-table-card .card-header {
+    background: #FFFFFF;
+    border-bottom: 1px solid #E2E8F0;
+    padding: 1rem 1.35rem;
+}
+
+.ehr-badge-pill {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.76rem;
+    font-weight: 600;
+    border-radius: 20px;
+}
+
+@media (max-width: 991px) {
+    .ehr-workflow-track {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding-bottom: 0.5rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ehr-workflow-step,
+    .ehr-workflow-icon,
+    .ehr-workflow-arrow {
+        transition: none !important;
+        transform: none !important;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 px-4 pb-5 mb-5">
+
+  <!-- 1. Header & Actions -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3">
+    <div>
+      <h1 class="fw-bold text-navy mb-1" style="font-size: 1.65rem;">
+        Hospital & EHR Integration
+      </h1>
+      <p class="text-muted small mb-0">
+        Receive medication orders, review prescriptions, and track dispensing status.
+      </p>
+    </div>
+
+    <div class="d-flex align-items-center gap-2">
+      <a href="{% url 'mock_ehr_simulator' %}" class="btn btn-outline-primary btn-sm px-3 py-2 rounded-3 shadow-sm fw-semibold">
+        <i class="fas fa-vial me-1"></i> Mock EHR Simulator
+      </a>
+      <a href="/api/v1/fhir/metadata/" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary btn-sm px-3 py-2 rounded-3 shadow-sm fw-semibold">
+        <i class="fas fa-file-code me-1"></i> FHIR Metadata
+      </a>
+    </div>
+  </div>
+
+  <!-- 2. Small Integration Status Summary -->
+  <div class="ehr-summary-bar d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+    <!-- Connection State (clearly distinguishes real vs simulator vs unconfigured) -->
+    <div class="d-flex align-items-center gap-2">
+      <span class="text-muted small fw-semibold text-uppercase">Connection State:</span>
+      {% if has_real_connection %}
+        <span class="badge bg-success-subtle text-success border border-success-subtle px-2-5 py-1 rounded-pill">
+          <i class="fas fa-circle-check me-1"></i> Live Production EHR Connected ({{ real_systems_count }})
+        </span>
+      {% elif systems.exists %}
+        <span class="badge bg-secondary-subtle text-secondary border px-2-5 py-1 rounded-pill">
+          <i class="fas fa-flask me-1"></i> Mock Simulator Mode · Internal Test Adapter
+        </span>
+      {% else %}
+        <span class="badge bg-light text-muted border px-2-5 py-1 rounded-pill">
+          <i class="fas fa-circle-notch me-1"></i> No external connection configured
+        </span>
+      {% endif %}
+    </div>
+
+    <!-- Metric Counters -->
+    <div class="d-flex align-items-center gap-3 flex-wrap small">
+      <div class="d-flex align-items-center gap-1">
+        <span class="text-muted">Total Inbound:</span>
+        <span class="fw-bold text-navy">{{ total_orders }}</span>
+      </div>
+      <span class="text-muted opacity-50">|</span>
+      <div class="d-flex align-items-center gap-1">
+        <span class="text-muted">Awaiting Review:</span>
+        <span class="fw-bold text-warning">{{ awaiting_review }}</span>
+      </div>
+      <span class="text-muted opacity-50">|</span>
+      <div class="d-flex align-items-center gap-1">
+        <span class="text-muted">Verified Ready:</span>
+        <span class="fw-bold text-info">{{ verified_orders }}</span>
+      </div>
+      <span class="text-muted opacity-50">|</span>
+      <div class="d-flex align-items-center gap-1">
+        <span class="text-muted">Dispensed:</span>
+        <span class="fw-bold text-success">{{ dispensed_orders }}</span>
+      </div>
+      <span class="text-muted opacity-50">|</span>
+      <div class="d-flex align-items-center gap-1 text-muted">
+        <span>Last Sync:</span>
+        <span class="fw-semibold text-navy">{{ last_sync|date:"d M Y, H:i"|default:"None" }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Simple Visual Workflow (Receive Order → Validate → Pharmacist Review → Dispensing → Synchronization) -->
+  <div class="ehr-workflow-card mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div class="d-flex align-items-center gap-2">
+        <h6 class="fw-bold text-navy mb-0" style="font-size: 0.92rem;">
+          <i class="fas fa-diagram-project text-teal me-1"></i> Integration Lifecycle Workflow
+        </h6>
+        <span class="text-muted small" style="font-size: 0.74rem;">(Click a stage to filter orders queue)</span>
+      </div>
+      {% if status_filter %}
+        <a href="?status=" class="text-teal small text-decoration-none fw-semibold">
+          <i class="fas fa-rotate-left me-1"></i> Reset Filter
+        </a>
+      {% endif %}
+    </div>
+
+    <div class="ehr-workflow-track">
+      <!-- Stage 1: Receive Order -->
+      <a href="?status=" class="ehr-workflow-step step-receive {% if not status_filter %}is-selected{% endif %}" title="Click to view all received orders">
+        <div class="ehr-workflow-step-top">
+          <div class="ehr-workflow-icon"><i class="fas fa-inbox"></i></div>
+          <span class="ehr-step-badge bg-primary-subtle text-primary">Stage 1</span>
+        </div>
+        <div class="ehr-workflow-step-name">Receive Order</div>
+        <div class="ehr-workflow-step-meta">
+          <span class="fw-semibold text-navy">{{ total_orders }} Inbound</span>
+          <span class="badge bg-light text-muted border">FHIR R4</span>
+        </div>
+      </a>
+
+      <div class="ehr-workflow-arrow"><i class="fas fa-chevron-right"></i></div>
+
+      <!-- Stage 2: Validate -->
+      <a href="{% if failed_orders > 0 %}?status=FAILED{% else %}?status={% endif %}" class="ehr-workflow-step step-validate {% if status_filter == 'FAILED' %}is-selected{% endif %}" title="Click to view validation status">
+        <div class="ehr-workflow-step-top">
+          <div class="ehr-workflow-icon"><i class="fas fa-file-circle-check"></i></div>
+          <span class="ehr-step-badge {% if failed_orders > 0 %}bg-danger-subtle text-danger{% else %}bg-teal-soft text-teal{% endif %}">Stage 2</span>
+        </div>
+        <div class="ehr-workflow-step-name">Validate</div>
+        <div class="ehr-workflow-step-meta">
+          {% if failed_orders > 0 %}
+            <span class="text-danger fw-semibold">{{ failed_orders }} Failed</span>
+            <span class="badge bg-danger-subtle text-danger">Error</span>
+          {% else %}
+            <span class="text-success fw-semibold"><i class="fas fa-check me-1"></i>Payload OK</span>
+            <span class="badge bg-light text-muted border">Schema</span>
+          {% endif %}
+        </div>
+      </a>
+
+      <div class="ehr-workflow-arrow"><i class="fas fa-chevron-right"></i></div>
+
+      <!-- Stage 3: Pharmacist Review -->
+      <a href="?status=PENDING_REVIEW" class="ehr-workflow-step step-review {% if status_filter == 'PENDING_REVIEW' %}is-selected{% endif %}" title="Click to view orders awaiting pharmacist review">
+        <div class="ehr-workflow-step-top">
+          <div class="ehr-workflow-icon"><i class="fas fa-user-doctor"></i></div>
+          <span class="ehr-step-badge {% if awaiting_review > 0 %}bg-warning-subtle text-warning{% else %}bg-success-subtle text-success{% endif %}">Stage 3</span>
+        </div>
+        <div class="ehr-workflow-step-name">Pharmacist Review</div>
+        <div class="ehr-workflow-step-meta">
+          {% if awaiting_review > 0 %}
+            <span class="text-warning fw-bold">{{ awaiting_review }} Awaiting</span>
+            <span class="badge bg-warning-subtle text-warning">Action Req.</span>
+          {% else %}
+            <span class="text-success fw-semibold"><i class="fas fa-check me-1"></i>Cleared</span>
+            <span class="badge bg-light text-muted border">Up to date</span>
+          {% endif %}
+        </div>
+      </a>
+
+      <div class="ehr-workflow-arrow"><i class="fas fa-chevron-right"></i></div>
+
+      <!-- Stage 4: Dispensing -->
+      <a href="?status=VERIFIED" class="ehr-workflow-step step-dispense {% if status_filter == 'VERIFIED' %}is-selected{% endif %}" title="Click to view verified orders ready for dispensing">
+        <div class="ehr-workflow-step-top">
+          <div class="ehr-workflow-icon"><i class="fas fa-prescription-bottle-alt"></i></div>
+          <span class="ehr-step-badge bg-success-subtle text-success">Stage 4</span>
+        </div>
+        <div class="ehr-workflow-step-name">Dispensing</div>
+        <div class="ehr-workflow-step-meta">
+          <span class="text-teal fw-semibold">{{ verified_orders }} Ready</span>
+          <span class="text-muted">{{ dispensed_orders }} Done</span>
+        </div>
+      </a>
+
+      <div class="ehr-workflow-arrow"><i class="fas fa-chevron-right"></i></div>
+
+      <!-- Stage 5: Synchronization -->
+      <a href="?status=DISPENSED" class="ehr-workflow-step step-sync {% if status_filter == 'DISPENSED' %}is-selected{% endif %}" title="Click to view completed and synchronized orders">
+        <div class="ehr-workflow-step-top">
+          <div class="ehr-workflow-icon"><i class="fas fa-arrows-rotate"></i></div>
+          <span class="ehr-step-badge bg-secondary-subtle text-secondary">Stage 5</span>
+        </div>
+        <div class="ehr-workflow-step-name">Synchronization</div>
+        <div class="ehr-workflow-step-meta">
+          {% if has_real_connection %}
+            <span class="text-success fw-semibold"><i class="fas fa-circle-check me-1"></i>Live Sync</span>
+            <span class="badge bg-success-subtle text-success">FHIR</span>
+          {% else %}
+            <span class="text-secondary fw-semibold">Simulator Mode</span>
+            <span class="badge bg-light text-muted border">Internal</span>
+          {% endif %}
+        </div>
+      </a>
+    </div>
+  </div>
+
+  <!-- 4. Connected Hospital & EHR Systems Table -->
+  <div class="ehr-table-card mb-4">
+    <div class="card-header d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2">
+      <div>
+        <h6 class="fw-bold text-navy mb-0">
+          <i class="fas fa-hospital text-teal me-2"></i> Connected Hospital & EHR Systems
+        </h6>
+        <span class="text-muted small">Registered external clinical adapters and connection states</span>
+      </div>
+      <span class="badge bg-light text-muted border px-2 py-1 align-self-start align-self-sm-auto">
+        HL7 FHIR Release 4 Standard
+      </span>
+    </div>
+
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-4">Hospital System</th>
+              <th>System Code</th>
+              <th>Protocol</th>
+              <th>Connection State</th>
+              <th>Last Synchronized</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in systems %}
+            <tr>
+              <td class="ps-4">
+                <strong>{{ s.name }}</strong>
+                {% if s.is_demo_simulator %}
+                  <span class="badge bg-secondary-subtle text-secondary ms-1">Simulator Mock</span>
+                {% else %}
+                  <span class="badge bg-primary-subtle text-primary ms-1">Production EHR</span>
+                {% endif %}
+              </td>
+              <td><code>{{ s.system_code }}</code></td>
+              <td><span class="badge bg-light text-navy border">REST / FHIR R4</span></td>
+              <td>
+                {% if s.is_active and s.is_demo_simulator %}
+                  <span class="badge bg-info-subtle text-info border border-info-subtle px-2 py-1">
+                    <i class="fas fa-flask me-1"></i> Active (Mock Simulator)
+                  </span>
+                {% elif s.is_active %}
+                  <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                    <i class="fas fa-circle-check me-1"></i> Active (Production Adapter)
+                  </span>
+                {% else %}
+                  <span class="badge bg-danger-subtle text-danger px-2 py-1">Inactive</span>
+                {% endif %}
+              </td>
+              <td class="text-muted small">{{ s.last_sync_at|date:"d M Y H:i"|default:"Awaiting first sync" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="5" class="text-center py-4 text-muted">
+                <i class="fas fa-network-wired text-muted mb-2 d-block fs-4"></i>
+                <div>No external connection configured.</div>
+                <div class="small mt-1">
+                  Use the <a href="{% url 'mock_ehr_simulator' %}" class="fw-semibold text-teal">Mock EHR Simulator</a> to initialize test adapters.
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. Inbound Medication Orders Queue -->
+  <div class="ehr-table-card mb-4" id="orders-queue-section">
+    <div class="card-header d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+      <div>
+        <h6 class="fw-bold text-navy mb-0">
+          <i class="fas fa-list-check text-teal me-2"></i> Inbound Medication Orders Queue
+        </h6>
+        <span class="text-muted small">Clinical orders requiring pharmacist review and verification prior to dispensing</span>
+      </div>
+
+      <div class="d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center gap-2">
+        <!-- Search -->
+        <form method="GET" class="d-flex align-items-center">
+          {% if status_filter %}
+            <input type="hidden" name="status" value="{{ status_filter }}">
+          {% endif %}
+          <div class="input-group input-group-sm">
+            <input type="text" name="q" value="{{ search_q }}" class="form-control" placeholder="Search patient, UHID, drug..." aria-label="Search orders">
+            <button class="btn btn-outline-secondary" type="submit"><i class="fas fa-search"></i></button>
+            {% if search_q %}
+              <a href="?status={{ status_filter }}" class="btn btn-outline-secondary" title="Clear search"><i class="fas fa-times"></i></a>
+            {% endif %}
+          </div>
+        </form>
+
+        <!-- Status Filter Buttons -->
+        <div class="btn-group btn-group-sm" role="group" aria-label="Order status filter">
+          <a href="?status=&q={{ search_q }}" class="btn btn-outline-secondary {% if not status_filter %}active{% endif %}">
+            All ({{ total_orders }})
+          </a>
+          <a href="?status=PENDING_REVIEW&q={{ search_q }}" class="btn btn-outline-warning {% if status_filter == 'PENDING_REVIEW' %}active{% endif %}">
+            Review ({{ awaiting_review }})
+          </a>
+          <a href="?status=VERIFIED&q={{ search_q }}" class="btn btn-outline-info {% if status_filter == 'VERIFIED' %}active{% endif %}">
+            Verified ({{ verified_orders }})
+          </a>
+          <a href="?status=DISPENSED&q={{ search_q }}" class="btn btn-outline-success {% if status_filter == 'DISPENSED' %}active{% endif %}">
+            Dispensed ({{ dispensed_orders }})
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-4">Order ID</th>
+              <th>Patient (UHID)</th>
+              <th>Prescribed Medication</th>
+              <th>Qty</th>
+              <th>Priority</th>
+              <th>Status</th>
+              <th>Received At</th>
+              <th class="text-end pe-4">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for o in recent_orders %}
+            <tr>
+              <td class="ps-4">
+                <strong>{{ o.external_order_id }}</strong>
+                <div class="text-muted small">{{ o.hospital_system.system_code|default:"EHR" }}</div>
+              </td>
+              <td>
+                <div class="fw-semibold text-navy">{{ o.patient_name }}</div>
+                <small class="text-muted"><code>{{ o.patient_uhid }}</code></small>
+              </td>
+              <td>
+                <div class="fw-semibold">{{ o.raw_medication_name }}</div>
+                {% if o.mapped_medicine %}
+                  <small class="text-success"><i class="fas fa-link me-1"></i> Mapped: {{ o.mapped_medicine.medicine_name }}</small>
+                {% else %}
+                  <small class="text-warning"><i class="fas fa-triangle-exclamation me-1"></i> Unmapped</small>
+                {% endif %}
+              </td>
+              <td><span class="badge bg-light text-navy border">{{ o.prescribed_quantity }}</span></td>
+              <td>
+                {% if o.priority == 'urgent' or o.priority == 'stat' %}
+                  <span class="badge bg-danger-subtle text-danger text-uppercase">{{ o.priority }}</span>
+                {% else %}
+                  <span class="badge bg-secondary-subtle text-secondary text-uppercase">{{ o.priority }}</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if o.status == 'PENDING_REVIEW' %}
+                  <span class="badge bg-warning-subtle text-warning">Awaiting Review</span>
+                {% elif o.status == 'VERIFIED' %}
+                  <span class="badge bg-info-subtle text-info">Verified</span>
+                {% elif o.status == 'DISPENSED' %}
+                  <span class="badge bg-success-subtle text-success">Dispensed</span>
+                {% elif o.status == 'REJECTED' %}
+                  <span class="badge bg-danger-subtle text-danger">Rejected</span>
+                {% elif o.status == 'FAILED' %}
+                  <span class="badge bg-danger text-white">Validation Failed</span>
+                {% else %}
+                  <span class="badge bg-light text-muted">{{ o.get_status_display }}</span>
+                {% endif %}
+              </td>
+              <td class="text-muted small">{{ o.received_at|date:"d M H:i" }}</td>
+              <td class="text-end pe-4">
+                {% if o.status == 'PENDING_REVIEW' %}
+                  <a href="{% url 'order_review' order_id=o.id %}" class="btn btn-sm btn-primary rounded-3 px-3">
+                    <i class="fas fa-user-doctor me-1"></i> Review
+                  </a>
+                {% elif o.status == 'VERIFIED' %}
+                  {% if o.prescription %}
+                    <a href="{% url 'secure_dispensing_workspace' %}?rx={{ o.prescription.prescription_id }}" class="btn btn-sm btn-success rounded-3 px-3">
+                      <i class="fas fa-prescription-bottle-alt me-1"></i> Dispense
+                    </a>
+                  {% else %}
+                    <a href="{% url 'order_review' order_id=o.id %}" class="btn btn-sm btn-outline-info rounded-3 px-3">
+                      View
+                    </a>
+                  {% endif %}
+                {% else %}
+                  <a href="{% url 'order_review' order_id=o.id %}" class="btn btn-sm btn-outline-secondary rounded-3 px-3">
+                    View
+                  </a>
+                {% endif %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="8" class="text-center py-5 text-muted">
+                <i class="fas fa-file-medical-alt fs-2 text-muted mb-2 d-block"></i>
+                {% if search_q or status_filter %}
+                  <div>No medication orders match your filter criteria.</div>
+                  <a href="?status=" class="btn btn-sm btn-outline-secondary mt-2">Clear Filters</a>
+                {% else %}
+                  <div>No inbound medication orders in queue.</div>
+                  <div class="small mt-1">Use the <a href="{% url 'mock_ehr_simulator' %}" class="fw-semibold text-teal">Mock EHR Simulator</a> to generate test FHIR orders.</div>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Collapsible Audit Trail: Recent FHIR Integration Message Logs -->
+  <div class="accordion border-0 shadow-sm rounded-4 overflow-hidden" id="integrationLogsAccordion">
+    <div class="accordion-item border-0">
+      <h2 class="accordion-header" id="headingLogs">
+        <button class="accordion-button collapsed bg-white py-3 px-4 fw-bold text-navy" type="button" data-bs-toggle="collapse" data-bs-target="#collapseLogs" aria-expanded="false" aria-controls="collapseLogs">
+          <i class="fas fa-history text-teal me-2"></i> Recent FHIR Integration Message Logs (Audit Ledger)
+        </button>
+      </h2>
+      <div id="collapseLogs" class="accordion-collapse collapse" aria-labelledby="headingLogs" data-bs-parent="#integrationLogsAccordion">
+        <div class="accordion-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 font-monospace" style="font-size: 0.84rem;">
+              <thead class="table-light">
+                <tr>
+                  <th class="ps-4">Direction</th>
+                  <th>Resource</th>
+                  <th>Endpoint</th>
+                  <th>Status Code</th>
+                  <th>Result</th>
+                  <th>Timestamp</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for l in recent_logs %}
+                <tr>
+                  <td class="ps-4">
+                    {% if l.direction == 'INBOUND' %}
+                      <span class="badge bg-primary-subtle text-primary"><i class="fas fa-arrow-down me-1"></i> IN</span>
+                    {% else %}
+                      <span class="badge bg-secondary-subtle text-secondary"><i class="fas fa-arrow-up me-1"></i> OUT</span>
+                    {% endif %}
+                  </td>
+                  <td>{{ l.resource_type }}</td>
+                  <td class="text-truncate" style="max-width: 250px;">{{ l.request_path }}</td>
+                  <td>
+                    <span class="badge {% if l.status_code < 300 %}bg-success-subtle text-success{% else %}bg-danger-subtle text-danger{% endif %}">
+                      {{ l.status_code }}
+                    </span>
+                  </td>
+                  <td>{{ l.status }}</td>
+                  <td class="text-muted">{{ l.created_at|date:"d M Y H:i:s" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="6" class="text-center py-4 text-muted">No integration logs recorded yet.</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

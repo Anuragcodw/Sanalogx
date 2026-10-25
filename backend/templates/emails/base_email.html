@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block email_title %}{{ site_name|default:"Sanalogx" }}{% endblock %}</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #F4F6F9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1E293B; -webkit-font-smoothing: antialiased; line-height: 1.6;">
+
+  <!-- Outer wrapper -->
+  <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #F4F6F9; padding: 32px 16px;">
+    <tr>
+      <td align="center">
+        <!-- Main Card (Max 600px) -->
+        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; background-color: #FFFFFF; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 16px rgba(15, 39, 68, 0.08); border: 1px solid #E2E8F0;">
+          
+          <!-- Header -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #0F2744 0%, #163860 100%); padding: 28px 32px; text-align: left; border-bottom: 3px solid #00A896;">
+              <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                <tr>
+                  <td>
+                    <div style="font-size: 22px; font-weight: 800; color: #FFFFFF; letter-spacing: -0.5px; text-decoration: none;">
+                      Medi<span style="color: #00A896;">Vault</span>
+                    </div>
+                    <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #94A3B8; margin-top: 4px; font-weight: 600;">
+                      Hospital Pharmacy Intelligence Platform
+                    </div>
+                  </td>
+                  <td align="right">
+                    <span style="display: inline-block; padding: 5px 12px; background-color: rgba(0, 168, 150, 0.15); border: 1px solid rgba(0, 168, 150, 0.4); border-radius: 20px; font-size: 11px; font-weight: 600; color: #00D1B2; letter-spacing: 0.5px;">
+                      SECURE NOTIFICATION
+                    </span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Content Body -->
+          <tr>
+            <td style="padding: 36px 32px 28px 32px; background-color: #FFFFFF;">
+              {% block email_content %}
+              {% endblock %}
+            </td>
+          </tr>
+
+          <!-- Security Callout -->
+          <tr>
+            <td style="padding: 0 32px 24px 32px; background-color: #FFFFFF;">
+              <div style="background-color: #F8FAFC; border-left: 4px solid #00A896; border-radius: 4px; padding: 14px 16px; font-size: 12px; color: #64748B; line-height: 1.5;">
+                <strong style="color: #0F2744;">Security Notice:</strong> Sanalogx will never request your login credentials via email or phone. If you did not initiate this request, notify hospital system administration immediately.
+              </div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #0F2744; padding: 24px 32px; text-align: center; border-top: 1px solid #1E3A5F;">
+              <p style="margin: 0 0 6px 0; font-size: 12px; font-weight: 600; color: #E2E8F0;">
+                Sanalogx &bull; Pharmacy Operations &amp; Intelligence System
+              </p>
+              <p style="margin: 0 0 10px 0; font-size: 11px; color: #94A3B8;">
+                This is an automated system transmission generated from an authorized enterprise workspace. Please do not reply directly to this email.
+              </p>
+              <p style="margin: 0; font-size: 11px; color: #64748B;">
+                &copy; {{ current_year|default:"2026" }} Sanalogx Healthcare Systems. All rights reserved. Confidential &bull; Hospital Pharmacy Authorized Personnel Only.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>

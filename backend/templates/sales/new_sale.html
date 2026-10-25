@@ -1,0 +1,442 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}New Pharmacy Sale & POS — Sanalogx{% endblock %}
+{% block admin_breadcrumb %}New Sale / POS{% endblock %}
+{% block pharmacist_breadcrumb %}New Sale / POS{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 px-lg-4">
+    <!-- Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
+        <div>
+            <h3 class="fw-bold text-navy mb-0"><i class="fas fa-cash-register text-teal me-2"></i> Pharmacy Sales & POS Workspace</h3>
+            <p class="text-muted small mb-0">Scan barcode or select medicine to build multi-item sale cart with automated FEFO batch allocation and live receipt math.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'sales_history' %}" class="btn btn-outline-teal py-2 px-3 fw-bold">
+                <i class="fas fa-history me-1"></i> Sales History
+            </a>
+            {% if request.user.role == 'ADMIN' %}
+            <a href="{% url 'sales_analytics' %}" class="btn btn-navy text-white py-2 px-3 fw-bold">
+                <i class="fas fa-chart-line me-1"></i> Sales Analytics
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Left Column: Item Selection & Customer Info -->
+        <div class="col-lg-7">
+            <!-- Customer Details Card -->
+            <div class="card card-medivault bg-white shadow-sm p-4 mb-4">
+                <h5 class="fw-bold text-navy mb-3"><i class="fas fa-user-tag text-teal me-2"></i> Customer / Patient Information</h5>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold text-muted">Customer Name</label>
+                        <input type="text" id="custName" class="form-control" value="Walk-in Customer">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold text-muted">Mobile Number</label>
+                        <input type="text" id="custMobile" class="form-control" placeholder="+91 98765 43210">
+                    </div>
+                </div>
+                <div class="row g-3 mt-1">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold text-muted">Patient ID / UHID (Optional)</label>
+                        <input type="text" id="custPatientId" class="form-control" placeholder="e.g. UHID-1088">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold text-muted">Prescribing Doctor (Optional)</label>
+                        <input type="text" id="custDoctor" class="form-control" placeholder="e.g. Dr. Rajesh Gupta">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Item Selection Card -->
+            <div class="card card-medivault bg-white shadow-sm p-4 mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold text-navy mb-0">
+                        <i class="fas fa-barcode text-teal me-2"></i> 1. Barcode / Batch Scan &amp; Add
+                    </h5>
+                    <span class="badge bg-teal-subtle text-teal border border-teal-subtle" style="font-size: 0.72rem;">
+                        <i class="fas fa-bolt me-1"></i> Fast POS
+                    </span>
+                </div>
+                
+                <!-- Compact Scanner Action Toolbar -->
+                <div class="row g-2 mb-3">
+                    <div class="col-sm-5">
+                        <button type="button" class="btn btn-scanner-camera-cta w-100 py-2 d-flex align-items-center justify-content-center gap-2" onclick="openCameraScanner()">
+                            <i class="fas fa-camera fs-6"></i>
+                            <span>Scan with Camera</span>
+                        </button>
+                    </div>
+                    <div class="col-sm-7">
+                        <div class="input-group">
+                            <span class="input-group-text bg-light text-teal border-end-0"><i class="fas fa-barcode"></i></span>
+                            <input type="text" id="barcodeInput" class="form-control font-monospace border-start-0" placeholder="Scan or enter Barcode / Batch..." autocomplete="off">
+                            <button class="btn btn-teal text-white fw-bold" type="button" onclick="triggerBarcodeLookup()"><i class="fas fa-search"></i></button>
+                            <button class="btn btn-outline-secondary" type="button" onclick="clearBarcodeInput()" title="Clear"><i class="fas fa-times"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Last Scanned Live Feedback Box -->
+                <div id="barcodeSuccessCard" class="alert alert-success p-2.5 small d-none mb-3 border border-success" style="border-radius: 10px;">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="fw-bold text-navy"><i class="fas fa-check-circle text-success me-1"></i> <span id="scanMedName"></span></div>
+                            <span class="text-muted extra-small" id="scanMedDetails"></span>
+                        </div>
+                        <span class="badge bg-success font-monospace" id="scanMedPrice"></span>
+                    </div>
+                </div>
+                <div id="barcodeError" class="alert alert-danger p-2.5 small d-none mb-3 border border-danger" style="border-radius: 10px;"></div>
+
+                <!-- Dropdown Selector -->
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <label class="form-label small fw-semibold text-muted">Medicine Catalogue</label>
+                        <select id="medicineSelect" class="form-select">
+                            <option value="">-- Choose Medicine --</option>
+                            {% for med in medicines %}
+                                <option value="{{ med.id }}">{{ med.medicine_name }} ({{ med.dosage_form }} - {{ med.strength }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold text-muted">Quantity</label>
+                        <div class="input-group">
+                            <input type="number" id="medicineQty" min="1" value="10" class="form-control font-monospace fw-bold">
+                            <button class="btn btn-teal text-white fw-bold" onclick="addSelectedMedicineToCart()"><i class="fas fa-cart-plus me-1"></i> Add</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Sales Cart & Billing Breakdown -->
+        <div class="col-lg-5">
+            <div class="card card-medivault bg-white shadow-lg border-0">
+                <div class="card-header bg-navy text-white fw-bold py-3 d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-shopping-cart text-teal me-2"></i> Sales Cart (<span id="cartCount">0</span> items)</span>
+                    <button onclick="clearCart()" class="btn btn-outline-light btn-sm py-0 px-2 extra-small">Clear Cart</button>
+                </div>
+
+                <div class="card-body p-0">
+                    <div class="table-responsive" style="max-height: 280px; overflow-y: auto;">
+                        <table class="table table-hover align-middle mb-0 small">
+                            <thead class="bg-light text-navy fw-bold">
+                                <tr>
+                                    <th class="ps-3 py-2">MEDICINE</th>
+                                    <th class="py-2 text-center">QTY</th>
+                                    <th class="py-2 text-end">PRICE</th>
+                                    <th class="py-2 text-end">SUBTOTAL</th>
+                                    <th class="pe-3 py-2 text-center">ACTION</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cartTableBody">
+                                <tr id="emptyCartRow">
+                                    <td colspan="5" class="text-center py-5 text-muted">
+                                        <i class="fas fa-basket-shopping fs-1 mb-2 text-secondary opacity-50 d-block"></i>
+                                        Sales cart is empty. Scan barcode or add medicines.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Receipt Calculation Footer -->
+                <div class="card-footer bg-light p-3 border-top">
+                    <div class="d-flex justify-content-between mb-1 small text-muted">
+                        <span>Items Subtotal:</span>
+                        <span id="txtSubtotal" class="font-monospace fw-bold text-navy">₹0.00</span>
+                    </div>
+
+                    <div class="row g-2 mb-2 align-items-center">
+                        <div class="col-6">
+                            <label class="extra-small fw-semibold text-muted">Discount (₹):</label>
+                            <input type="number" step="0.01" min="0" id="numDiscount" value="0.00" oninput="calculateReceiptMath()" class="form-control form-control-sm font-monospace">
+                        </div>
+                        <div class="col-6">
+                            <label class="extra-small fw-semibold text-muted">GST Tax (5%):</label>
+                            <input type="number" step="0.01" min="0" id="numTax" value="0.00" oninput="calculateReceiptMath()" class="form-control form-control-sm font-monospace">
+                        </div>
+                    </div>
+
+                    <hr class="my-2">
+
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="fw-bold text-navy fs-5">Grand Total:</span>
+                        <span id="txtGrandTotal" class="fw-bold text-teal font-monospace fs-4">₹0.00</span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-muted">Payment Method</label>
+                        <select id="selPaymentMethod" class="form-select form-select-sm">
+                            <option value="CASH">Cash</option>
+                            <option value="UPI">UPI / Mobile QR</option>
+                            <option value="CARD">Credit / Debit Card</option>
+                        </select>
+                    </div>
+
+                    <button onclick="confirmCheckout()" id="btnCheckout" class="btn btn-teal text-white w-100 py-2 fs-6 fw-bold shadow-sm" disabled>
+                        <i class="fas fa-check-circle me-1"></i> Confirm Sale & Process Billing
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Include Reusable Camera Barcode Scanner Modal -->
+{% include 'includes/camera_scanner_modal.html' %}
+
+<script src="{% static 'js/html5-qrcode.min.js' %}"></script>
+<script src="{% static 'js/medivault_scanner.js' %}"></script>
+<script>
+const medDataMap = JSON.parse('{{ med_data_json|escapejs }}');
+let cart = [];
+
+function openCameraScanner() {
+    MedivaultScanner.openModal(function(code) {
+        document.getElementById('barcodeInput').value = code;
+        handleBarcodeScan(code);
+    });
+}
+
+function clearBarcodeInput() {
+    document.getElementById('barcodeInput').value = '';
+    const errDiv = document.getElementById('barcodeError');
+    const successDiv = document.getElementById('barcodeSuccessCard');
+    if (errDiv) errDiv.classList.add('d-none');
+    if (successDiv) successDiv.classList.add('d-none');
+}
+
+function triggerBarcodeLookup() {
+    const code = document.getElementById('barcodeInput').value.trim();
+    if (code) handleBarcodeScan(code);
+}
+
+function handleBarcodeScan(providedCode) {
+    let code = providedCode ? providedCode.trim() : document.getElementById('barcodeInput').value.trim();
+    let errDiv = document.getElementById('barcodeError');
+    let successDiv = document.getElementById('barcodeSuccessCard');
+    errDiv.classList.add('d-none');
+    successDiv.classList.add('d-none');
+
+    if (!code) return;
+
+    fetch(`{% url "api_sales_barcode_scan" %}?code=${encodeURIComponent(code)}`)
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            addToCart({
+                medicine_id: data.medicine_id,
+                medicine_name: data.medicine_name,
+                unit_price: data.unit_price,
+                available_stock: data.available_stock,
+                batch_number: data.batch_number,
+                expiry_date: data.expiry_date,
+                quantity: 1
+            });
+
+            // Populate live feedback card
+            document.getElementById('scanMedName').innerText = data.medicine_name + ' (' + data.strength + ')';
+            document.getElementById('scanMedDetails').innerText = 
+                (data.generic_name ? 'Generic: ' + data.generic_name + ' · ' : '') + 
+                'Batch: ' + data.batch_number + ' (Exp: ' + data.expiry_date + ') · Stock: ' + data.available_stock + ' units';
+            document.getElementById('scanMedPrice').innerText = '₹' + data.unit_price.toFixed(2);
+            successDiv.classList.remove('d-none');
+
+            document.getElementById('barcodeInput').value = '';
+            MedivaultScanner.playChime();
+        } else {
+            let errorMsg = data.error || "Barcode scan failed.";
+            if (data.status_code === 'NOT_FOUND') {
+                errorMsg = `<strong>Not Found:</strong> Code '${code}' is not mapped to any medicine. Register it in Medicine Master first.`;
+            } else if (data.status_code === 'EXPIRED') {
+                errorMsg = `<strong>Expired Batch:</strong> ${errorMsg}`;
+            } else if (data.status_code === 'QUARANTINED') {
+                errorMsg = `<strong>Safety Alert:</strong> ${errorMsg}`;
+            }
+            errDiv.innerHTML = '<i class="fas fa-exclamation-circle me-1"></i> ' + errorMsg;
+            errDiv.classList.remove('d-none');
+        }
+    })
+    .catch(err => {
+        errDiv.innerHTML = '<i class="fas fa-triangle-exclamation me-1"></i> Network error during barcode lookup.';
+        errDiv.classList.remove('d-none');
+    });
+}
+
+// Attach Hardware USB / Bluetooth Scanner Listener
+document.addEventListener('DOMContentLoaded', function() {
+    const barcodeInput = document.getElementById('barcodeInput');
+    if (barcodeInput) {
+        MedivaultScanner.attachHardwareScanner(barcodeInput, function(code) {
+            handleBarcodeScan(code);
+        });
+    }
+});
+
+function addSelectedMedicineToCart() {
+    let select = document.getElementById('medicineSelect');
+    let medId = parseInt(select.value);
+    let qty = parseInt(document.getElementById('medicineQty').value) || 1;
+
+    if (!medId) return;
+
+    let med = medDataMap.find(m => m.id === medId);
+    if (!med) return;
+
+    addToCart({
+        medicine_id: med.id,
+        medicine_name: med.medicine_name,
+        unit_price: med.unit_price,
+        available_stock: med.available_stock,
+        batch_number: med.batch_number,
+        expiry_date: med.expiry_date,
+        quantity: qty
+    });
+}
+
+function addToCart(item) {
+    let existing = cart.find(c => c.medicine_id === item.medicine_id);
+    if (existing) {
+        if (existing.quantity + item.quantity > item.available_stock) {
+            alert(`Cannot add more than available stock (${item.available_stock}).`);
+            return;
+        }
+        existing.quantity += item.quantity;
+    } else {
+        if (item.quantity > item.available_stock) {
+            alert(`Requested quantity (${item.quantity}) exceeds available stock (${item.available_stock}).`);
+            return;
+        }
+        cart.push(item);
+    }
+    renderCart();
+}
+
+function removeFromCart(medId) {
+    cart = cart.filter(c => c.medicine_id !== medId);
+    renderCart();
+}
+
+function clearCart() {
+    cart = [];
+    renderCart();
+}
+
+function renderCart() {
+    let tbody = document.getElementById('cartTableBody');
+    let cartCount = document.getElementById('cartCount');
+    cartCount.innerText = cart.length;
+
+    if (cart.length === 0) {
+        tbody.innerHTML = `
+            <tr id="emptyCartRow">
+                <td colspan="5" class="text-center py-5 text-muted">
+                    <i class="fas fa-basket-shopping fs-1 mb-2 text-secondary opacity-50 d-block"></i>
+                    Sales cart is empty. Scan barcode or add medicines.
+                </td>
+            </tr>
+        `;
+        document.getElementById('btnCheckout').disabled = true;
+        calculateReceiptMath();
+        return;
+    }
+
+    let html = '';
+    cart.forEach(item => {
+        let subtotal = (item.quantity * item.unit_price).toFixed(2);
+        html += `
+            <tr>
+                <td class="ps-3 fw-bold text-navy">
+                    ${item.medicine_name}
+                    <span class="text-muted extra-small d-block">Batch ${item.batch_number} (Exp: ${item.expiry_date})</span>
+                </td>
+                <td class="text-center font-monospace fw-bold">${item.quantity}</td>
+                <td class="text-end font-monospace">₹${item.unit_price.toFixed(2)}</td>
+                <td class="text-end font-monospace fw-bold text-teal">₹${subtotal}</td>
+                <td class="pe-3 text-center">
+                    <button onclick="removeFromCart(${item.medicine_id})" class="btn btn-outline-danger btn-sm py-0 px-1 extra-small"><i class="fas fa-trash"></i></button>
+                </td>
+            </tr>
+        `;
+    });
+
+    tbody.innerHTML = html;
+    document.getElementById('btnCheckout').disabled = false;
+    calculateReceiptMath();
+}
+
+function calculateReceiptMath() {
+    let subtotal = cart.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
+    document.getElementById('txtSubtotal').innerText = `₹${subtotal.toFixed(2)}`;
+
+    let discount = parseFloat(document.getElementById('numDiscount').value) || 0;
+    
+    // Auto-compute 5% GST if not overridden
+    let taxInput = document.getElementById('numTax');
+    if (!taxInput.dataset.userModified) {
+        let computedTax = (subtotal - discount) * 0.05;
+        taxInput.value = Math.max(0, computedTax).toFixed(2);
+    }
+    let tax = parseFloat(taxInput.value) || 0;
+
+    let grandTotal = Math.max(0, subtotal - discount + tax);
+    document.getElementById('txtGrandTotal').innerText = `₹${grandTotal.toFixed(2)}`;
+}
+
+document.getElementById('numTax').addEventListener('input', function() {
+    this.dataset.userModified = "true";
+});
+
+function confirmCheckout() {
+    if (cart.length === 0) return;
+
+    let btn = document.getElementById('btnCheckout');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Processing Sale...';
+
+    let payload = {
+        patient_name: document.getElementById('custName').value.trim() || 'Walk-in Customer',
+        mobile_number: document.getElementById('custMobile').value.trim(),
+        patient_id: document.getElementById('custPatientId').value.trim(),
+        doctor_name: document.getElementById('custDoctor').value.trim(),
+        payment_method: document.getElementById('selPaymentMethod').value,
+        discount_amount: parseFloat(document.getElementById('numDiscount').value) || 0,
+        tax_amount: parseFloat(document.getElementById('numTax').value) || 0,
+        cart_items: cart.map(i => ({ medicine_id: i.medicine_id, quantity: i.quantity }))
+    };
+
+    fetch('{% url "api_sales_checkout" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            window.location.href = data.redirect_url;
+        } else {
+            alert("Checkout Error: " + (data.error || "Failed to process sale."));
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-check-circle me-1"></i> Confirm Sale & Process Billing';
+        }
+    })
+    .catch(err => {
+        alert("Server communication error.");
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-check-circle me-1"></i> Confirm Sale & Process Billing';
+    });
+}
+</script>
+{% endblock %}

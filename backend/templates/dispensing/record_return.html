@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Record Medicine Return — Sanalogx{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card card-medivault bg-white shadow-lg p-4 p-md-5">
+                <h4 class="fw-bold text-navy mb-3"><i class="fas fa-rotate-left text-teal me-2"></i> Record Authorized Medicine Return</h4>
+                <p class="text-muted small mb-4">Process patient returns or unused stock restoration safely. Increases batch quantity and creates audit trail.</p>
+
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-muted">Select Medicine <span class="text-danger">*</span></label>
+                        <select name="medicine" id="medicineSelect" class="form-select" onchange="loadMedicineBatches(this.value)" required>
+                            <option value="">-- Choose Medicine --</option>
+                            {% for med in medicines %}
+                                <option value="{{ med.id }}">{{ med.medicine_name }} ({{ med.generic_name }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-muted">Target Batch <span class="text-danger">*</span></label>
+                        <select name="batch" id="batchSelect" class="form-select" required disabled>
+                            <option value="">-- Choose Medicine First --</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-muted">Return Quantity <span class="text-danger">*</span></label>
+                        <input type="number" name="quantity" min="1" value="1" class="form-control font-monospace fw-bold" required>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label small fw-semibold text-muted">Authorized Reason for Return <span class="text-danger">*</span></label>
+                        <select name="reason" class="form-select" required>
+                            <option value="Patient Return — Sealed / Unused">Patient Return — Sealed / Unused</option>
+                            <option value="Wrong Medicine Dispensed — Restored">Wrong Medicine Dispensed — Restored</option>
+                            <option value="Order Cancelled — Restored">Order Cancelled — Restored</option>
+                            <option value="Other Authorized Reason">Other Authorized Reason</option>
+                        </select>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{% url 'inventory_dashboard' %}" class="btn btn-outline-secondary py-2 px-3">Cancel</a>
+                        <button type="submit" class="btn btn-teal text-white py-2 px-4 fw-bold">
+                            <i class="fas fa-arrow-rotate-left me-1"></i> Process Return & Restore Stock
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function loadMedicineBatches(medId) {
+    let batchSelect = document.getElementById('batchSelect');
+    if (!medId) {
+        batchSelect.innerHTML = '<option value="">-- Choose Medicine First --</option>';
+        batchSelect.disabled = true;
+        return;
+    }
+
+    batchSelect.innerHTML = '<option value="">Loading batches...</option>';
+    batchSelect.disabled = true;
+
+    fetch(`{% url "get_medicine_batches" %}?medicine_id=${medId}`)
+    .then(res => res.json())
+    .then(data => {
+        if (data.batches && data.batches.length > 0) {
+            let html = '<option value="">-- Select Target Batch --</option>';
+            data.batches.forEach(b => {
+                html += `<option value="${b.id}">Batch ${b.batch_number} (Current Stock: ${b.quantity_available}, Exp: ${b.expiry_date})</option>`;
+            });
+            batchSelect.innerHTML = html;
+            batchSelect.disabled = false;
+        } else {
+            batchSelect.innerHTML = '<option value="">No active batches found</option>';
+            batchSelect.disabled = true;
+        }
+    });
+}
+</script>
+{% endblock %}

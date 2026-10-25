@@ -1,0 +1,88 @@
+{% load static %}
+<!-- Sanalogx Top Header Bar -->
+<header class="admin-app-header" id="adminAppHeader">
+    <div class="admin-header-left">
+        <!-- Sidebar Toggle -->
+        <button type="button" class="admin-sidebar-toggle-btn" id="adminSidebarToggle" aria-label="Toggle Navigation Sidebar" title="Toggle Sidebar">
+            <i class="fas fa-bars"></i>
+        </button>
+
+        <!-- Breadcrumbs -->
+        <ul class="admin-breadcrumbs d-none d-sm-flex">
+            <li><a href="{% url 'admin_approvals' %}"><i class="fas fa-hospital me-1"></i> Governance</a></li>
+            <li class="breadcrumb-separator"><i class="fas fa-chevron-right"></i></li>
+            <li class="current-page">{% block admin_breadcrumb %}Pharmacist Management{% endblock %}</li>
+        </ul>
+    </div>
+
+    <div class="admin-header-right">
+        <!-- System Status Pill -->
+        <div class="admin-status-pill d-none d-md-inline-flex" title="Production EHR & Pharmacy Core Operational">
+            <span class="admin-status-dot"></span>
+            <span>Hospital Pharmacy Core</span>
+        </div>
+
+        <!-- Notification Bell -->
+        <div class="dropdown">
+            <button class="admin-header-icon-btn position-relative" type="button" data-bs-toggle="dropdown" id="adminHeaderNotifBtn" aria-expanded="false" title="Notifications">
+                <i class="fas fa-bell fs-6"></i>
+                <span id="adminHeaderNotifBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none" style="font-size: 0.65rem;">
+                    0
+                </span>
+            </button>
+            <div class="dropdown-menu dropdown-menu-end shadow-lg border-0 p-0" style="min-width: 280px; max-width: calc(100vw - 24px); border-radius: 12px; overflow: hidden;">
+                <div class="bg-navy p-3 text-white d-flex justify-content-between align-items-center" style="background: var(--admin-navy-dark);">
+                    <h6 class="fw-bold mb-0 text-white small"><i class="fas fa-bell me-1 text-teal" style="color: var(--admin-teal);"></i> Notifications</h6>
+                    <a href="{% url 'notification_list' %}" class="text-teal extra-small text-decoration-none fw-bold" style="color: var(--admin-teal);">View All</a>
+                </div>
+                <div id="adminHeaderNotifList" class="p-2" style="max-height: 260px; overflow-y: auto;">
+                    <div class="text-center py-3 text-muted small"><i class="fas fa-spinner fa-spin me-1"></i> Checking alerts...</div>
+                </div>
+                <div class="bg-light p-2 text-center border-top">
+                    <a href="{% url 'notification_list' %}" class="text-decoration-none text-muted small fw-semibold">Notification Center</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Profile Dropdown -->
+        <div class="dropdown">
+            <button class="admin-profile-dropdown-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <div class="admin-user-avatar" style="width: 30px; height: 30px; font-size: 0.75rem;">
+                    {{ request.user.username|slice:":1"|upper }}
+                </div>
+                <div class="d-none d-lg-flex flex-column text-start">
+                    <span class="fw-bold small text-navy leading-tight" style="color: var(--admin-navy); font-size: 0.8rem;">
+                        {{ request.user.get_full_name|default:request.user.username }}
+                    </span>
+                    <span class="text-muted extra-small" style="font-size: 0.68rem;">Administrator</span>
+                </div>
+                <i class="fas fa-chevron-down ms-1 text-muted" style="font-size: 0.65rem;"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow border-0 p-2" style="border-radius: 10px; min-width: 200px;">
+                <li class="px-3 py-2 border-bottom mb-1">
+                    <strong class="d-block text-navy small">{{ request.user.username }}</strong>
+                    <span class="text-muted extra-small">{{ request.user.email }}</span>
+                </li>
+                <li>
+                    <a class="dropdown-item py-2 rounded-2 small" href="{% url 'change_password' %}">
+                        <i class="fas fa-key me-2 text-muted"></i> Change Password
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item py-2 rounded-2 small" href="{% url 'notification_list' %}">
+                        <i class="fas fa-bell me-2 text-muted"></i> Security Alerts
+                    </a>
+                </li>
+                <li><hr class="dropdown-divider my-1"></li>
+                <li>
+                    <form method="POST" action="{% url 'logout' %}" class="m-0 p-0">
+                        {% csrf_token %}
+                        <button type="submit" class="dropdown-item py-2 rounded-2 small text-danger" style="background: none; border: none; width: 100%; text-align: left; cursor: pointer;">
+                            <i class="fas fa-sign-out-alt me-2"></i> Log Out
+                        </button>
+                    </form>
+                </li>
+            </ul>
+        </div>
+    </div>
+</header>

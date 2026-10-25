@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Supplier-Medicine Mapping — {{ supplier.company_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 px-lg-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold text-navy mb-0"><i class="fas fa-link text-teal me-2"></i> Supplier-Medicine Catalogue Mapping</h3>
+            <p class="text-muted small mb-0">Manage medicine pricing, lead times, and minimum order quantities for <strong>{{ supplier.company_name }}</strong>.</p>
+        </div>
+        <a href="{% url 'supplier_detail' supplier.pk %}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i> Back to Detail</a>
+    </div>
+
+    <div class="row g-4">
+        <!-- Form Column -->
+        <div class="col-lg-4">
+            <div class="card card-medivault bg-white shadow-sm p-4">
+                <h5 class="fw-bold text-navy mb-3"><i class="fas fa-plus-circle text-teal me-2"></i> Add / Update Mapping</h5>
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-muted">Select Medicine <span class="text-danger">*</span></label>
+                        <select name="medicine" class="form-select" required>
+                            <option value="">-- Select Medicine --</option>
+                            {% for med in medicines %}
+                                <option value="{{ med.id }}">{{ med.medicine_name }} ({{ med.strength }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-muted">Unit Price (₹) <span class="text-danger">*</span></label>
+                        <input type="number" step="0.01" min="0" name="unit_price" class="form-control font-monospace fw-bold" placeholder="e.g. 18.50" required>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold text-muted">Lead Time (Days)</label>
+                            <input type="number" name="delivery_days" min="1" value="3" class="form-control font-monospace">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold text-muted">MOQ (Units)</label>
+                            <input type="number" name="minimum_order_quantity" min="1" value="10" class="form-control font-monospace">
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label small fw-semibold text-muted">Notes / SKU Reference</label>
+                        <input type="text" name="notes" class="form-control" placeholder="Supplier SKU or pack details">
+                    </div>
+
+                    <button type="submit" class="btn btn-teal text-white w-100 py-2 fw-bold">
+                        <i class="fas fa-save me-1"></i> Save Mapping
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Catalogue Table Column -->
+        <div class="col-lg-8">
+            <div class="card card-medivault bg-white shadow-sm border-0">
+                <div class="card-header bg-navy text-white fw-bold py-3">
+                    Mapped Medicines Catalogue ({{ existing_catalogue.count }})
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0 small">
+                        <thead class="bg-light text-navy fw-bold">
+                            <tr>
+                                <th class="ps-3 py-3">MEDICINE</th>
+                                <th class="py-3">UNIT PRICE</th>
+                                <th class="py-3 text-center">DELIVERY TIME</th>
+                                <th class="py-3 text-center">MOQ</th>
+                                <th class="pe-3 py-3 text-end">LAST UPDATED</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sm in existing_catalogue %}
+                            <tr>
+                                <td class="ps-3 fw-bold text-navy">
+                                    {{ sm.medicine.medicine_name }}
+                                    <span class="text-muted extra-small d-block">{{ sm.medicine.generic_name }} ({{ sm.medicine.strength }})</span>
+                                </td>
+                                <td class="fw-bold text-teal font-monospace">₹{{ sm.unit_price }}</td>
+                                <td class="text-center font-monospace">{{ sm.delivery_days }} Days</td>
+                                <td class="text-center font-monospace">{{ sm.minimum_order_quantity }} units</td>
+                                <td class="pe-3 text-end text-muted extra-small">{{ sm.last_price_update|date:"d M Y" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center py-5 text-muted">
+                                    No medicines mapped to this supplier yet.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

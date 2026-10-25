@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Verify Your Email — Sanalogx{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="container py-5 text-center">
+        <div class="max-width-600 mx-auto auth-card p-5 bg-white shadow-lg border-top border-5 border-warning">
+            <div class="card-icon-wrapper mx-auto mb-4" style="width: 72px; height: 72px; font-size: 2.2rem; background: #FEF3C7; color: #D97706;">
+                <i class="fas fa-envelope-open-text"></i>
+            </div>
+
+            <span class="badge badge-soft-warning fs-6 mb-3 px-3 py-2">
+                <i class="fas fa-clock me-1"></i> EMAIL VERIFICATION PENDING
+            </span>
+
+            <h2 class="fw-bold text-navy mb-3">Please Verify Your Email</h2>
+            
+            <p class="text-secondary fs-6 mb-4">
+                Thank you for registering! We've sent a verification link to your registered email address. 
+                Please click the link in the email to verify your address and activate your application review.
+            </p>
+
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show small mb-4 text-start" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <div class="p-4 bg-light rounded-3 text-start mb-4 border">
+                <h6 class="fw-bold text-navy mb-2"><i class="fas fa-rotate text-teal me-2"></i> Didn't receive the email?</h6>
+                <p class="small text-muted mb-3">
+                    Check your spam or junk folder. If you still can't find it, enter your email below to request a new link.
+                </p>
+                <form method="POST" action="{% url 'resend_verification' %}" class="row g-2">
+                    {% csrf_token %}
+                    <div class="col-sm-8">
+                        <input type="email" class="form-control" name="email" placeholder="Enter your registered email" required>
+                    </div>
+                    <div class="col-sm-4">
+                        <button type="submit" class="btn btn-medivault-primary w-100 justify-content-center">
+                            Resend Link
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="d-flex justify-content-center gap-3">
+                <a href="{% url 'pharmacist_login' %}" class="btn btn-medivault-secondary px-4">
+                    <i class="fas fa-right-to-bracket me-2"></i> Go to Login
+                </a>
+                <a href="{% url 'home' %}" class="btn btn-link text-muted small text-decoration-none">
+                    Return to Home
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

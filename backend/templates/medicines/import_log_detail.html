@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Import Log #{{ log.id }} — Sanalogx{% endblock %}
+{% block admin_breadcrumb %}Import Log Detail{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 px-md-4 py-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex align-items-center gap-3">
+      <div class="page-header-glow-badge flex-shrink-0"><i class="fas fa-file-alt"></i></div>
+      <div>
+        <h2 class="fw-bold text-navy mb-0 fs-3">Import Log #{{ log.id }}</h2>
+        <p class="text-muted small mb-0">{{ log.filename }} — {{ log.created_at|date:"d M Y, H:i" }}</p>
+      </div>
+    </div>
+    <div class="d-flex gap-2">
+      {% if log.error_count > 0 %}
+      <a href="{% url 'medicine_import_error_report' log.id %}" class="btn btn-outline-danger btn-sm fw-semibold">
+        <i class="fas fa-download me-1"></i> Download Error Report
+      </a>
+      {% endif %}
+      <a href="{% url 'medicine_import_log' %}" class="btn btn-outline-secondary btn-sm fw-semibold">
+        <i class="fas fa-arrow-left me-1"></i> All Logs
+      </a>
+    </div>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm text-center p-3" style="border-radius:12px;">
+        <div class="fw-bold fs-3 text-navy">{{ log.total_rows }}</div>
+        <div class="small text-muted">Total Rows</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm text-center p-3" style="border-radius:12px;">
+        <div class="fw-bold fs-3 text-success">{{ log.created_count }}</div>
+        <div class="small text-muted">Created</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm text-center p-3" style="border-radius:12px;">
+        <div class="fw-bold fs-3 text-warning">{{ log.duplicate_count }}</div>
+        <div class="small text-muted">Duplicates Mapped</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm text-center p-3" style="border-radius:12px;">
+        <div class="fw-bold fs-3 {% if log.error_count > 0 %}text-danger{% else %}text-muted{% endif %}">{{ log.error_count }}</div>
+        <div class="small text-muted">Errors</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Metadata -->
+  <div class="card shadow-sm border-0 mb-4" style="border-radius:14px;">
+    <div class="card-body p-4">
+      <div class="row g-3 small">
+        <div class="col-md-4"><span class="text-muted">Import Type:</span> <span class="fw-semibold">{{ log.get_import_type_display }}</span></div>
+        <div class="col-md-4"><span class="text-muted">Status:</span>
+          {% if log.status == 'SUCCESS' %}<span class="badge bg-success">Success</span>
+          {% elif log.status == 'PARTIAL' %}<span class="badge bg-warning text-dark">Partial</span>
+          {% else %}<span class="badge bg-danger">Failed</span>{% endif %}
+        </div>
+        <div class="col-md-4"><span class="text-muted">Uploaded by:</span> <span class="fw-semibold">{{ log.uploaded_by|default:"—" }}</span></div>
+        <div class="col-md-4"><span class="text-muted">Updated Count:</span> <span class="fw-semibold">{{ log.updated_count }}</span></div>
+        {% if log.file_sha256 %}
+        <div class="col-12"><span class="text-muted">File SHA-256:</span> <code class="small">{{ log.file_sha256 }}</code></div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Row Errors -->
+  {% if log.error_details %}
+  <div class="card shadow-sm border-0" style="border-radius:14px;">
+    <div class="card-header bg-danger bg-opacity-10 border-0 py-3">
+      <h6 class="text-danger fw-bold mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Row Errors ({{ log.error_count }})</h6>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm table-hover mb-0 small">
+        <thead class="table-light">
+          <tr><th>Row #</th><th>Field</th><th>Error Message</th></tr>
+        </thead>
+        <tbody>
+          {% for err in log.error_details %}
+          <tr class="table-danger">
+            <td>{{ err.row_num|default:"—" }}</td>
+            <td><code>{{ err.field|default:"—" }}</code></td>
+            <td>{{ err.message }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% else %}
+  <div class="alert alert-success"><i class="fas fa-check-circle me-2"></i>No row errors. Import completed cleanly.</div>
+  {% endif %}
+
+</div>
+{% endblock %}

@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Sales & Profit Analytics — Sanalogx{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 px-lg-4">
+    <!-- Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
+        <div>
+            <h3 class="fw-bold text-navy mb-0"><i class="fas fa-chart-line text-teal me-2"></i> Sales, Revenue & Profit Analytics</h3>
+            <p class="text-muted small mb-0">Real-time financial performance calculated directly from MySQL sales and historical batch purchase cost records.</p>
+        </div>
+        <a href="{% url 'sales_history' %}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i> Back to Sales History</a>
+    </div>
+
+    <!-- Summary KPI Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card card-medivault p-3 bg-white shadow-sm border-start border-4 border-primary">
+                <span class="text-muted extra-small font-uppercase fw-bold d-block mb-1">Total Completed Sales</span>
+                <h3 class="fw-bold text-navy mb-0">{{ total_sales_count }}</h3>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card card-medivault p-3 bg-white shadow-sm border-start border-4 border-success">
+                <span class="text-muted extra-small font-uppercase fw-bold d-block mb-1">Total Sales Revenue</span>
+                <h3 class="fw-bold text-success mb-0">₹{{ total_revenue }}</h3>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card card-medivault p-3 bg-white shadow-sm border-start border-4 border-secondary">
+                <span class="text-muted extra-small font-uppercase fw-bold d-block mb-1">Total Historical Cost</span>
+                <h3 class="fw-bold text-navy mb-0">₹{{ total_cost }}</h3>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card card-medivault p-3 bg-white shadow-sm border-start border-4 border-teal">
+                <span class="text-muted extra-small font-uppercase fw-bold d-block mb-1">Total Net Gross Profit</span>
+                <h3 class="fw-bold text-teal mb-0">₹{{ total_profit }}</h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-8">
+            <div class="card card-medivault bg-white shadow-sm p-4 border-0">
+                <h5 class="fw-bold text-navy mb-3"><i class="fas fa-chart-area text-teal me-2"></i> 14-Day Sales Revenue & Profit Trend</h5>
+                <div style="height: 300px;">
+                    <canvas id="salesTrendChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card card-medivault bg-white shadow-sm border-0">
+                <div class="card-header bg-navy text-white fw-bold py-3">Top Selling Medicines</div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0 small">
+                        <thead class="bg-light text-navy fw-bold">
+                            <tr>
+                                <th class="ps-3 py-2">MEDICINE</th>
+                                <th class="py-2 text-center">QTY SOLD</th>
+                                <th class="pe-3 py-2 text-end">REVENUE</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for top in top_medicines %}
+                            <tr>
+                                <td class="ps-3 fw-bold text-navy">{{ top.medicine__medicine_name }}</td>
+                                <td class="text-center font-monospace fw-bold text-teal">{{ top.total_qty }}</td>
+                                <td class="pe-3 text-end font-monospace">₹{{ top.total_revenue }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3" class="text-center py-4 text-muted">No sales data available.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const labels = JSON.parse('{{ daily_labels_json|escapejs }}');
+const revData = JSON.parse('{{ daily_revenue_json|escapejs }}');
+const profData = JSON.parse('{{ daily_profit_json|escapejs }}');
+
+const ctx = document.getElementById('salesTrendChart').getContext('2d');
+new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: labels,
+        datasets: [
+            {
+                label: 'Revenue (₹)',
+                data: revData,
+                borderColor: '#0d9488',
+                backgroundColor: 'rgba(13, 148, 136, 0.1)',
+                fill: true,
+                tension: 0.3
+            },
+            {
+                label: 'Gross Profit (₹)',
+                data: profData,
+                borderColor: '#2563eb',
+                backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                fill: true,
+                tension: 0.3
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { position: 'top' }
+        },
+        scales: {
+            y: { beginAtZero: true }
+        }
+    }
+});
+</script>
+{% endblock %}

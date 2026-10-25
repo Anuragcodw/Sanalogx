@@ -1,0 +1,174 @@
+{% load static %}
+<!-- Sanalogx Pharmacist Left Sidebar Navigation -->
+<aside class="pharmacist-sidebar" id="pharmacistSidebar" aria-label="Pharmacist Navigation">
+    <!-- Brand Header -->
+    <div class="pharmacist-sidebar-brand">
+        <a href="{% url 'approved' %}">
+            <div class="pharmacist-brand-icon">
+                <i class="fas fa-prescription-bottle-alt"></i>
+            </div>
+            <div class="pharmacist-brand-text">
+                <span class="pharmacist-brand-name">Sanalog<span>x</span></span>
+                <span class="pharmacist-brand-subtitle">Pharmacist Workspace</span>
+            </div>
+        </a>
+    </div>
+
+    <!-- Navigation List -->
+    <nav class="pharmacist-sidebar-nav">
+        <!-- Section: Overview -->
+        <div class="pharmacist-nav-section-title">Overview</div>
+        <div class="pharmacist-nav-item">
+            <a href="{% url 'approved' %}" class="pharmacist-nav-link {% if request.resolver_match.url_name == 'approved' %}active{% endif %}">
+                <i class="fas fa-gauge-high nav-icon"></i>
+                <span>My Dashboard</span>
+            </a>
+        </div>
+
+        <!-- Section: Medicines -->
+        <div class="pharmacist-nav-section-title">Medicines</div>
+
+        <div class="pharmacist-nav-item">
+            <a href="{% url 'medicine_list' %}" class="pharmacist-nav-link {% if 'medicines' in request.path and request.resolver_match.url_name != 'category_list' %}active{% endif %}">
+                <i class="fas fa-pills nav-icon"></i>
+                <span>Medicine Search</span>
+            </a>
+        </div>
+
+        <div class="pharmacist-nav-item">
+            <a href="{% url 'batch_stock' %}" class="pharmacist-nav-link {% if request.resolver_match.url_name == 'batch_stock' %}active{% endif %}">
+                <i class="fas fa-layer-group nav-icon"></i>
+                <span>Batch Availability</span>
+            </a>
+        </div>
+
+        <div class="pharmacist-nav-item">
+            <a href="{% url 'expiry_management' %}" class="pharmacist-nav-link {% if request.resolver_match.url_name == 'expiry_management' %}active{% endif %}">
+                <i class="fas fa-hourglass-half nav-icon"></i>
+                <span>Expiry Alerts</span>
+            </a>
+        </div>
+
+        <!-- Section: Dispensing -->
+        <div class="pharmacist-nav-section-title">Dispensing & Sales</div>
+
+        <div class="pharmacist-nav-item">
+            <a href="{% url 'secure_dispensing_workspace' %}" class="pharmacist-nav-link {% if request.resolver_match.url_name == 'secure_dispensing_workspace' %}active{% endif %}">
+                <i class="fas fa-shield-virus nav-icon"></i>
+                <span>Secure Dispensing</span>
+            </a>
+        </div>
+
+        <div class="pharmacist-nav-item">
+            <a href="{% url 'dispensing_history' %}" class="pharmacist-nav-link {% if request.resolver_match.url_name == 'dispensing_history' or request.resolver_match.url_name == 'dispensing_detail' %}active{% endif %}">
+                <i class="fas fa-clock-rotate-left nav-icon"></i>
+                <span>Dispensing History</span>
+            </a>
+        </div>
+
+        <div class="pharmacist-nav-item">
+            <a href="{% url 'controlled_register' %}" class="pharmacist-nav-link {% if request.resolver_match.url_name == 'controlled_register' %}active{% endif %}">
+                <i class="fas fa-book-medical nav-icon"></i>
+                <span>Controlled Register</span>
+            </a>
+        </div>
+
+        <div class="pharmacist-nav-item">
+            <a href="{% url 'discrepancy_list' %}" class="pharmacist-nav-link {% if request.resolver_match.url_name == 'discrepancy_list' %}active{% endif %}">
+                <i class="fas fa-triangle-exclamation nav-icon"></i>
+                <span>Discrepancy Queue</span>
+            </a>
+        </div>
+
+        <div class="pharmacist-nav-item">
+            <a href="{% url 'stock_reconciliation' %}" class="pharmacist-nav-link {% if request.resolver_match.url_name == 'stock_reconciliation' %}active{% endif %}">
+                <i class="fas fa-scale-balanced nav-icon"></i>
+                <span>Stock Reconciliation</span>
+            </a>
+        </div>
+
+        <div class="pharmacist-nav-item">
+            <a href="{% url 'new_sale' %}" class="pharmacist-nav-link {% if request.resolver_match.url_name == 'new_sale' %}active{% endif %}">
+                <i class="fas fa-cash-register nav-icon"></i>
+                <span>New Sale / POS</span>
+            </a>
+        </div>
+
+        <div class="pharmacist-nav-item">
+            <a href="{% url 'sales_history' %}" class="pharmacist-nav-link {% if request.resolver_match.url_name == 'sales_history' %}active{% endif %}">
+                <i class="fas fa-receipt nav-icon"></i>
+                <span>Sales History</span>
+            </a>
+        </div>
+
+        <!-- Section: Stock -->
+        <div class="pharmacist-nav-section-title">Stock & Procurement</div>
+
+        <div class="pharmacist-nav-item">
+            <a href="{% url 'inventory_dashboard' %}" class="pharmacist-nav-link {% if request.resolver_match.url_name == 'inventory_dashboard' %}active{% endif %}">
+                <i class="fas fa-boxes-stacked nav-icon"></i>
+                <span>Inventory Overview</span>
+            </a>
+        </div>
+
+        <div class="pharmacist-nav-item">
+            <a href="{% url 'stock_history' %}" class="pharmacist-nav-link {% if request.resolver_match.url_name == 'stock_history' %}active{% endif %}">
+                <i class="fas fa-history nav-icon"></i>
+                <span>Stock Movement</span>
+            </a>
+        </div>
+
+        <div class="pharmacist-nav-item">
+            <a href="{% url 'purchase_request_list' %}" class="pharmacist-nav-link {% if 'purchases' in request.path %}active{% endif %}">
+                <i class="fas fa-truck-field nav-icon"></i>
+                <span>Purchase Requests</span>
+            </a>
+        </div>
+
+        <div class="pharmacist-nav-item">
+            <a href="{% url 'grn_list' %}" class="pharmacist-nav-link {% if request.resolver_match.url_name == 'grn_list' %}active{% endif %}">
+                <i class="fas fa-boxes nav-icon"></i>
+                <span>Goods Receipt</span>
+            </a>
+        </div>
+
+        <!-- Section: Notifications -->
+        <div class="pharmacist-nav-section-title">Notifications & Reports</div>
+
+        <div class="pharmacist-nav-item">
+            <a href="{% url 'notification_list' %}" class="pharmacist-nav-link {% if 'notifications' in request.path %}active{% endif %}">
+                <i class="fas fa-bell nav-icon"></i>
+                <span>Notifications</span>
+            </a>
+        </div>
+
+        <div class="pharmacist-nav-item">
+            <a href="{% url 'reports_center' %}" class="pharmacist-nav-link {% if 'reports' in request.path %}active{% endif %}">
+                <i class="fas fa-file-invoice nav-icon"></i>
+                <span>Reports</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- Sidebar Footer -->
+    <div class="pharmacist-sidebar-footer">
+        <div class="pharmacist-user-info">
+            <div class="pharmacist-user-avatar">
+                {{ request.user.username|slice:":1"|upper }}
+            </div>
+            <div class="pharmacist-user-details">
+                <span class="pharmacist-user-name">{{ request.user.get_full_name|default:request.user.username }}</span>
+                <span class="pharmacist-user-role">Pharmacist</span>
+            </div>
+        </div>
+        <form method="POST" action="{% url 'logout' %}" class="d-inline m-0 p-0">
+            {% csrf_token %}
+            <button type="submit" class="pharmacist-sidebar-logout-btn" title="Sign Out" style="background: none; border: none; cursor: pointer;">
+                <i class="fas fa-sign-out-alt"></i>
+            </button>
+        </form>
+    </div>
+</aside>
+
+<!-- Mobile Overlay Backdrop -->
+<div class="pharmacist-sidebar-backdrop" id="pharmacistSidebarBackdrop" aria-hidden="true"></div>

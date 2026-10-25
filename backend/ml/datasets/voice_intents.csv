@@ -1,0 +1,224 @@
+text,intent
+"check stock of paracetamol",CHECK_MEDICINE_STOCK
+"how much paracetamol is left",CHECK_MEDICINE_STOCK
+"show paracetamol stock",CHECK_MEDICINE_STOCK
+"tell me paracetamol availability",CHECK_MEDICINE_STOCK
+"do we have paracetamol in stock",CHECK_MEDICINE_STOCK
+"what is the current stock of paracetamol",CHECK_MEDICINE_STOCK
+"paracetamol stock level",CHECK_MEDICINE_STOCK
+"check paracetamol 500mg quantity",CHECK_MEDICINE_STOCK
+"is amoxicillin available",CHECK_MEDICINE_STOCK
+"check stock for ibuprofen",CHECK_MEDICINE_STOCK
+"how many units of metformin remain",CHECK_MEDICINE_STOCK
+"paracetamol ka stock check karo",CHECK_MEDICINE_STOCK
+"paracetamol kitna bacha hai",CHECK_MEDICINE_STOCK
+"amoxicillin hai kya stock me",CHECK_MEDICINE_STOCK
+"paracetamol stock batao",CHECK_MEDICINE_STOCK
+"check stock of cetirizine",CHECK_MEDICINE_STOCK
+"how much azithromycin available",CHECK_MEDICINE_STOCK
+"check stock of pantoprazole",CHECK_MEDICINE_STOCK
+"is dolo 650 available",CHECK_MEDICINE_STOCK
+"tell me stock level of omeprazole",CHECK_MEDICINE_STOCK
+"stock of paracetamol",CHECK_MEDICINE_STOCK
+"stock level for amoxicillin",CHECK_MEDICINE_STOCK
+"current quantity of ibuprofen",CHECK_MEDICINE_STOCK
+"do we have pantoprazole",CHECK_MEDICINE_STOCK
+"metformin available stock",CHECK_MEDICINE_STOCK
+"dawai ka stock batao paracetamol",CHECK_MEDICINE_STOCK
+
+"show low stock medicines",CHECK_LOW_STOCK
+"which medicines are low on stock",CHECK_LOW_STOCK
+"list low stock items",CHECK_LOW_STOCK
+"do we have any low stock medicines",CHECK_LOW_STOCK
+"show reorder required medicines",CHECK_LOW_STOCK
+"medicines reaching minimum stock level",CHECK_LOW_STOCK
+"low stock alert items",CHECK_LOW_STOCK
+"low stock medicines dikhao",CHECK_LOW_STOCK
+"kam stock wali dawaiyan batao",CHECK_LOW_STOCK
+"konsi medicine kam ho gayi hai",CHECK_LOW_STOCK
+"reorder levels alert list",CHECK_LOW_STOCK
+"check low stock threshold",CHECK_LOW_STOCK
+"show items needing reorder",CHECK_LOW_STOCK
+"list items below minimum level",CHECK_LOW_STOCK
+"show all low stock items",CHECK_LOW_STOCK
+"check reorder list",CHECK_LOW_STOCK
+"low stock alert report",CHECK_LOW_STOCK
+
+"show out of stock medicines",CHECK_OUT_OF_STOCK
+"which medicines are out of stock",CHECK_OUT_OF_STOCK
+"list zero stock medicines",CHECK_OUT_OF_STOCK
+"show medicines with zero quantity",CHECK_OUT_OF_STOCK
+"dawai khatam ho gayi konsi hai",CHECK_OUT_OF_STOCK
+"out of stock alert items",CHECK_OUT_OF_STOCK
+"show exhausted stock items",CHECK_OUT_OF_STOCK
+"zero stock inventory list",CHECK_OUT_OF_STOCK
+"unavailable medicines list",CHECK_OUT_OF_STOCK
+"khatam ho chuki medicines dikhao",CHECK_OUT_OF_STOCK
+"out of stock items list",CHECK_OUT_OF_STOCK
+
+"which medicines expire soon",CHECK_EXPIRY
+"check expiring medicines",CHECK_EXPIRY
+"show near expiry batches",CHECK_EXPIRY
+"list medicines near expiry date",CHECK_EXPIRY
+"any medicine expiring in 90 days",CHECK_EXPIRY
+"show expired batches",CHECK_EXPIRY
+"which medicines are expired",CHECK_EXPIRY
+"expire hone wali medicine dikhao",CHECK_EXPIRY
+"konsi dawai expire hone wali hai",CHECK_EXPIRY
+"expiry date status check",CHECK_EXPIRY
+"show critical expiry items",CHECK_EXPIRY
+"check expiry schedule",CHECK_EXPIRY
+"expiring items report",CHECK_EXPIRY
+"expired medicine batches list",CHECK_EXPIRY
+
+"show near expiry medicines",CHECK_NEAR_EXPIRY
+"near expiry batches list",CHECK_NEAR_EXPIRY
+"check 30 day expiry batches",CHECK_NEAR_EXPIRY
+"near expiry report",CHECK_NEAR_EXPIRY
+"near expiry items status",CHECK_NEAR_EXPIRY
+"medicines expiring within 30 days",CHECK_NEAR_EXPIRY
+"near expiry warnings",CHECK_NEAR_EXPIRY
+
+"check batch PARA-2026-A",CHECK_BATCH
+"show batch information for BATCH-001",CHECK_BATCH
+"find batch detail",CHECK_BATCH
+"check batch expiry date",CHECK_BATCH
+"batch number lookup",CHECK_BATCH
+"batch status info",CHECK_BATCH
+"batch PARA-2026-A ka detail dikhao",CHECK_BATCH
+"show details for batch PARA-2026-A",CHECK_BATCH
+"check batch stock PARA-2026-A",CHECK_BATCH
+
+"search medicine amoxicillin",SEARCH_MEDICINE
+"find medicine paracetamol",SEARCH_MEDICINE
+"search for ibuprofen",SEARCH_MEDICINE
+"lookup medicine metformin",SEARCH_MEDICINE
+"paracetamol ko dhundo",SEARCH_MEDICINE
+"medicine search azithromycin",SEARCH_MEDICINE
+"find pantoprazole details",SEARCH_MEDICINE
+"search medicine pantoprazole",SEARCH_MEDICINE
+"find medicine details for amoxicillin",SEARCH_MEDICINE
+
+"give me todays inventory summary",INVENTORY_SUMMARY
+"show inventory dashboard summary",INVENTORY_SUMMARY
+"what is current stock summary",INVENTORY_SUMMARY
+"give me pharmacy stock overview",INVENTORY_SUMMARY
+"inventory report summary",INVENTORY_SUMMARY
+"aaj ka stock summary batao",INVENTORY_SUMMARY
+"inventory ka total summary kya hai",INVENTORY_SUMMARY
+"current inventory status summary",INVENTORY_SUMMARY
+"total pharmacy stock summary",INVENTORY_SUMMARY
+
+"show stock movement history",STOCK_MOVEMENT
+"view stock transaction log",STOCK_MOVEMENT
+"show recent inventory transactions",STOCK_MOVEMENT
+"stock movement report",STOCK_MOVEMENT
+"stock audit history",STOCK_MOVEMENT
+"transaction history dikhao",STOCK_MOVEMENT
+"stock movement history report",STOCK_MOVEMENT
+"recent stock adjustments log",STOCK_MOVEMENT
+
+"do I have any critical alerts",CRITICAL_ALERTS
+"show active notifications and alerts",CRITICAL_ALERTS
+"check urgent alerts",CRITICAL_ALERTS
+"any out of stock or expiry warnings",CRITICAL_ALERTS
+"critical notifications list",CRITICAL_ALERTS
+"koi urgent alert hai kya",CRITICAL_ALERTS
+"show critical warnings and notifications",CRITICAL_ALERTS
+
+"open dashboard",OPEN_DASHBOARD
+"take me to dashboard",OPEN_DASHBOARD
+"go to main dashboard",OPEN_DASHBOARD
+"dashboard open karo",OPEN_DASHBOARD
+"show dashboard page",OPEN_DASHBOARD
+"open main dashboard view",OPEN_DASHBOARD
+
+"open inventory",OPEN_INVENTORY
+"take me to inventory",OPEN_INVENTORY
+"go to inventory page",OPEN_INVENTORY
+"inventory open karo",OPEN_INVENTORY
+"show inventory page",OPEN_INVENTORY
+"open main inventory view",OPEN_INVENTORY
+
+"open medicine management",OPEN_MEDICINES
+"show medicine master",OPEN_MEDICINES
+"take me to medicines list",OPEN_MEDICINES
+"medicines page open karo",OPEN_MEDICINES
+"show medicine master catalogue",OPEN_MEDICINES
+"open medicine catalogue",OPEN_MEDICINES
+
+"show batch stock",OPEN_BATCH_STOCK
+"open batch wise stock",OPEN_BATCH_STOCK
+"take me to batch stock",OPEN_BATCH_STOCK
+"show batch wise stock list",OPEN_BATCH_STOCK
+
+"open expiry management",OPEN_EXPIRY
+"take me to expiry page",OPEN_EXPIRY
+"expiry management open karo",OPEN_EXPIRY
+"show expiry management workspace",OPEN_EXPIRY
+
+"open medicine requests",OPEN_REQUESTS
+"show request queue",OPEN_REQUESTS
+"view pending requests",OPEN_REQUESTS
+"requests open karo",OPEN_REQUESTS
+"open requests queue page",OPEN_REQUESTS
+
+"open dispensing",OPEN_DISPENSING
+"show direct dispensing",OPEN_DISPENSING
+"new dispensing workspace",OPEN_DISPENSING
+"dispensing page open karo",OPEN_DISPENSING
+"open direct dispensing page",OPEN_DISPENSING
+
+"open invoices",OPEN_INVOICES
+"show billing and invoices",OPEN_INVOICES
+"view billing history",OPEN_INVOICES
+"invoices open karo",OPEN_INVOICES
+"open invoices page",OPEN_INVOICES
+
+"prepare 10 paracetamol tablets",DISPENSING_PREPARATION
+"dispense 20 capsules of amoxicillin",DISPENSING_PREPARATION
+"prepare dispensing for 5 ibuprofen",DISPENSING_PREPARATION
+"prepare 30 tablets of metformin",DISPENSING_PREPARATION
+"paracetamol 10 tablets prepare karo",DISPENSING_PREPARATION
+"amoxicillin 20 dispense ke liye prepare karo",DISPENSING_PREPARATION
+"prepare 15 tablets of paracetamol",DISPENSING_PREPARATION
+"prepare 50 capsules of amoxicillin",DISPENSING_PREPARATION
+
+"show dispensing history",DISPENSING_HISTORY
+"view past dispensing records",DISPENSING_HISTORY
+"dispensing logs history",DISPENSING_HISTORY
+"show dispensing records log",DISPENSING_HISTORY
+
+"show invoice history",INVOICE_HISTORY
+"view payment history",INVOICE_HISTORY
+"completed invoices list",INVOICE_HISTORY
+"show payment history records",INVOICE_HISTORY
+
+"give me AI reorder recommendations",AI_RECOMMENDATION
+"show AI insights and forecast",AI_RECOMMENDATION
+"demand forecast report",AI_RECOMMENDATION
+"AI recommendations dikhao",AI_RECOMMENDATION
+"show predictive AI insights",AI_RECOMMENDATION
+
+"show supplier analytics",SUPPLIER_ANALYTICS
+"supplier price comparison matrix",SUPPLIER_ANALYTICS
+"vendor performance report",SUPPLIER_ANALYTICS
+"supplier analytics dikhao",SUPPLIER_ANALYTICS
+"show vendor analytics",SUPPLIER_ANALYTICS
+
+"show purchase orders status",PURCHASE_STATUS
+"view procurement status",PURCHASE_STATUS
+"pending purchase orders list",PURCHASE_STATUS
+"show procurement purchase status",PURCHASE_STATUS
+
+"show pharmacist registration status",PHARMACIST_STATUS
+"view pending pharmacist approvals",PHARMACIST_STATUS
+"pharmacist registration queue",PHARMACIST_STATUS
+"show pending pharmacist applications",PHARMACIST_STATUS
+
+"help",HELP
+"what can you do",HELP
+"show available voice commands",HELP
+"voice assistant help",HELP
+"kaise use karein",HELP
+"help me with voice commands",HELP

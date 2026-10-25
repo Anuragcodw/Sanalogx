@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Add Stock — Sanalogx Inventory{% endblock %}
+
+{% block content %}
+<div class="container py-5" style="max-width:700px;">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold text-navy mb-0"><i class="fas fa-plus-circle text-success me-2"></i>Add Stock</h2>
+    <a href="{% url 'inventory_dashboard' %}" class="btn btn-outline-secondary btn-sm rounded-pill px-3"><i class="fas fa-arrow-left me-1"></i>Back</a>
+  </div>
+
+  {% if messages %}
+    {% for msg in messages %}<div class="alert alert-{{ msg.tags }} alert-dismissible fade show"><button type="button" class="btn-close" data-bs-dismiss="alert"></button>{{ msg }}</div>{% endfor %}
+  {% endif %}
+
+  <div class="card border-0 shadow-sm" style="border-radius:16px;">
+    <div class="card-body p-4">
+      <form method="post" novalidate>
+        {% csrf_token %}
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Medicine <span class="text-danger">*</span></label>
+          <select name="medicine" id="medicineSelect" class="form-select" required>
+            <option value="">Select Medicine...</option>
+            {% for med in medicines %}<option value="{{ med.id }}" {% if request.GET.medicine == med.id|stringformat:"s" %}selected{% endif %}>{{ med.medicine_name }} — {{ med.generic_name }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Batch <span class="text-danger">*</span></label>
+          <select name="batch" id="batchSelect" class="form-select" required>
+            <option value="">Select batch after choosing medicine...</option>
+          </select>
+          <div id="batchInfo" class="mt-1 text-muted" style="font-size:.8rem;"></div>
+        </div>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Transaction Type <span class="text-danger">*</span></label>
+            <select name="transaction_type" class="form-select" required>
+              <option value="PURCHASE">Purchase Receipt</option>
+              <option value="OPENING">Opening Stock</option>
+              <option value="RETURN">Return</option>
+              <option value="MANUAL_UPDATE">Manual Update</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Quantity <span class="text-danger">*</span></label>
+            <input type="number" name="quantity" class="form-control" min="1" required placeholder="Units to add">
+          </div>
+        </div>
+        <div class="mb-3 mt-3">
+          <label class="form-label fw-semibold">Reference Number</label>
+          <input type="text" name="reference_number" class="form-control" placeholder="e.g. PO-2026-0042">
+        </div>
+        <div class="mb-4">
+          <label class="form-label fw-semibold">Notes</label>
+          <textarea name="notes" class="form-control" rows="2" placeholder="Optional notes..."></textarea>
+        </div>
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-success rounded-pill px-4"><i class="fas fa-plus me-2"></i>Add Stock</button>
+          <a href="{% url 'inventory_dashboard' %}" class="btn btn-outline-secondary rounded-pill px-4">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const medicineSelect = document.getElementById('medicineSelect');
+const batchSelect = document.getElementById('batchSelect');
+const batchInfo = document.getElementById('batchInfo');
+
+medicineSelect.addEventListener('change', function() {
+  const medId = this.value;
+  batchSelect.innerHTML = '<option value="">Loading...</option>';
+  batchInfo.textContent = '';
+  if (!medId) { batchSelect.innerHTML = '<option value="">Select batch after choosing medicine...</option>'; return; }
+  fetch(`{% url 'get_medicine_batches' %}?medicine_id=${medId}`)
+    .then(r => r.json())
+    .then(data => {
+      batchSelect.innerHTML = '<option value="">Select Batch...</option>';
+      if (data.batches.length === 0) {
+        batchSelect.innerHTML = '<option value="">No available batches found</option>';
+        return;
+      }
+      data.batches.forEach(b => {
+        const opt = document.createElement('option');
+        opt.value = b.id;
+        opt.textContent = `${b.batch_number} — ${b.status} — Expiry: ${b.expiry_date} — Qty: ${b.quantity_available}`;
+        batchSelect.appendChild(opt);
+      });
+    });
+});
+</script>
+{% endblock %}

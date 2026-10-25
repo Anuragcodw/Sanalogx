@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Edit Batch {{ batch.batch_number }} — Sanalogx{% endblock %}
+
+{% block content %}
+<div class="container py-4 bg-healthcare-accent">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <a href="{% url 'medicine_detail' medicine.medicine_id %}" class="btn btn-link text-decoration-none text-muted mb-3 p-0">
+                <i class="fas fa-arrow-left me-1"></i> Back to {{ medicine.medicine_name }}
+            </a>
+
+            <div class="mb-4">
+                <h3 class="fw-bold text-navy mb-1">Edit Batch: {{ batch.batch_number }}</h3>
+                <p class="text-muted small">Update batch details for <strong>{{ medicine.medicine_name }}</strong> (Batch ID: <span class="font-monospace">{{ batch.batch_id }}</span>).</p>
+            </div>
+
+            {% if form.errors %}
+                <div class="alert alert-danger alert-dismissible fade show small mb-4">
+                    <i class="fas fa-exclamation-triangle me-2"></i> Please correct the highlighted errors below.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endif %}
+
+            <!-- Batch Status Banner -->
+            <div class="alert {% if batch.status == 'ACTIVE' %}alert-success{% elif batch.status == 'NEAR_EXPIRY' %}alert-warning{% elif batch.status == 'EXPIRED' %}alert-danger{% else %}alert-secondary{% endif %} mb-4 d-flex align-items-center gap-3">
+                <i class="fas {% if batch.status == 'ACTIVE' %}fa-circle-check{% elif batch.status == 'NEAR_EXPIRY' %}fa-triangle-exclamation{% elif batch.status == 'EXPIRED' %}fa-circle-xmark{% else %}fa-info-circle{% endif %} fs-5"></i>
+                <div>
+                    <strong>Batch Status: {{ batch.status }}</strong>
+                    <span class="ms-3 text-muted small">Expiry: {{ batch.expiry_date }} ({{ batch.days_until_expiry }} days remaining)</span>
+                </div>
+            </div>
+
+            <div class="card card-medivault bg-white shadow-sm border">
+                <!-- Medicine Context Strip -->
+                <div class="px-4 py-3 bg-teal-light border-bottom d-flex align-items-center gap-3">
+                    <div class="card-icon-wrapper mb-0 bg-teal text-white" style="width: 44px; height: 44px; font-size: 1.1rem;">
+                        <i class="fas fa-pills"></i>
+                    </div>
+                    <div>
+                        <div class="fw-bold text-navy">{{ medicine.medicine_name }}</div>
+                        <div class="text-muted small">{{ medicine.dosage_form.name }} | {{ medicine.strength }} | {{ medicine.category.name }}</div>
+                    </div>
+                    <div class="ms-auto text-end">
+                        <span class="text-muted small d-block">Available in this batch</span>
+                        <strong class="text-navy">{{ batch.quantity_available }} {{ medicine.unit.name }}s</strong>
+                    </div>
+                </div>
+
+                <form method="POST" action="{% url 'batch_edit' medicine.medicine_id batch.batch_id %}" class="p-4 p-lg-5">
+                    {% csrf_token %}
+
+                    <!-- Section 1: Batch Identification -->
+                    <h5 class="fw-bold text-navy mb-3 pb-2 border-bottom"><i class="fas fa-hashtag text-teal me-2"></i> Batch Identification</h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label text-navy fw-semibold small">Batch / Lot Number <span class="text-danger">*</span></label>
+                            {{ form.batch_number }}
+                            {{ form.batch_number.errors }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-navy fw-semibold small">Supplier <span class="text-danger">*</span></label>
+                            {{ form.supplier }}
+                            {{ form.supplier.errors }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-navy fw-semibold small">Manufacturing Date</label>
+                            {{ form.manufactured_date }}
+                            {{ form.manufactured_date.errors }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-navy fw-semibold small">Expiry Date <span class="text-danger">*</span></label>
+                            {{ form.expiry_date }}
+                            {{ form.expiry_date.errors }}
+                        </div>
+                    </div>
+
+                    <!-- Section 2: Quantities & Pricing -->
+                    <h5 class="fw-bold text-navy mb-3 pb-2 border-bottom"><i class="fas fa-boxes-stacked text-teal me-2"></i> Stock Quantities & Pricing</h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label class="form-label text-navy fw-semibold small">Original Quantity Received</label>
+                            {{ form.quantity_received }}
+                            {{ form.quantity_received.errors }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-navy fw-semibold small">Purchase Price / Unit (₹)</label>
+                            <div class="input-group">
+                                <span class="input-group-text">₹</span>
+                                {{ form.purchase_price }}
+                            </div>
+                            {{ form.purchase_price.errors }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-navy fw-semibold small">Selling Price / Unit (₹)</label>
+                            <div class="input-group">
+                                <span class="input-group-text">₹</span>
+                                {{ form.selling_price }}
+                            </div>
+                            {{ form.selling_price.errors }}
+                        </div>
+                    </div>
+
+                    <!-- Section 3: Logistics -->
+                    <h5 class="fw-bold text-navy mb-3 pb-2 border-bottom"><i class="fas fa-truck text-teal me-2"></i> Logistics & References</h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label text-navy fw-semibold small">Received Date</label>
+                            {{ form.received_date }}
+                            {{ form.received_date.errors }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-navy fw-semibold small">Storage Location</label>
+                            {{ form.storage_location }}
+                            {{ form.storage_location.errors }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-navy fw-semibold small">Purchase Order Reference</label>
+                            {{ form.purchase_order_ref }}
+                            {{ form.purchase_order_ref.errors }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-navy fw-semibold small">Invoice Reference</label>
+                            {{ form.invoice_ref }}
+                            {{ form.invoice_ref.errors }}
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label text-navy fw-semibold small">Batch Notes</label>
+                            {{ form.notes }}
+                            {{ form.notes.errors }}
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between pt-3 border-top">
+                        <a href="{% url 'medicine_detail' medicine.medicine_id %}" class="btn btn-light border">
+                            <i class="fas fa-times me-1"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-medivault-primary px-5 py-2 fw-bold">
+                            <i class="fas fa-save me-2"></i> Save Batch Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

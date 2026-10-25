@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Direct Pharmacist Dispensing — Sanalogx{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold text-navy mb-0"><i class="fas fa-hand-holding-medical text-teal me-2"></i> Direct Pharmacist Dispensing (Flow B)</h3>
+            <p class="text-muted small mb-0">Walk-in OTC / Prescription dispensing workspace with FEFO batch selection & instant billing.</p>
+        </div>
+        <a href="{% url 'live_requests_queue' %}" class="btn btn-outline-teal py-2 px-3">
+            <i class="fas fa-list-check me-1"></i> Live Request Queue
+        </a>
+    </div>
+
+    <div class="card card-medivault bg-white shadow-lg p-4 p-md-5">
+        <form method="POST" id="directDispenseForm">
+            {% csrf_token %}
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                    <label class="form-label small fw-semibold text-muted">Patient Name <span class="text-muted">(Optional for OTC)</span></label>
+                    <input type="text" name="patient_name" class="form-control" placeholder="e.g. Rahul Sharma or Walk-in">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small fw-semibold text-muted">Patient ID / UHID</label>
+                    <input type="text" name="patient_id" class="form-control" placeholder="e.g. UHID-9942">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small fw-semibold text-muted">Mobile Number</label>
+                    <input type="text" name="mobile_number" class="form-control" placeholder="e.g. 9876543210">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small fw-semibold text-muted">Prescription Number (Rx)</label>
+                    <input type="text" name="prescription_number" class="form-control" placeholder="e.g. RX-2026-883">
+                </div>
+            </div>
+
+            <hr class="my-4">
+
+            <h5 class="fw-bold text-navy mb-3"><i class="fas fa-pills text-teal me-2"></i> Select Medicine & Batch (FEFO Validated)</h5>
+            
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                    <label class="form-label small fw-semibold text-muted">Select Medicine <span class="text-danger">*</span></label>
+                    <select name="medicine_id" id="medicineSelect" class="form-select" onchange="loadMedicineBatches(this.value)" required>
+                        <option value="">-- Choose Active Medicine --</option>
+                        {% for med in medicines %}
+                            <option value="{{ med.id }}">{{ med.medicine_name }} ({{ med.dosage_form }} - {{ med.strength }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label small fw-semibold text-muted">Select Batch <span class="text-danger">*</span></label>
+                    <select name="batch_id" id="batchSelect" class="form-select" required disabled>
+                        <option value="">-- Select Medicine First --</option>
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label small fw-semibold text-muted">Quantity to Dispense <span class="text-danger">*</span></label>
+                    <input type="number" name="quantity" min="1" value="1" class="form-control font-monospace fw-bold" required>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2">
+                <a href="{% url 'approved' %}" class="btn btn-outline-secondary py-2 px-3">Cancel</a>
+                <button type="submit" class="btn btn-teal text-white py-2 px-4 fw-bold">
+                    <i class="fas fa-check-circle me-1"></i> Confirm Dispensing & Generate Invoice
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function loadMedicineBatches(medId) {
+    let batchSelect = document.getElementById('batchSelect');
+    if (!medId) {
+        batchSelect.innerHTML = '<option value="">-- Select Medicine First --</option>';
+        batchSelect.disabled = true;
+        return;
+    }
+
+    batchSelect.innerHTML = '<option value="">Loading batches...</option>';
+    batchSelect.disabled = true;
+
+    fetch(`{% url "get_medicine_batches" %}?medicine_id=${medId}`)
+    .then(res => res.json())
+    .then(data => {
+        if (data.batches && data.batches.length > 0) {
+            let html = '<option value="">-- Select Available FEFO Batch --</option>';
+            data.batches.forEach((b, index) => {
+                let isFefo = index === 0 ? ' [FEFO RECOMMENDED]' : '';
+                html += `<option value="${b.id}">Batch ${b.batch_number} (Stock: ${b.quantity_available}, Exp: ${b.expiry_date})${isFefo}</option>`;
+            });
+            batchSelect.innerHTML = html;
+            batchSelect.disabled = false;
+        } else {
+            batchSelect.innerHTML = '<option value="">No available stock batches found for this medicine</option>';
+            batchSelect.disabled = true;
+        }
+    })
+    .catch(err => {
+        batchSelect.innerHTML = '<option value="">Error loading batches</option>';
+    });
+}
+</script>
+{% endblock %}

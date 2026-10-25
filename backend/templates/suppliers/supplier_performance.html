@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Supplier Performance — Sanalogx Intelligence{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 px-lg-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold text-navy mb-0"><i class="fas fa-chart-line text-teal me-2"></i> Supplier Performance & Fulfillment Analytics</h3>
+            <p class="text-muted small mb-0">Real-time performance evaluation calculated from historical Purchase Orders and Goods Receipt Notes.</p>
+        </div>
+        <a href="{% url 'supplier_list' %}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i> Back to Suppliers</a>
+    </div>
+
+    <!-- Table Card -->
+    <div class="card card-medivault bg-white shadow-sm border-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 small">
+                <thead class="bg-light text-navy fw-bold">
+                    <tr>
+                        <th class="ps-3 py-3">SUPPLIER COMPANY</th>
+                        <th class="py-3 text-center">TOTAL POs</th>
+                        <th class="py-3 text-center">COMPLETED</th>
+                        <th class="py-3 text-center">ON-TIME DELIVERY</th>
+                        <th class="py-3 text-center">FILL RATE</th>
+                        <th class="py-3 text-center">RATING</th>
+                        <th class="pe-3 py-3 text-end">PERFORMANCE STATUS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in performance_data %}
+                    <tr>
+                        <td class="ps-3 fw-bold text-navy">
+                            {{ item.supplier.company_name }}
+                            <span class="text-muted extra-small d-block">{{ item.medicines_count }} mapped medicine(s)</span>
+                        </td>
+                        <td class="text-center font-monospace">{{ item.total_pos }}</td>
+                        <td class="text-center font-monospace">{{ item.completed_pos }}</td>
+                        <td class="text-center">
+                            {% if item.has_data %}
+                                <span class="badge bg-light text-navy border font-monospace">{{ item.supplier.on_time_delivery_rate }}%</span>
+                            {% else %}
+                                <span class="text-muted extra-small">Insufficient Data</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if item.has_data %}
+                                <span class="badge bg-light text-navy border font-monospace">{{ item.supplier.fill_rate }}%</span>
+                            {% else %}
+                                <span class="text-muted extra-small">Insufficient Data</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center fw-bold text-warning">
+                            <i class="fas fa-star me-1"></i>{{ item.supplier.rating }}/5
+                        </td>
+                        <td class="pe-3 text-end">
+                            {% if item.supplier.on_time_delivery_rate >= 90 %}
+                                <span class="badge bg-success"><i class="fas fa-award me-1"></i> EXCELLENT</span>
+                            {% elif item.supplier.on_time_delivery_rate >= 70 %}
+                                <span class="badge bg-info text-dark"><i class="fas fa-check-circle me-1"></i> GOOD</span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark"><i class="fas fa-exclamation-circle me-1"></i> UNDER REVIEW</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            No active suppliers available for performance analysis.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

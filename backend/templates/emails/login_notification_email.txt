@@ -1,0 +1,19 @@
+Sanalogx | Successful Sign-In Notification
+============================================
+
+Hello {{ user.full_name|default:user.username }},
+
+This notification confirms that your Sanalogx account was successfully accessed.
+
+Sign-In Details:
+- Username: {{ user.username }}
+- Timestamp: {{ login_time }}
+- IP Address: {{ ip_address|default:"Authorized Network" }}
+- Client: {{ user_agent|default:"Standard Healthcare Browser" }}
+
+Security Notice:
+If you authorized this sign-in, no further action is necessary. If you did not sign in, please immediately reset your password and contact the hospital system administrator.
+
+---
+Sanalogx Pharmacy Operations & Intelligence System
+Automated Notification — Please do not reply directly.

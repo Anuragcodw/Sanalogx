@@ -1,0 +1,38 @@
+{% extends 'emails/base_email.html' %}
+
+{% block email_title %}Sanalogx | Verify Your Email Address{% endblock %}
+
+{% block email_content %}
+<div style="text-align: center; margin-bottom: 24px;">
+  <span style="display: inline-block; width: 48px; height: 48px; line-height: 48px; background-color: #E6FFFA; color: #00A896; border-radius: 50%; font-size: 24px;">
+    &#9993;
+  </span>
+  <h2 style="margin: 12px 0 6px 0; color: #0F2744; font-size: 22px; font-weight: 700;">
+    Verify Your Email Address
+  </h2>
+  <p style="margin: 0; font-size: 14px; color: #64748B;">
+    Confirm your professional email to complete registration submission.
+  </p>
+</div>
+
+<p style="margin: 0 0 16px 0; font-size: 14px; color: #475569; line-height: 1.6;">
+  Dear <strong>{{ user.full_name|default:user.username }}</strong>,
+</p>
+<p style="margin: 0 0 24px 0; font-size: 14px; color: #475569; line-height: 1.6;">
+  Thank you for registering on the Sanalogx platform. To verify that this email address belongs to an authorized healthcare applicant, please click the verification button below:
+</p>
+
+<div style="text-align: center; margin: 28px 0;">
+  <a href="{{ verification_url }}" style="display: inline-block; background: linear-gradient(135deg, #0F2744 0%, #163860 100%); color: #FFFFFF; font-weight: 700; font-size: 14px; padding: 14px 32px; border-radius: 6px; text-decoration: none; box-shadow: 0 4px 12px rgba(15, 39, 68, 0.2);">
+    Verify Email Address &rarr;
+  </a>
+  <p style="margin: 12px 0 0 0; font-size: 12px; color: #DC2626; font-weight: 600;">
+    &bull; This link expires in 24 hours.
+  </p>
+</div>
+
+<div style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; padding: 12px; font-size: 11px; color: #64748B; word-break: break-all; margin-top: 20px;">
+  <span style="font-weight: 600; color: #334155;">Direct Verification URL:</span><br>
+  {{ verification_url }}
+</div>
+{% endblock %}

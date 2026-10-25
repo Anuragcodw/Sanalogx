@@ -1,0 +1,201 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Purchase Order — {{ po.po_number }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1 small text-muted">
+                    <li class="breadcrumb-item"><a href="{% url 'purchase_orders_list' %}" class="text-decoration-none text-teal"><i class="fas fa-file-contract me-1"></i> Purchase Orders</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">{{ po.po_number }}</li>
+                </ol>
+            </nav>
+            <h3 class="fw-bold text-navy mb-0"><i class="fas fa-file-contract text-teal me-2"></i> Purchase Order: {{ po.po_number }}</h3>
+            <p class="text-muted small mb-0">Vendor: <strong>{{ po.supplier.company_name }}</strong> | Created by {{ po.created_by.username|default:"System" }}</p>
+        </div>
+        <div class="d-flex gap-2">
+            {% if po.status == 'APPROVED' and user.role == 'ADMIN' and po.supplier.email %}
+                <form method="POST" action="{% url 'send_po_email' po.pk %}" onsubmit="return confirm('Send Purchase Order {{ po.po_number }} to {{ po.supplier.email }}?');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-teal py-2 px-3 fw-bold">
+                        <i class="fas fa-envelope me-1"></i> Email PO to Supplier
+                    </button>
+                </form>
+            {% endif %}
+            {% if po.is_receivable %}
+                <a href="{% url 'create_grn' po.pk %}" class="btn btn-teal text-white py-2 px-3 fw-bold">
+                    <i class="fas fa-dolly me-1"></i> Receive Goods (GRN)
+                </a>
+            {% endif %}
+            {% if po.status in 'DRAFT,APPROVED,ORDERED' and user.role == 'ADMIN' %}
+                <form method="POST" action="{% url 'cancel_po' po.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" onclick="return confirm('Are you sure you want to cancel this PO?');" class="btn btn-outline-danger py-2 px-3">
+                        <i class="fas fa-ban me-1"></i> Cancel PO
+                    </button>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Status Timeline Progress -->
+    <div class="card card-medivault bg-white shadow-sm p-4 mb-4">
+        <h6 class="fw-bold text-navy mb-3">Order Status Lifecycle</h6>
+        <div class="d-flex justify-content-between text-center small position-relative">
+            <div class="flex-fill">
+                <div class="badge rounded-circle bg-teal text-white mb-1" style="width: 28px; height: 28px; line-height: 20px;">1</div>
+                <div class="fw-bold text-teal">APPROVED</div>
+            </div>
+            <div class="flex-fill">
+                <div class="badge rounded-circle {% if po.status in 'ORDERED,PARTIAL_RECEIPT,COMPLETED' %}bg-teal text-white{% else %}bg-secondary{% endif %} mb-1" style="width: 28px; height: 28px; line-height: 20px;">2</div>
+                <div class="fw-bold {% if po.supplier_confirmed_at %}text-teal{% else %}text-muted{% endif %}">{% if po.supplier_confirmed_at %}SUPPLIER CONFIRMED{% else %}CONFIRMATION PENDING{% endif %}</div>
+            </div>
+            <div class="flex-fill">
+                <div class="badge rounded-circle {% if po.status in 'PARTIAL_RECEIPT,COMPLETED' %}bg-teal text-white{% else %}bg-secondary{% endif %} mb-1" style="width: 28px; height: 28px; line-height: 20px;">3</div>
+                <div class="fw-bold {% if po.status in 'PARTIAL_RECEIPT,COMPLETED' %}text-teal{% else %}text-muted{% endif %}">DELIVERY PENDING</div>
+            </div>
+            <div class="flex-fill">
+                <div class="badge rounded-circle {% if po.status == 'COMPLETED' %}bg-success text-white{% else %}bg-secondary{% endif %} mb-1" style="width: 28px; height: 28px; line-height: 20px;">4</div>
+                <div class="fw-bold {% if po.status == 'COMPLETED' %}text-success{% else %}text-muted{% endif %}">RECEIVED</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PO Details Card -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-8">
+            <div class="card card-medivault bg-white shadow-sm border-0">
+                <div class="card-header bg-navy text-white fw-bold py-3">Order Line Items</div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0 small">
+                        <thead class="bg-light text-navy fw-bold">
+                            <tr>
+                                <th class="ps-3 py-3">MEDICINE</th>
+                                <th class="py-3 text-center">ORDERED QTY</th>
+                                <th class="py-3 text-center">RECEIVED</th>
+                                <th class="py-3 text-center">PENDING</th>
+                                <th class="py-3 text-end">UNIT PRICE</th>
+                                <th class="pe-3 py-3 text-end">TOTAL</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in items %}
+                            <tr>
+                                <td class="ps-3 fw-bold text-navy">{{ item.medicine.medicine_name }} ({{ item.medicine.strength }})</td>
+                                <td class="text-center font-monospace fw-bold fs-6">{{ item.quantity_ordered }}</td>
+                                <td class="text-center font-monospace text-success fw-bold">{{ item.quantity_received }}</td>
+                                <td class="text-center font-monospace text-amber fw-bold">{{ item.quantity_pending }}</td>
+                                <td class="text-end font-monospace">₹{{ item.unit_price }}</td>
+                                <td class="pe-3 text-end font-monospace fw-bold text-teal">₹{{ item.total_price }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card card-medivault bg-white shadow-sm p-4">
+                <h6 class="fw-bold text-navy mb-3">Order Summary</h6>
+                <div class="d-flex justify-content-between mb-2 small">
+                    <span class="text-muted">Subtotal:</span>
+                    <strong class="font-monospace">₹{{ po.subtotal }}</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-2 small">
+                    <span class="text-muted">Shipping Cost:</span>
+                    <strong class="font-monospace">₹{{ po.shipping_cost }}</strong>
+                </div>
+                <hr class="my-2">
+                <div class="d-flex justify-content-between mb-3 fs-5 fw-bold text-navy">
+                    <span>Grand Total:</span>
+                    <span class="text-teal font-monospace">₹{{ po.total_amount }}</span>
+                </div>
+
+                <div class="bg-light p-3 rounded-3 small">
+                    <div class="mb-1"><span class="text-muted">Expected Delivery:</span> <strong>{{ po.expected_delivery_date|date:"d M Y"|default:"TBD" }}</strong></div>
+                    <div class="mb-1"><span class="text-muted">PO Email:</span> <strong>{{ po.get_email_status_display }}</strong>{% if po.email_sent_at %} <span class="text-muted">({{ po.email_sent_at|date:"d M Y H:i" }})</span>{% endif %}</div>
+                    <div class="mb-1"><span class="text-muted">Supplier Confirmation:</span> <strong>{% if po.supplier_confirmed_at %}Recorded {{ po.supplier_confirmed_at|date:"d M Y H:i" }}{% else %}Not recorded{% endif %}</strong></div>
+                    <div><span class="text-muted">Vendor Phone:</span> <strong>{{ po.supplier.phone|default:"N/A" }}</strong></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Tracking & Audit Log ──────────────────────────────────────────── -->
+    <div class="card card-medivault bg-white shadow-sm mb-4">
+        <div class="card-header bg-navy text-white fw-bold py-3">
+            <i class="fas fa-history me-2"></i>Tracking &amp; Audit Log
+        </div>
+        <div class="card-body p-4">
+            {% if po.notes %}
+                <pre class="small text-secondary mb-0" style="white-space: pre-wrap; font-family: inherit;">{{ po.notes }}</pre>
+            {% else %}
+                <p class="text-muted small mb-0"><i class="fas fa-info-circle me-1"></i>No tracking updates logged yet.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if user.role == 'ADMIN' %}
+    {% if po.status == 'APPROVED' or po.status == 'ORDERED' %}
+    <div class="card card-medivault bg-white shadow-sm mb-4">
+        <div class="card-header bg-teal text-white fw-bold py-3">Record Supplier Response</div>
+        <div class="card-body p-4">
+            <form method="POST" action="{% url 'confirm_supplier_order' po.pk %}">
+                {% csrf_token %}
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-navy" for="confirmation_reference">Response reference</label>
+                        <input type="text" name="confirmation_reference" id="confirmation_reference" class="form-control form-control-sm" maxlength="255" placeholder="Supplier email, call, or portal reference" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-navy" for="supplier_eta">Confirmed ETA <span class="text-muted fw-normal">(optional)</span></label>
+                        <input type="date" name="supplier_eta" id="supplier_eta" class="form-control form-control-sm" value="{{ po.supplier_confirmed_eta|date:'Y-m-d' }}">
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-teal text-white w-100 fw-bold">Record</button>
+                    </div>
+                </div>
+                <p class="text-muted small mt-2 mb-0">This records a supplier response reported by an administrator; it does not contact a supplier system.</p>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ── Log Tracking Update (Admin Only) ──────────────────────────────── -->
+    <div class="card card-medivault bg-white shadow-sm mb-4">
+        <div class="card-header bg-teal text-white fw-bold py-3">
+            <i class="fas fa-map-marker-alt me-2"></i>Log Tracking Update
+        </div>
+        <div class="card-body p-4">
+            <form method="POST" action="{% url 'po_detail' po.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="tracking_update">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-navy" for="tracking_note">Tracking Note</label>
+                        <textarea name="tracking_note" id="tracking_note" class="form-control form-control-sm"
+                                  rows="3" placeholder="e.g. Supplier confirmed dispatch via DHL. AWB: 1234567890" required></textarea>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-navy" for="confirmed_date">Update Expected Delivery Date <span class="text-muted fw-normal">(optional)</span></label>
+                        <input type="date" name="confirmed_date" id="confirmed_date" class="form-control form-control-sm"
+                               value="{{ po.expected_delivery_date|date:'Y-m-d' }}">
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-teal text-white w-100 fw-bold">
+                            <i class="fas fa-save me-1"></i>Log Update
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

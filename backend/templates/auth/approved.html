@@ -1,0 +1,338 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Pharmacist Dashboard — Sanalogx{% endblock %}
+{% block pharmacist_breadcrumb %}Pharmacist Dashboard{% endblock %}
+
+{% block content %}
+<!-- Messages -->
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show small mb-4" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
+{% endif %}
+
+<!-- Page Header -->
+<div class="d-flex align-items-center justify-content-between mb-4 gap-3 flex-wrap">
+    <div class="d-flex align-items-center gap-3">
+        <div class="page-header-glow-badge">
+            <i class="fas fa-user-nurse"></i>
+        </div>
+        <div>
+            <h4 class="fw-bold text-navy mb-0">Welcome, {{ user.full_name|default:user.username }}</h4>
+            <span class="text-muted small">
+                <i class="fas fa-circle-check text-success me-1"></i>
+                Pharmacist Workspace — Active &nbsp;|&nbsp;
+                <span class="badge bg-success bg-opacity-10 text-success fw-semibold">{{ user.registration_id|default:"Account Verified" }}</span>
+            </span>
+        </div>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'secure_dispensing_workspace' %}" class="btn btn-teal">
+            <i class="fas fa-shield-virus me-1"></i> Open Dispensing
+        </a>
+        <a href="{% url 'new_sale' %}" class="btn btn-medivault-secondary">
+            <i class="fas fa-cash-register me-1"></i> New Sale
+        </a>
+    </div>
+</div>
+
+<!-- KPI Row -->
+<div class="row g-3 mb-4">
+
+    <!-- Card 1: Low Stock -->
+    <div class="col-6 col-md-3">
+        <div class="admin-stat-card stat-amber h-100 d-flex flex-column">
+            <div class="d-flex align-items-start justify-content-between mb-3">
+                <div>
+                    <div class="admin-stat-label">Low Stock Items</div>
+                    <div class="admin-stat-number">{{ low_stock_count|default:"0" }}</div>
+                    <div class="text-muted mt-1" style="font-size:0.73rem;">Items needing restock</div>
+                </div>
+                <div class="admin-stat-icon-wrapper">
+                    <i class="fas fa-triangle-exclamation"></i>
+                </div>
+            </div>
+            <a href="{% url 'inventory_dashboard' %}?status=LOW_STOCK" class="pharm-card-action mt-auto">
+                View inventory <i class="fas fa-arrow-right ms-1"></i>
+            </a>
+        </div>
+    </div>
+
+    <!-- Card 2: Out of Stock -->
+    <div class="col-6 col-md-3">
+        <div class="admin-stat-card stat-red h-100 d-flex flex-column">
+            <div class="d-flex align-items-start justify-content-between mb-3">
+                <div>
+                    <div class="admin-stat-label">Out of Stock</div>
+                    <div class="admin-stat-number">{{ out_of_stock_count|default:"0" }}</div>
+                    <div class="text-muted mt-1" style="font-size:0.73rem;">Currently unavailable</div>
+                </div>
+                <div class="admin-stat-icon-wrapper">
+                    <i class="fas fa-ban"></i>
+                </div>
+            </div>
+            <a href="{% url 'inventory_dashboard' %}?status=OUT_OF_STOCK" class="pharm-card-action mt-auto">
+                View inventory <i class="fas fa-arrow-right ms-1"></i>
+            </a>
+        </div>
+    </div>
+
+    <!-- Card 3: Near Expiry -->
+    <div class="col-6 col-md-3">
+        <div class="admin-stat-card stat-purple h-100 d-flex flex-column">
+            <div class="d-flex align-items-start justify-content-between mb-3">
+                <div>
+                    <div class="admin-stat-label">Near Expiry (90d)</div>
+                    <div class="admin-stat-number">{{ near_expiry_count|default:"0" }}</div>
+                    <div class="text-muted mt-1" style="font-size:0.73rem;">Batches expiring soon</div>
+                </div>
+                <div class="admin-stat-icon-wrapper">
+                    <i class="fas fa-hourglass-half"></i>
+                </div>
+            </div>
+            <a href="{% url 'expiry_management' %}" class="pharm-card-action mt-auto">
+                Manage expiry <i class="fas fa-arrow-right ms-1"></i>
+            </a>
+        </div>
+    </div>
+
+    <!-- Card 4: Today's Sales -->
+    <div class="col-6 col-md-3">
+        <div class="admin-stat-card stat-teal h-100 d-flex flex-column">
+            <div class="d-flex align-items-start justify-content-between mb-3">
+                <div>
+                    <div class="admin-stat-label">Today's Sales</div>
+                    <div class="admin-stat-number">{{ today_sales|default:"0" }}</div>
+                    <div class="text-muted mt-1" style="font-size:0.73rem;">
+                        {% if today_sales_amount %}&#8377;{{ today_sales_amount|floatformat:0 }} revenue{% else %}No sales yet{% endif %}
+                    </div>
+                </div>
+                <div class="admin-stat-icon-wrapper">
+                    <i class="fas fa-cash-register"></i>
+                </div>
+            </div>
+            <a href="{% url 'sales_history' %}" class="pharm-card-action mt-auto">
+                View sales <i class="fas fa-arrow-right ms-1"></i>
+            </a>
+        </div>
+    </div>
+
+</div>
+
+<!-- Quick Actions + Alerts Row -->
+<div class="row g-4">
+    <!-- Quick Access Modules -->
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm h-100" style="border-radius: 14px;">
+            <div class="card-body p-4">
+                <h6 class="fw-bold text-navy mb-3"><i class="fas fa-cubes text-teal me-2"></i>Quick Access</h6>
+                <div class="row g-3">
+                    <!-- Dispensing -->
+                    <div class="col-6 col-md-4">
+                        <a href="{% url 'secure_dispensing_workspace' %}" class="text-decoration-none d-block h-100">
+                            <div class="p-3 rounded-3 border hover-shadow text-center transition h-100 d-flex flex-column justify-content-center" style="background: linear-gradient(135deg, #f0fafa, #e8f5f5);">
+                                <i class="fas fa-shield-virus fs-3 mb-2" style="color:#00A99D;"></i>
+                                <p class="fw-bold text-navy mb-0 small">Secure Dispensing</p>
+                                <span class="text-muted" style="font-size:0.72rem;">Prescription & FEFO</span>
+                            </div>
+                        </a>
+                    </div>
+                    <!-- New Sale -->
+                    <div class="col-6 col-md-4">
+                        <a href="{% url 'new_sale' %}" class="text-decoration-none d-block h-100">
+                            <div class="p-3 rounded-3 border hover-shadow text-center transition h-100 d-flex flex-column justify-content-center" style="background: linear-gradient(135deg, #f0f4ff, #e8eeff);">
+                                <i class="fas fa-cash-register fs-3 mb-2" style="color:#0875B9;"></i>
+                                <p class="fw-bold text-navy mb-0 small">New Sale / POS</p>
+                                <span class="text-muted" style="font-size:0.72rem;">Billing & invoice</span>
+                            </div>
+                        </a>
+                    </div>
+                    <!-- Medicine Search -->
+                    <div class="col-6 col-md-4">
+                        <a href="{% url 'medicine_list' %}" class="text-decoration-none d-block h-100">
+                            <div class="p-3 rounded-3 border hover-shadow text-center transition h-100 d-flex flex-column justify-content-center" style="background: linear-gradient(135deg, #faf5ff, #f0e8ff);">
+                                <i class="fas fa-pills fs-3 mb-2" style="color:#8B5CF6;"></i>
+                                <p class="fw-bold text-navy mb-0 small">Medicine Search</p>
+                                <span class="text-muted" style="font-size:0.72rem;">Barcode & QR lookup</span>
+                            </div>
+                        </a>
+                    </div>
+                    <!-- Batch Stock -->
+                    <div class="col-6 col-md-4">
+                        <a href="{% url 'batch_stock' %}" class="text-decoration-none d-block h-100">
+                            <div class="p-3 rounded-3 border hover-shadow text-center transition h-100 d-flex flex-column justify-content-center" style="background: linear-gradient(135deg, #fff7f0, #ffeee0);">
+                                <i class="fas fa-layer-group fs-3 mb-2" style="color:#F59E0B;"></i>
+                                <p class="fw-bold text-navy mb-0 small">Batch Availability</p>
+                                <span class="text-muted" style="font-size:0.72rem;">FEFO batch view</span>
+                            </div>
+                        </a>
+                    </div>
+                    <!-- Expiry -->
+                    <div class="col-6 col-md-4">
+                        <a href="{% url 'expiry_management' %}" class="text-decoration-none d-block h-100">
+                            <div class="p-3 rounded-3 border hover-shadow text-center transition h-100 d-flex flex-column justify-content-center" style="background: linear-gradient(135deg, #fff5f5, #ffe5e5);">
+                                <i class="fas fa-hourglass-half fs-3 mb-2" style="color:#EF4444;"></i>
+                                <p class="fw-bold text-navy mb-0 small">Expiry Alerts</p>
+                                <span class="text-muted" style="font-size:0.72rem;">Near-expiry batches</span>
+                            </div>
+                        </a>
+                    </div>
+                    <!-- Reports -->
+                    <div class="col-6 col-md-4">
+                        <a href="{% url 'reports_center' %}" class="text-decoration-none d-block h-100">
+                            <div class="p-3 rounded-3 border hover-shadow text-center transition h-100 d-flex flex-column justify-content-center" style="background: linear-gradient(135deg, #f0fff8, #e0ffe8);">
+                                <i class="fas fa-file-invoice fs-3 mb-2" style="color:#10B981;"></i>
+                                <p class="fw-bold text-navy mb-0 small">Reports</p>
+                                <span class="text-muted" style="font-size:0.72rem;">Operational reports</span>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile & Alerts Panel -->
+    <div class="col-lg-4">
+        <!-- Profile Card -->
+        <div class="card border-0 shadow-sm mb-3" style="border-radius: 14px;">
+            <div class="card-body p-4">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="pharmacist-user-avatar" style="width:48px;height:48px;font-size:1.1rem;">
+                        {{ user.username|slice:":1"|upper }}
+                    </div>
+                    <div>
+                        <p class="fw-bold text-navy mb-0 small">{{ user.full_name|default:user.username }}</p>
+                        <span class="text-muted" style="font-size:0.72rem;">
+                            <i class="fas fa-id-badge me-1"></i>{{ user.username }}
+                        </span>
+                    </div>
+                </div>
+                <div class="small text-muted mb-1"><i class="fas fa-envelope me-1"></i> {{ user.email }}</div>
+                <div class="small text-muted mb-1"><i class="fas fa-phone me-1"></i> {{ user.phone|default:"Not set" }}</div>
+                <div class="small mb-1">
+                    <i class="fas fa-certificate me-1 text-teal"></i>
+                    <span class="text-navy fw-semibold">License:</span>
+                    {{ user.license_number|default:"Verified" }}
+                </div>
+                {% if user.registration_id %}
+                <div class="small">
+                    <i class="fas fa-id-card me-1 text-blue"></i>
+                    <span class="text-navy fw-semibold">Reg ID:</span>
+                    {{ user.registration_id }}
+                </div>
+                {% endif %}
+                <hr class="my-3">
+                <a href="{% url 'change_password' %}" class="btn btn-outline-secondary btn-sm w-100">
+                    <i class="fas fa-key me-1"></i> Change Password
+                </a>
+            </div>
+        </div>
+
+        <!-- Notifications Card -->
+        <div class="card border-0 shadow-sm mb-3" style="border-radius: 14px; border-left: 4px solid {% if unread_notifications %}#F59E0B{% else %}#00A896{% endif %} !important;">
+            <div class="card-body p-3 d-flex align-items-center gap-3">
+                <i class="fas fa-bell {% if unread_notifications %}text-warning{% else %}text-teal{% endif %} fs-4"></i>
+                <div>
+                    <p class="fw-bold text-navy mb-0 small">
+                        {% if unread_notifications %}
+                            {{ unread_notifications }} unread notification{{ unread_notifications|pluralize }}
+                        {% else %}
+                            All notifications read
+                        {% endif %}
+                    </p>
+                    <a href="{% url 'notification_list' %}" class="text-teal small text-decoration-none fw-semibold">View Notifications →</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Alerts -->
+        {% if active_alerts %}
+        <div class="card border-0 shadow-sm mt-3" style="border-radius: 14px; border-left: 4px solid #EF4444 !important;">
+            <div class="card-body p-3 d-flex align-items-center gap-3">
+                <i class="fas fa-circle-exclamation text-danger fs-4"></i>
+                <div>
+                    <p class="fw-bold text-navy mb-0 small">{{ active_alerts }} active stock alert{{ active_alerts|pluralize }}</p>
+                    <a href="{% url 'inventory_dashboard' %}" class="text-danger small text-decoration-none fw-semibold">Review now →</a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── Pharmacist Dashboard — Scoped KPI card styles ────────────────────── */
+
+/* Nav action link replacing plain admin-stat-card-link */
+.pharm-card-action {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.775rem;
+    font-weight: 600;
+    color: var(--admin-teal, #00A896);
+    text-decoration: none;
+    padding: 0.3rem 0;
+    border-radius: 4px;
+    transition: color 0.15s ease, letter-spacing 0.15s ease;
+}
+.pharm-card-action:hover {
+    color: #007d72;
+    letter-spacing: 0.025em;
+}
+.pharm-card-action:focus-visible {
+    outline: 2px solid var(--admin-teal, #00A896);
+    outline-offset: 3px;
+}
+
+/* Purple variant — Near Expiry */
+.stat-purple {
+    position: relative;
+}
+.stat-purple .admin-stat-icon-wrapper {
+    background: rgba(139, 92, 246, 0.12);
+    color: #8B5CF6;
+}
+.stat-purple::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: #8B5CF6;
+    border-radius: 0 0 var(--admin-radius-md, 12px) var(--admin-radius-md, 12px);
+}
+
+/* Teal variant — Today's Sales */
+.stat-teal {
+    position: relative;
+}
+.stat-teal .admin-stat-icon-wrapper {
+    background: rgba(0, 168, 150, 0.12);
+    color: var(--admin-teal, #00A896);
+}
+.stat-teal::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--admin-teal, #00A896);
+    border-radius: 0 0 var(--admin-radius-md, 12px) var(--admin-radius-md, 12px);
+}
+
+/* Ensure subtitle text doesn't overflow on very small breakpoints */
+@media (max-width: 375px) {
+    .admin-stat-label { font-size: 0.7rem; }
+    .admin-stat-number { font-size: 1.5rem; }
+}
+</style>
+{% endblock %}

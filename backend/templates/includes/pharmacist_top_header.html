@@ -1,0 +1,161 @@
+{% load static %}
+<!-- Sanalogx Pharmacist Top Header Bar -->
+<header class="pharmacist-app-header" id="pharmacistAppHeader">
+    <div class="pharmacist-header-left">
+        <!-- Sidebar Toggle -->
+        <button type="button" class="pharmacist-sidebar-toggle-btn" id="pharmacistSidebarToggle" aria-label="Toggle Navigation Sidebar" title="Toggle Sidebar">
+            <i class="fas fa-bars"></i>
+        </button>
+
+        <!-- Breadcrumbs -->
+        <ul class="admin-breadcrumbs d-none d-sm-flex">
+            <li><a href="{% url 'approved' %}"><i class="fas fa-user-nurse me-1"></i> Workspace</a></li>
+            <li class="breadcrumb-separator"><i class="fas fa-chevron-right"></i></li>
+            <li class="current-page">{% block pharmacist_breadcrumb %}Dashboard{% endblock %}</li>
+        </ul>
+    </div>
+
+    <div class="pharmacist-header-right">
+        <!-- Status Pill -->
+        <div class="admin-status-pill d-none d-md-inline-flex" title="Pharmacist Workspace Active">
+            <span class="admin-status-dot"></span>
+            <span>Pharmacist Active</span>
+        </div>
+
+        <!-- Notification Bell -->
+        <div class="dropdown">
+            <button class="admin-header-icon-btn position-relative" type="button" data-bs-toggle="dropdown" id="pharmacistHeaderNotifBtn" aria-expanded="false" title="Notifications">
+                <i class="fas fa-bell fs-6"></i>
+                <span id="pharmacistHeaderNotifBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none" style="font-size: 0.65rem;">
+                    0
+                </span>
+            </button>
+            <div class="dropdown-menu dropdown-menu-end shadow-lg border-0 p-0" style="min-width: 280px; max-width: calc(100vw - 24px); border-radius: 12px; overflow: hidden;">
+                <div class="p-3 text-white d-flex justify-content-between align-items-center" style="background: #0f2b4a;">
+                    <h6 class="fw-bold mb-0 text-white small"><i class="fas fa-bell me-1" style="color: #00A99D;"></i> Notifications</h6>
+                    <a href="{% url 'notification_list' %}" class="extra-small text-decoration-none fw-bold" style="color: #00A99D;">View All</a>
+                </div>
+                <div id="pharmacistHeaderNotifList" class="p-2" style="max-height: 260px; overflow-y: auto;">
+                    <div class="text-center py-3 text-muted small"><i class="fas fa-spinner fa-spin me-1"></i> Loading...</div>
+                </div>
+                <div class="bg-light p-2 text-center border-top">
+                    <a href="{% url 'notification_list' %}" class="text-decoration-none text-muted small fw-semibold">Notification Centre</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Profile Dropdown -->
+        <div class="dropdown">
+            <button class="admin-profile-dropdown-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <div class="admin-user-avatar" style="width: 30px; height: 30px; font-size: 0.75rem; background: #00A99D;">
+                    {{ request.user.username|slice:":1"|upper }}
+                </div>
+                <div class="d-none d-lg-flex flex-column text-start">
+                    <span class="fw-bold small text-navy leading-tight" style="font-size: 0.8rem;">
+                        {{ request.user.get_full_name|default:request.user.username }}
+                    </span>
+                    <span class="text-muted extra-small" style="font-size: 0.68rem;">Pharmacist</span>
+                </div>
+                <i class="fas fa-chevron-down ms-1 text-muted" style="font-size: 0.65rem;"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow border-0 p-2" style="border-radius: 10px; min-width: 200px;">
+                <li class="px-3 py-2 border-bottom mb-1">
+                    <strong class="d-block text-navy small">{{ request.user.username }}</strong>
+                    <span class="text-muted extra-small">{{ request.user.email }}</span>
+                </li>
+                <li>
+                    <a class="dropdown-item py-2 rounded-2 small" href="{% url 'change_password' %}">
+                        <i class="fas fa-key me-2 text-muted"></i> Change Password
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item py-2 rounded-2 small" href="{% url 'notification_list' %}">
+                        <i class="fas fa-bell me-2 text-muted"></i> My Notifications
+                    </a>
+                </li>
+                <li><hr class="dropdown-divider my-1"></li>
+                <li>
+                    <form method="POST" action="{% url 'logout' %}" class="m-0 p-0">
+                        {% csrf_token %}
+                        <button type="submit" class="dropdown-item py-2 rounded-2 small text-danger" style="background: none; border: none; width: 100%; text-align: left; cursor: pointer;">
+                            <i class="fas fa-sign-out-alt me-2"></i> Sign Out
+                        </button>
+                    </form>
+                </li>
+            </ul>
+        </div>
+    </div>
+</header>
+
+<script>
+// Pharmacist notification bell fetch
+document.addEventListener('DOMContentLoaded', function() {
+    fetch('{% url "api_notification_bell" %}')
+        .then(res => res.json())
+        .then(data => {
+            let badge = document.getElementById('pharmacistHeaderNotifBadge');
+            let list = document.getElementById('pharmacistHeaderNotifList');
+            if (data.unread_count > 0) {
+                badge.innerText = data.unread_count;
+                badge.classList.remove('d-none');
+            }
+            if (data.notifications && data.notifications.length > 0) {
+                let html = '';
+                data.notifications.forEach(n => {
+                    let url = n.action_url || '{% url "notification_list" %}';
+                    html += `<a href="${url}" class="dropdown-item p-2 rounded-2 mb-1 border-bottom-dashed text-wrap">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <strong class="extra-small text-navy d-block">${n.title}</strong>
+                            <span class="extra-small text-muted">${n.created_at}</span>
+                        </div>
+                        <p class="extra-small text-muted mb-0 text-truncate" style="max-width: 280px;">${n.message}</p>
+                    </a>`;
+                });
+                list.innerHTML = html;
+            } else {
+                list.innerHTML = '<div class="text-center py-3 text-muted extra-small">No unread notifications</div>';
+            }
+        }).catch(() => {
+            document.getElementById('pharmacistHeaderNotifList').innerHTML = '<div class="text-center py-3 text-muted extra-small">Could not load notifications</div>';
+        });
+});
+
+// Pharmacist sidebar toggle (mirrors admin_dashboard.js pattern)
+(function() {
+    const toggle = document.getElementById('pharmacistSidebarToggle');
+    const container = document.getElementById('pharmacistAppContainer');
+    const backdrop = document.getElementById('pharmacistSidebarBackdrop');
+    if (!toggle || !container) return;
+
+    function isMobile() { return window.innerWidth < 992; }
+
+    // Restore collapse state on desktop
+    if (!isMobile() && localStorage.getItem('pharmacistSidebarCollapsed') === 'true') {
+        container.classList.add('sidebar-collapsed');
+    }
+
+    toggle.addEventListener('click', function() {
+        if (isMobile()) {
+            container.classList.toggle('sidebar-mobile-open');
+            if (backdrop) backdrop.classList.toggle('active');
+        } else {
+            const collapsed = container.classList.toggle('sidebar-collapsed');
+            localStorage.setItem('pharmacistSidebarCollapsed', collapsed);
+        }
+    });
+
+    if (backdrop) {
+        backdrop.addEventListener('click', function() {
+            container.classList.remove('sidebar-mobile-open');
+            backdrop.classList.remove('active');
+        });
+    }
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && isMobile()) {
+            container.classList.remove('sidebar-mobile-open');
+            if (backdrop) backdrop.classList.remove('active');
+        }
+    });
+})();
+</script>

@@ -1,0 +1,19 @@
+Sanalogx | Username Recovery
+==============================
+
+Dear {{ user.full_name|default:user.username }},
+
+Hospital administration has reviewed and approved your username recovery request.
+
+Your Authorized Username:
+{{ user.username }}
+
+Sign In:
+{{ base_url }}/auth/login/
+
+Security Notice:
+Never share your credentials with unauthorized individuals.
+
+---
+Sanalogx Pharmacy Operations & Intelligence System
+Automated Notification — Please do not reply directly.

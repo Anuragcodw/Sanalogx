@@ -1,0 +1,518 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Pharmacist Account Registration — Sanalogx{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@23/build/css/intlTelInput.css">
+<style>
+    /* ---- intl-tel-input theme overrides ---- */
+    .iti { width: 100%; }
+    .iti__tel-input {
+        width: 100%;
+        padding-left: 90px !important; /* room for flag + dial-code */
+        border-radius: 0.5rem !important;
+        border: 1px solid #ced4da;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+        transition: border-color .2s, box-shadow .2s;
+        font-size: 0.925rem;
+    }
+    .iti__tel-input:focus {
+        border-color: #00A896 !important;
+        box-shadow: 0 0 0 0.2rem rgba(0, 168, 150, 0.18) !important;
+        outline: none;
+    }
+    .iti__tel-input.is-invalid {
+        border-color: #dc3545 !important;
+    }
+    .iti__flag-container .iti__selected-dial-code {
+        font-size: 0.85rem;
+        color: #0F2744;
+        font-weight: 500;
+    }
+    #phone-error {
+        color: #dc3545;
+        font-size: 0.8rem;
+        margin-top: 0.3rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-container py-5" style="min-height: calc(100vh - 80px); display: flex; align-items: center; background: radial-gradient(circle at top right, rgba(0, 168, 150, 0.05), transparent 60%), radial-gradient(circle at bottom left, rgba(15, 39, 68, 0.04), transparent 60%);">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-11 col-xl-10">
+                <div class="auth-card row g-0 rounded-4 overflow-hidden shadow-lg border-0 bg-white" style="box-shadow: 0 20px 40px -15px rgba(15, 39, 68, 0.12) !important;">
+                    
+                    <!-- Left Branding Side -->
+                    <div class="col-md-4 auth-brand-side d-none d-md-flex p-4 p-lg-5 text-white flex-column justify-content-between" style="background: linear-gradient(145deg, #0F2744 0%, #163860 60%, #0077B6 100%); position: relative; overflow: hidden;">
+                        <div style="position: absolute; top: -50px; right: -50px; width: 160px; height: 160px; border-radius: 50%; background: radial-gradient(circle, rgba(0, 168, 150, 0.25), transparent); pointer-events: none;"></div>
+                        <div style="position: absolute; bottom: -60px; left: -60px; width: 180px; height: 180px; border-radius: 50%; background: radial-gradient(circle, rgba(0, 119, 182, 0.2), transparent); pointer-events: none;"></div>
+
+                        <div style="position: relative; z-index: 1;">
+                            <a class="navbar-brand text-white mb-4 d-inline-flex align-items-center gap-2 text-decoration-none" href="{% url 'home' %}">
+                                <span class="brand-icon d-inline-flex align-items-center justify-content-center rounded-3" style="width: 40px; height: 40px; background: rgba(0, 168, 150, 0.2); color: #00D1B2; font-size: 1.15rem;">
+                                    <i class="fas fa-prescription-bottle-alt"></i>
+                                </span>
+                                <span class="fs-4 fw-bold tracking-tight">Medi<span style="color: #00D1B2;">Vault</span></span>
+                            </a>
+                            <div class="badge bg-teal-subtle text-teal border border-teal-subtle px-3 py-1 rounded-pill small mb-3 d-inline-flex align-items-center gap-1" style="background: rgba(0, 168, 150, 0.15) !important; color: #00D1B2 !important; border-color: rgba(0, 168, 150, 0.3) !important;">
+                                <i class="fas fa-id-badge"></i> Practitioner Onboarding
+                            </div>
+                            <h4 class="fw-bold mb-2 text-white">Join Sanalogx</h4>
+                            <p class="text-white-50 small mb-4" style="line-height: 1.6;">
+                                Register your authorized clinical profile to access dispensing, AI-driven stock reorders, and pharmacy operations.
+                            </p>
+
+                            <div class="p-3 rounded-3 mt-3 border border-light border-opacity-10" style="background: rgba(255, 255, 255, 0.07);">
+                                <div class="d-flex align-items-start gap-2 small">
+                                    <i class="fas fa-shield-halved mt-1" style="color: #00D1B2;"></i>
+                                    <div>
+                                        <strong class="d-block mb-1 text-white" style="font-size: 0.85rem;">Administrative Verification</strong>
+                                        <span class="text-white-50" style="font-size: 0.78rem;">
+                                            All submitted credentials and state licenses are reviewed by hospital administration prior to workspace activation.
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mt-4 pt-3 border-top border-light border-opacity-10">
+                                <div class="d-flex align-items-center gap-3 mb-2 text-white-50 small">
+                                    <span class="rounded-circle d-flex align-items-center justify-content-center" style="width: 22px; height: 22px; background: rgba(0, 168, 150, 0.2); color: #00D1B2;">
+                                        <i class="fas fa-check" style="font-size: 0.7rem;"></i>
+                                    </span>
+                                    <span>Argon2 / PBKDF2 Password Hashing</span>
+                                </div>
+                                <div class="d-flex align-items-center gap-3 mb-2 text-white-50 small">
+                                    <span class="rounded-circle d-flex align-items-center justify-content-center" style="width: 22px; height: 22px; background: rgba(0, 168, 150, 0.2); color: #00D1B2;">
+                                        <i class="fas fa-check" style="font-size: 0.7rem;"></i>
+                                    </span>
+                                    <span>Automated Status Notifications</span>
+                                </div>
+                                <div class="d-flex align-items-center gap-3 text-white-50 small">
+                                    <span class="rounded-circle d-flex align-items-center justify-content-center" style="width: 22px; height: 22px; background: rgba(0, 168, 150, 0.2); color: #00D1B2;">
+                                        <i class="fas fa-check" style="font-size: 0.7rem;"></i>
+                                    </span>
+                                    <span>Role-Governed Clinical Access</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="small text-white-50 border-top pt-3 border-light border-opacity-10 d-flex align-items-center justify-content-between" style="position: relative; z-index: 1;">
+                            <span><i class="fas fa-lock me-1" style="color: #00D1B2;"></i> Encrypted Verification</span>
+                            <span class="font-monospace opacity-75">HIPAA-Aligned</span>
+                        </div>
+                    </div>
+
+                    <!-- Right Form Side -->
+                    <div class="col-md-8 p-4 p-lg-5 bg-white">
+                        <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+                            <div>
+                                <h3 class="fw-bold text-navy mb-1" style="color: #0F2744; letter-spacing: -0.5px;">Pharmacist Account Registration</h3>
+                                <p class="text-secondary small mb-1">Submit your professional details for account verification and approval.</p>
+                                <div class="text-muted small" style="font-size: 0.8rem;">
+                                    <i class="fas fa-info-circle text-teal me-1" style="color: #00A896;"></i>
+                                    Registration requests are subject to administrative verification. Dashboard access is enabled only after approval.
+                                </div>
+                            </div>
+                        </div>
+
+                        {% if messages %}
+                            {% for message in messages %}
+                                <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show small mb-4 border-0 shadow-sm" role="alert">
+                                    <div class="d-flex align-items-center gap-2">
+                                        {% if message.tags == 'error' or message.tags == 'danger' %}
+                                            <i class="fas fa-circle-exclamation text-danger"></i>
+                                        {% elif message.tags == 'warning' %}
+                                            <i class="fas fa-triangle-exclamation text-warning"></i>
+                                        {% elif message.tags == 'success' %}
+                                            <i class="fas fa-circle-check text-success"></i>
+                                        {% else %}
+                                            <i class="fas fa-circle-info text-info"></i>
+                                        {% endif %}
+                                        <div>{{ message }}</div>
+                                    </div>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+
+                        <form method="POST" action="{% url 'pharmacist_register' %}" id="pharmacistRegisterForm" novalidate>
+                            {% csrf_token %}
+
+                            <div class="row g-3">
+                                <!-- Full Name -->
+                                <div class="col-md-6">
+                                    <label for="full_name" class="form-label text-navy fw-semibold small" style="color: #0F2744;">
+                                        Full Name <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="input-icon-group position-relative">
+                                        <i class="fas fa-id-card text-muted position-absolute start-0 top-50 translate-middle-y ms-3"></i>
+                                        <input type="text" class="form-control ps-5 py-2 rounded-3 border-secondary-subtle" id="full_name" name="full_name"
+                                               value="{{ form_data.full_name|default:'' }}"
+                                               placeholder="Dr. Sarah Jenkins"
+                                               autocomplete="name" required>
+                                    </div>
+                                </div>
+
+                                <!-- Email Address -->
+                                <div class="col-md-6">
+                                    <label for="email" class="form-label text-navy fw-semibold small" style="color: #0F2744;">
+                                        Professional Email <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="input-icon-group position-relative">
+                                        <i class="fas fa-envelope text-muted position-absolute start-0 top-50 translate-middle-y ms-3"></i>
+                                        <input type="email" class="form-control ps-5 py-2 rounded-3 border-secondary-subtle" id="email" name="email"
+                                               value="{{ form_data.email|default:'' }}"
+                                               placeholder="sarah@cityhospital.org"
+                                               autocomplete="email" required>
+                                    </div>
+                                </div>
+
+                                <!-- Phone Number (intl-tel-input) -->
+                                <div class="col-md-6">
+                                    <label for="phone-input" class="form-label text-navy fw-semibold small" style="color: #0F2744;">
+                                        Contact Phone <span class="text-danger">*</span>
+                                    </label>
+                                    <!-- intl-tel-input renders around this element -->
+                                    <input type="tel" id="phone-input"
+                                           class="form-control py-2 rounded-3 border-secondary-subtle"
+                                           placeholder="98765 43210"
+                                           autocomplete="tel">
+                                    <!-- Hidden fields submitted to Django -->
+                                    <input type="hidden" name="phone_dial_code" id="phone_dial_code" value="{{ form_data.phone_dial_code|default:'+91' }}">
+                                    <input type="hidden" name="phone_national"  id="phone_national"  value="{{ form_data.phone_national|default:'' }}">
+                                    <!-- Kept for backwards-compat; also sent as E.164 from JS -->
+                                    <input type="hidden" name="phone" id="phone_e164" value="{{ form_data.phone|default:'' }}">
+                                    <div id="phone-error" class="d-none"></div>
+                                </div>
+
+                                <!-- Pharmacy License Number -->
+                                <div class="col-md-6">
+                                    <label for="license_number" class="form-label text-navy fw-semibold small" style="color: #0F2744;">
+                                        Pharmacy License Number <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="input-icon-group position-relative">
+                                        <i class="fas fa-file-medical text-muted position-absolute start-0 top-50 translate-middle-y ms-3"></i>
+                                        <input type="text" class="form-control ps-5 py-2 rounded-3 border-secondary-subtle" id="license_number" name="license_number"
+                                               value="{{ form_data.license_number|default:'' }}"
+                                               placeholder="PH-2827"
+                                               maxlength="7"
+                                               autocomplete="off"
+                                               required>
+                                    </div>
+                                    <div class="form-text small text-muted mt-1" id="license_help_text">
+                                        <i class="fas fa-info-circle me-1" style="color: #00A896;"></i>Demo format: PH- followed by 4 digits
+                                    </div>
+                                    <div id="license-error" class="text-danger small mt-1 d-none" role="alert"></div>
+                                </div>
+
+                                <!-- Qualification -->
+                                <div class="col-md-6">
+                                    <label for="qualification" class="form-label text-navy fw-semibold small" style="color: #0F2744;">
+                                        Clinical Qualification <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="input-icon-group position-relative">
+                                        <i class="fas fa-graduation-cap text-muted position-absolute start-0 top-50 translate-middle-y ms-3"></i>
+                                        <input type="text" class="form-control ps-5 py-2 rounded-3 border-secondary-subtle" id="qualification" name="qualification"
+                                               value="{{ form_data.qualification|default:'' }}"
+                                               placeholder="Pharm.D / M.Pharm / B.Pharm" required>
+                                    </div>
+                                </div>
+
+                                <!-- Username -->
+                                <div class="col-md-6">
+                                    <label for="username" class="form-label text-navy fw-semibold small" style="color: #0F2744;">
+                                        Desired Username <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="input-icon-group position-relative">
+                                        <i class="fas fa-user-circle text-muted position-absolute start-0 top-50 translate-middle-y ms-3"></i>
+                                        <input type="text" class="form-control ps-5 py-2 rounded-3 border-secondary-subtle" id="username" name="username"
+                                               value="{{ form_data.username|default:'' }}"
+                                               placeholder="sjenkins_ph"
+                                               autocomplete="username" required>
+                                    </div>
+                                </div>
+
+                                <!-- Password -->
+                                <div class="col-md-6">
+                                    <label for="password" class="form-label text-navy fw-semibold small" style="color: #0F2744;">
+                                        Password <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="input-icon-group position-relative">
+                                        <i class="fas fa-lock text-muted position-absolute start-0 top-50 translate-middle-y ms-3"></i>
+                                        <input type="password" class="form-control ps-5 pe-5 py-2 rounded-3 border-secondary-subtle" id="password" name="password"
+                                               placeholder="Create strong password"
+                                               autocomplete="new-password" required>
+                                        <button type="button" class="btn btn-link position-absolute end-0 top-50 translate-middle-y me-2 text-muted p-0 toggle-pass" data-target="password" aria-label="Toggle password visibility">
+                                            <i class="fas fa-eye" style="font-size: 0.9rem;"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Confirm Password -->
+                                <div class="col-md-6">
+                                    <label for="confirm_password" class="form-label text-navy fw-semibold small" style="color: #0F2744;">
+                                        Confirm Password <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="input-icon-group position-relative">
+                                        <i class="fas fa-lock text-muted position-absolute start-0 top-50 translate-middle-y ms-3"></i>
+                                        <input type="password" class="form-control ps-5 pe-5 py-2 rounded-3 border-secondary-subtle" id="confirm_password" name="confirm_password"
+                                               placeholder="Confirm password"
+                                               autocomplete="new-password" required>
+                                        <button type="button" class="btn btn-link position-absolute end-0 top-50 translate-middle-y me-2 text-muted p-0 toggle-pass" data-target="confirm_password" aria-label="Toggle password visibility">
+                                            <i class="fas fa-eye" style="font-size: 0.9rem;"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-medivault-primary w-100 justify-content-center py-2 mt-4 mb-3 rounded-3 shadow-sm" id="registerSubmitBtn" style="font-weight: 600; font-size: 0.95rem;">
+                                <i class="fas fa-paper-plane me-2"></i> Submit Registration Request
+                            </button>
+                        </form>
+
+                        <div class="text-center pt-3 border-top">
+                            <span class="text-muted small">Already registered?</span>
+                            <a href="{% url 'pharmacist_login' %}" class="small text-teal fw-bold ms-1 text-decoration-none" style="color: #00A896;">
+                                Sign In <i class="fas fa-arrow-right ms-1"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/intl-tel-input@23/build/js/intlTelInput.min.js"></script>
+<script>
+(function () {
+    'use strict';
+
+    // ── 1. Password toggle ────────────────────────────────────────────────────
+    document.querySelectorAll('.toggle-pass').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var targetId = this.getAttribute('data-target');
+            var input = document.getElementById(targetId);
+            var icon = this.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.replace('fa-eye', 'fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.replace('fa-eye-slash', 'fa-eye');
+            }
+        });
+    });
+
+    // ── 2. intl-tel-input setup ───────────────────────────────────────────────
+    var phoneInput  = document.getElementById('phone-input');
+    var dialCodeEl  = document.getElementById('phone_dial_code');
+    var nationalEl  = document.getElementById('phone_national');
+    var e164El      = document.getElementById('phone_e164');
+    var phoneError  = document.getElementById('phone-error');
+
+    var iti = window.intlTelInput(phoneInput, {
+        initialCountry: 'in',           // default India
+        separateDialCode: true,         // flag + dial code on left
+        strictMode: false,              // allow partial numbers while typing
+        utilsScript: 'https://cdn.jsdelivr.net/npm/intl-tel-input@23/build/js/utils.js',
+        preferredCountries: ['in', 'us', 'gb', 'ae', 'sg', 'au', 'ca', 'de', 'fr', 'pk'],
+    });
+
+    // Repopulate from server round-trip (validation error)
+    var savedNational = nationalEl.value.trim();
+    var savedDialCode = dialCodeEl.value.trim();
+    if (savedNational) {
+        phoneInput.value = savedNational;
+    }
+    if (savedDialCode && savedDialCode !== '+91') {
+        // Find the country by dial code and set it
+        var countryData = window.intlTelInputGlobals.getCountryData();
+        for (var i = 0; i < countryData.length; i++) {
+            if ('+' + countryData[i].dialCode === savedDialCode) {
+                iti.setCountry(countryData[i].iso2);
+                break;
+            }
+        }
+    }
+
+    // ── 3. Inline validation on blur ─────────────────────────────────────────
+    phoneInput.addEventListener('blur', function () {
+        validatePhone(false);
+    });
+
+    function validatePhone(blocking) {
+        phoneError.classList.add('d-none');
+        phoneError.textContent = '';
+        phoneInput.classList.remove('is-invalid');
+
+        var national = phoneInput.value.trim();
+        if (!national) {
+            if (blocking) {
+                showPhoneError('Phone Number is required.');
+                return false;
+            }
+            return true; // let backend catch empty
+        }
+
+        if (typeof iti.isValidNumber === 'function' && !iti.isValidNumber()) {
+            var errorCode = iti.getValidationError();
+            var msg = 'Please enter a valid phone number.';
+            // intl-tel-input ValidationError codes:
+            // 1 = invalid country code, 2 = too short, 3 = too long, 4 = too short
+            if (errorCode === 2 || errorCode === 4) msg = 'Phone number is too short for the selected country.';
+            if (errorCode === 3) msg = 'Phone number is too long for the selected country.';
+            showPhoneError(msg);
+            return false;
+        }
+        return true;
+    }
+
+    function showPhoneError(msg) {
+        phoneError.textContent = msg;
+        phoneError.classList.remove('d-none');
+        phoneInput.classList.add('is-invalid');
+        phoneInput.style.borderColor = '#dc3545';
+    }
+
+    // ── 4. Pharmacy License Number validation & auto-prefix ───────────────────
+    var licenseInput   = document.getElementById('license_number');
+    var licenseError   = document.getElementById('license-error');
+    var licensePattern = /^PH-[0-9]{4}$/;
+
+    function showLicenseError(msg) {
+        if (!licenseError || !licenseInput) return;
+        licenseError.textContent = msg;
+        licenseError.classList.remove('d-none');
+        licenseInput.classList.add('is-invalid');
+        licenseInput.style.borderColor = '#dc3545';
+    }
+
+    function clearLicenseError() {
+        if (!licenseError || !licenseInput) return;
+        licenseError.textContent = '';
+        licenseError.classList.add('d-none');
+        licenseInput.classList.remove('is-invalid');
+        licenseInput.style.borderColor = '';
+    }
+
+    function validateLicense(blocking) {
+        if (!licenseInput) return true;
+        var val = licenseInput.value.trim();
+        if (!val) {
+            if (blocking) {
+                showLicenseError('Pharmacy License Number is required.');
+                return false;
+            }
+            clearLicenseError();
+            return true;
+        }
+
+        if (!licensePattern.test(val)) {
+            showLicenseError('Invalid demo license format. Must be PH- followed by 4 digits (e.g. PH-2827).');
+            return false;
+        }
+        clearLicenseError();
+        return true;
+    }
+
+    if (licenseInput) {
+        // Auto-insert 'PH-' on focus if empty (without preventing backspace/editing)
+        licenseInput.addEventListener('focus', function () {
+            if (!this.value.trim()) {
+                this.value = 'PH-';
+            }
+        });
+
+        // Typing handler: auto-prepend PH- if user types digits directly, uppercase prefix
+        licenseInput.addEventListener('input', function () {
+            var val = this.value;
+            if (!val) {
+                clearLicenseError();
+                return;
+            }
+
+            // If user types raw digits (e.g. '2827'), auto-prepend 'PH-'
+            if (/^[0-9]/.test(val)) {
+                this.value = 'PH-' + val;
+            }
+            // If user typed lowercase 'ph-', normalize to 'PH-'
+            if (this.value.toLowerCase().startsWith('ph-')) {
+                this.value = 'PH-' + this.value.substring(3);
+            }
+
+            // Real-time validation feedback
+            var trimmed = this.value.trim();
+            if (trimmed.length >= 7) {
+                validateLicense(false);
+            } else if (trimmed === 'PH-') {
+                clearLicenseError();
+            } else if (trimmed.length > 3 && !/^PH-[0-9]*$/.test(trimmed)) {
+                showLicenseError('Demo format requires digits only after PH- (e.g. PH-2827).');
+            } else {
+                clearLicenseError();
+            }
+        });
+
+        licenseInput.addEventListener('blur', function () {
+            // Clear standalone prefix if user left without typing numbers
+            if (this.value.trim() === 'PH-') {
+                this.value = '';
+                clearLicenseError();
+            } else if (this.value.trim()) {
+                validateLicense(false);
+            }
+        });
+    }
+
+    // ── 5. Form submit: validate & populate hidden inputs ─────────────────────
+    document.getElementById('pharmacistRegisterForm').addEventListener('submit', function (e) {
+        // Validate license number
+        if (!validateLicense(true)) {
+            e.preventDefault();
+            if (licenseInput) licenseInput.focus();
+            return;
+        }
+
+        // Validate phone
+        if (!validatePhone(true)) {
+            e.preventDefault();
+            phoneInput.focus();
+            return;
+        }
+
+        // Populate hidden fields
+        var dialCode  = '+' + iti.getSelectedCountryData().dialCode;
+        var national  = phoneInput.value.trim();
+        var e164      = '';
+        try {
+            e164 = iti.getNumber(); // E.164 e.g. +919876543210
+        } catch (_) {
+            e164 = dialCode + national;
+        }
+
+        dialCodeEl.value = dialCode;
+        nationalEl.value = national;
+        e164El.value     = e164 || (dialCode + national);
+
+        // Check other required fields are filled before disabling the button
+        var otherRequired = ['full_name', 'email', 'license_number', 'qualification', 'username', 'password', 'confirm_password'];
+        var allFilled = otherRequired.every(function (id) {
+            var el = document.getElementById(id);
+            return el && el.value.trim() !== '';
+        });
+        if (!allFilled) return; // don't disable — browser/backend will show errors
+
+        var btn = document.getElementById('registerSubmitBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-circle-notch fa-spin me-2"></i> Submitting Request...';
+    });
+}());
+</script>
+{% endblock %}
+{% endblock %}
