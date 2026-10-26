@@ -1,4 +1,5 @@
 import os
+import sys
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -104,17 +105,26 @@ if db_ssl_ca:
 elif os.getenv('DB_SSL_REQUIRE', 'False').lower() in ('true', '1', 't'):
     db_options['ssl'] = {}
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.getenv('DB_NAME', 'medivault'),
-        'USER': os.getenv('DB_USER', 'root'),
-        'PASSWORD': os.getenv('DB_PASSWORD', ''),
-        'HOST': os.getenv('DB_HOST', '127.0.0.1'),
-        'PORT': os.getenv('DB_PORT', '3306'),
-        'OPTIONS': db_options,
+if 'test' in sys.argv:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': ':memory:',
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': os.getenv('DB_NAME', 'medivault'),
+            'USER': os.getenv('DB_USER', 'root'),
+            'PASSWORD': os.getenv('DB_PASSWORD', ''),
+            'HOST': os.getenv('DB_HOST', '127.0.0.1'),
+            'PORT': os.getenv('DB_PORT', '3306'),
+            'OPTIONS': db_options,
+        }
+    }
+
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -308,10 +318,12 @@ NEAR_EXPIRY_THRESHOLD_DAYS = 90
 # In development/demo environments, pharmacist registrations accept demo reference numbers:
 # PH- followed by 4 digits (pattern: ^PH-[0-9]{4}$).
 # Set DEMO_REGISTRATION_MODE=False in production .env to disable demo registrations.
-DEMO_REGISTRATION_MODE = os.getenv(
-    'DEMO_REGISTRATION_MODE',
-    str(DEBUG)
-).lower() in ('true', '1', 't')
+_raw_demo_mode = os.getenv('DEMO_REGISTRATION_MODE')
+if _raw_demo_mode is not None:
+    DEMO_REGISTRATION_MODE = _raw_demo_mode.strip().strip('"\'').lower() in ('true', '1', 't', 'yes', 'y')
+else:
+    DEMO_REGISTRATION_MODE = bool(DEBUG)
+
 
 # ── Session & Cookie Security Configuration ───────────────────────────────────
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
