@@ -1,0 +1,816 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Inventory & Stock Management — Sanalogx{% endblock %}
+
+{% block admin_breadcrumb %}Inventory & Stock Management{% endblock %}
+{% block pharmacist_breadcrumb %}Inventory Overview{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── Page Layout ─────────────────────────────────────────────────────────── */
+.inv-page { background: var(--admin-bg, #F4F7FB); }
+
+/* ── Page Header ─────────────────────────────────────────────────────────── */
+.inv-page-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  flex-wrap: wrap; gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+.inv-page-header h1 { font-size: 1.5rem; font-weight: 700; color: #0F2744; margin: 0 0 .2rem; line-height: 1.25; }
+.inv-page-header p  { font-size: .875rem; color: #64748B; margin: 0; }
+.inv-header-actions { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; }
+.inv-btn-primary  { background: #00A896; color: #fff; border: none; border-radius: 20px; padding: 7px 16px; font-size: .82rem; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 5px; transition: background .2s, box-shadow .2s; white-space: nowrap; }
+.inv-btn-primary:hover  { background: #028090; color: #fff; box-shadow: 0 4px 12px rgba(0,168,150,.3); }
+.inv-btn-secondary { background: transparent; color: #0F2744; border: 1.5px solid #CBD5E1; border-radius: 20px; padding: 6px 14px; font-size: .82rem; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 5px; transition: border-color .2s, background .2s; white-space: nowrap; }
+.inv-btn-secondary:hover { border-color: #0F2744; background: #F8FAFC; color: #0F2744; }
+.inv-btn-danger   { background: transparent; color: #DC2626; border: 1.5px solid #FCA5A5; border-radius: 20px; padding: 6px 14px; font-size: .82rem; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 5px; transition: border-color .2s, background .2s; white-space: nowrap; }
+.inv-btn-danger:hover { border-color: #DC2626; background: #FEF2F2; color: #DC2626; }
+
+/* ── KPI Grid ────────────────────────────────────────────────────────────── */
+.inv-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: .875rem;
+  margin-bottom: 1.5rem;
+}
+@media (max-width: 1100px) { .inv-kpi-grid { grid-template-columns: repeat(4, 1fr); } }
+@media (max-width: 850px)  { .inv-kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 480px)  { .inv-kpi-grid { grid-template-columns: 1fr 1fr; } }
+
+.inv-kpi-card {
+  background: #fff;
+  border: 1px solid #E8EFF6;
+  border-radius: 14px;
+  padding: 1rem 1.1rem;
+  display: flex; align-items: center; gap: .9rem;
+  box-shadow: 0 1px 4px rgba(15,39,68,.04);
+  transition: transform .18s ease, box-shadow .18s ease;
+  min-width: 0;
+}
+.inv-kpi-card:hover { transform: translateY(-3px); box-shadow: 0 6px 18px rgba(15,39,68,.09); }
+.inv-kpi-icon {
+  width: 46px; height: 46px; border-radius: 12px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.2rem;
+}
+.inv-kpi-body { min-width: 0; }
+.inv-kpi-value { font-size: 1.6rem; font-weight: 700; line-height: 1; letter-spacing: -.5px; color: #0F2744; }
+.inv-kpi-label { font-size: .72rem; font-weight: 600; color: #64748B; text-transform: uppercase; letter-spacing: .04em; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.inv-kpi-sub   { font-size: .7rem; color: #94A3B8; margin-top: 1px; }
+
+.kpi-c-blue   .inv-kpi-icon { background: #EFF6FF; color: #2563EB; }
+.kpi-c-teal   .inv-kpi-icon { background: #CCFBF1; color: #0D9488; }
+.kpi-c-green  .inv-kpi-icon { background: #D1FAE5; color: #059669; }
+.kpi-c-orange .inv-kpi-icon { background: #FFEDD5; color: #EA580C; }
+.kpi-c-red    .inv-kpi-icon { background: #FEE2E2; color: #DC2626; }
+.kpi-c-purple .inv-kpi-icon { background: #EDE9FE; color: #7C3AED; }
+.kpi-c-amber  .inv-kpi-icon { background: #FEF3C7; color: #D97706; }
+.kpi-c-crimson .inv-kpi-icon { background: #FEE2E2; color: #991B1B; }
+
+/* ── Section Card ────────────────────────────────────────────────────────── */
+.inv-card {
+  background: #fff;
+  border: 1px solid #E8EFF6;
+  border-radius: 14px;
+  box-shadow: 0 1px 4px rgba(15,39,68,.04);
+  overflow: hidden;
+}
+.inv-card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: .875rem 1.25rem;
+  border-bottom: 1px solid #F1F5F9;
+  gap: .75rem; flex-wrap: wrap;
+}
+.inv-card-title { font-size: .95rem; font-weight: 700; color: #0F2744; display: flex; align-items: center; gap: .5rem; margin: 0; }
+.inv-card-title i { color: #00A896; }
+.inv-card-body   { padding: 1.1rem 1.25rem; }
+
+/* ── Distribution Chart ──────────────────────────────────────────────────── */
+.inv-chart-wrap { display: flex; align-items: center; justify-content: center; min-height: 200px; }
+.inv-chart-empty { text-align: center; color: #94A3B8; }
+.inv-chart-empty i { font-size: 2.25rem; margin-bottom: .5rem; color: #CBD5E1; }
+
+/* ── Alerts ─────────────────────────────────────────────────────────────── */
+.alert-row {
+  display: flex; align-items: flex-start; gap: .6rem;
+  padding: .55rem .75rem; border-radius: 9px; margin-bottom: .4rem;
+  border-left: 3px solid transparent;
+}
+.alert-row.sev-critical { border-color: #EF4444; background: #FEF2F2; }
+.alert-row.sev-warning  { border-color: #F97316; background: #FFF7ED; }
+.alert-row.sev-info     { border-color: #3B82F6; background: #EFF6FF; }
+.alert-sev-badge {
+  font-size: .65rem; font-weight: 700; padding: 2px 7px; border-radius: 10px;
+  text-transform: uppercase; letter-spacing: .05em; flex-shrink: 0; margin-top: 1px;
+}
+.sev-critical .alert-sev-badge { background: #FEE2E2; color: #991B1B; }
+.sev-warning  .alert-sev-badge { background: #FFEDD5; color: #9A3412; }
+.sev-info     .alert-sev-badge { background: #DBEAFE; color: #1E40AF; }
+.alert-msg { font-size: .81rem; color: #334155; line-height: 1.45; }
+.alerts-scroll { max-height: 220px; overflow-y: auto; }
+.alerts-empty { text-align: center; padding: 2rem 1rem; color: #94A3B8; }
+.alerts-empty i { font-size: 1.8rem; color: #BBF7D0; display: block; margin-bottom: .5rem; }
+
+/* ── Intelligence Strip ──────────────────────────────────────────────────── */
+.inv-intel-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: .75rem; margin-bottom: .5rem;
+}
+@media (max-width: 860px)  { .inv-intel-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 480px)  { .inv-intel-grid { grid-template-columns: 1fr 1fr; } }
+.inv-intel-cell { background: #F8FAFC; border: 1px solid #E8EFF6; border-radius: 10px; padding: .7rem .85rem; }
+.inv-intel-cell .lbl { font-size: .7rem; color: #64748B; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.inv-intel-cell .val { font-size: 1.2rem; font-weight: 700; color: #0F2744; line-height: 1.2; margin-top: 2px; }
+.inv-intel-cell .val.text-teal   { color: #00A896; }
+.inv-intel-cell .val.text-danger { color: #DC2626; }
+.inv-intel-cell .val.text-warn   { color: #D97706; }
+
+/* ── Optimization Flow ───────────────────────────────────────────────────── */
+.opt-flow-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0;
+  position: relative;
+}
+@media (max-width: 1100px) { .opt-flow-grid { grid-template-columns: repeat(6, 1fr); } }
+@media (max-width: 900px)  { .opt-flow-grid { grid-template-columns: repeat(4, 1fr); } }
+@media (max-width: 600px)  { .opt-flow-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 400px)  { .opt-flow-grid { grid-template-columns: repeat(2, 1fr); } }
+
+.opt-flow-row {
+  display: grid; grid-template-columns: repeat(6, 1fr); gap: 0;
+  margin-bottom: .25rem;
+}
+@media (max-width: 900px) { .opt-flow-row { grid-template-columns: repeat(4, 1fr); } }
+@media (max-width: 600px) { .opt-flow-row { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 400px) { .opt-flow-row { grid-template-columns: repeat(2, 1fr); } }
+
+.opt-step {
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  padding: .65rem .4rem; position: relative;
+  text-decoration: none !important; color: inherit;
+  transition: background .18s;
+}
+.opt-step:hover .opt-step-circle { transform: translateY(-2px); box-shadow: 0 5px 14px rgba(0,168,150,.25); }
+.opt-step-circle {
+  width: 44px; height: 44px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.1rem; margin-bottom: .45rem;
+  border: 1.5px solid transparent;
+  transition: transform .18s, box-shadow .18s;
+}
+.opt-step-title { font-size: .72rem; font-weight: 700; color: #0F2744; line-height: 1.2; margin-bottom: .15rem; }
+.opt-step-desc  { font-size: .63rem; color: #64748B; line-height: 1.35; }
+
+/* Step colours */
+.os-navy   .opt-step-circle { background: #EFF6FF; color: #1E40AF; border-color: #BFDBFE; }
+.os-teal   .opt-step-circle { background: #CCFBF1; color: #0D9488; border-color: #99F6E4; }
+.os-purple .opt-step-circle { background: #EDE9FE; color: #7C3AED; border-color: #DDD6FE; }
+.os-blue   .opt-step-circle { background: #EFF6FF; color: #2563EB; border-color: #93C5FD; }
+.os-orange .opt-step-circle { background: #FFF7ED; color: #EA580C; border-color: #FED7AA; }
+.os-amber  .opt-step-circle { background: #FFFBEB; color: #D97706; border-color: #FDE68A; }
+.os-slate  .opt-step-circle { background: #F8FAFC; color: #475569; border-color: #CBD5E1; }
+.os-green  .opt-step-circle { background: #D1FAE5; color: #059669; border-color: #6EE7B7; }
+.os-emerald .opt-step-circle { background: #CCFBF1; color: #047857; border-color: #A7F3D0; }
+.os-navy2  .opt-step-circle { background: #E0E7FF; color: #3730A3; border-color: #C7D2FE; }
+.os-reset  .opt-step-circle { background: #E0F2FE; color: #0369A1; border-color: #BAE6FD; }
+.os-data   .opt-step-circle { background: #F0FDF4; color: #166534; border-color: #BBF7D0; }
+
+/* Connector line between rows */
+.opt-connector {
+  text-align: center; padding: .15rem 0; color: #00A896;
+  position: relative;
+  display: flex; align-items: center; justify-content: center;
+}
+.opt-flow-line {
+  height: 2px; flex: 1; max-width: 100%;
+  background: linear-gradient(90deg, transparent, #00A896, transparent);
+  animation: flow-line 3s linear infinite;
+  background-size: 200% 100%;
+  border-radius: 2px;
+}
+@keyframes flow-line { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+
+.opt-connector-arrow {
+  display: flex; align-items: center; justify-content: center;
+  margin: .2rem 0;
+  color: #00A896; font-size: .75rem;
+}
+
+/* Row separator */
+.opt-row-divider {
+  display: flex; align-items: center; gap: .5rem; margin: .4rem 0;
+}
+.opt-row-divider::before, .opt-row-divider::after {
+  content: ''; flex: 1; height: 1px; background: #E8EFF6;
+}
+.opt-row-divider span {
+  font-size: .65rem; color: #94A3B8; white-space: nowrap; font-weight: 500;
+}
+
+/* ── Inventory Table ─────────────────────────────────────────────────────── */
+.inv-table-wrap { overflow-x: auto; }
+.inv-table { width: 100%; border-collapse: collapse; }
+.inv-table th {
+  font-size: .72rem; text-transform: uppercase; letter-spacing: .05em;
+  color: #64748B; background: #F8FAFC; border-bottom: 1.5px solid #E2E8F0;
+  padding: .65rem .85rem; white-space: nowrap; font-weight: 700;
+}
+.inv-table td { padding: .65rem .85rem; vertical-align: middle; font-size: .84rem; border-bottom: 1px solid #F1F5F9; }
+.inv-table tbody tr:hover { background: #F0F9FF; }
+.inv-table tbody tr:last-child td { border-bottom: none; }
+.med-name { font-weight: 600; color: #0F2744; font-size: .86rem; }
+.med-generic { font-size: .72rem; color: #94A3B8; }
+.cat-badge { display: inline-block; background: #F1F5F9; color: #475569; border: 1px solid #E2E8F0; border-radius: 6px; font-size: .7rem; padding: 1px 7px; font-weight: 600; }
+.stock-normal   { color: #0F2744; font-weight: 700; }
+.stock-low      { color: #EA580C; font-weight: 700; }
+.stock-out      { color: #DC2626; font-weight: 700; }
+.stock-over     { color: #7C3AED; font-weight: 700; }
+
+.status-pill { display: inline-flex; align-items: center; gap: 4px; font-size: .73rem; font-weight: 600; padding: 3px 10px; border-radius: 20px; }
+.sp-normal { background: #D1FAE5; color: #065F46; }
+.sp-low    { background: #FFEDD5; color: #9A3412; }
+.sp-out    { background: #FEE2E2; color: #991B1B; }
+.sp-over   { background: #EDE9FE; color: #5B21B6; }
+.status-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+.sd-normal { background: #10B981; }
+.sd-low    { background: #F97316; animation: sd-pulse 1.5s infinite; }
+.sd-out    { background: #EF4444; animation: sd-pulse 1.5s infinite; }
+.sd-over   { background: #8B5CF6; }
+@keyframes sd-pulse { 0%,100%{opacity:1;} 50%{opacity:.35;} }
+
+.tbl-action-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 7px; border: 1px solid #E2E8F0;
+  background: #F8FAFC; color: #475569; font-size: .75rem;
+  transition: border-color .15s, background .15s, color .15s;
+  text-decoration: none;
+}
+.tbl-action-btn:hover { border-color: #00A896; background: #CCFBF1; color: #0D9488; }
+.tbl-action-btn.tbl-add:hover { border-color: #059669; background: #D1FAE5; color: #059669; }
+.tbl-action-btn.tbl-hist:hover { border-color: #2563EB; background: #EFF6FF; color: #2563EB; }
+
+/* ── Search/Filter ───────────────────────────────────────────────────────── */
+.inv-filter-bar { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+.inv-filter-input, .inv-filter-select {
+  border: 1.5px solid #E2E8F0; border-radius: 20px; padding: .35rem .85rem;
+  font-size: .82rem; color: #334155; background: #fff; outline: none;
+  transition: border-color .2s;
+}
+.inv-filter-input:focus, .inv-filter-select:focus { border-color: #00A896; box-shadow: 0 0 0 3px rgba(0,168,150,.1); }
+.inv-filter-btn {
+  background: #00A896; color: #fff; border: none; border-radius: 20px;
+  padding: .38rem 1rem; font-size: .82rem; font-weight: 600; cursor: pointer;
+  transition: background .18s;
+}
+.inv-filter-btn:hover { background: #028090; }
+.inv-filter-reset {
+  background: transparent; color: #64748B; border: 1.5px solid #CBD5E1; border-radius: 20px;
+  padding: .35rem .85rem; font-size: .82rem; text-decoration: none;
+  transition: border-color .18s, color .18s;
+}
+.inv-filter-reset:hover { border-color: #475569; color: #334155; }
+
+/* ── Pagination ──────────────────────────────────────────────────────────── */
+.inv-pagination { display: flex; align-items: center; gap: .3rem; }
+.pg-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 30px; height: 30px; border-radius: 8px; border: 1px solid #E2E8F0;
+  background: #fff; color: #475569; font-size: .8rem; text-decoration: none;
+  transition: all .15s;
+}
+.pg-btn:hover { border-color: #00A896; background: #CCFBF1; color: #0D9488; }
+.pg-btn.active { background: #00A896; color: #fff; border-color: #00A896; font-weight: 700; }
+
+/* ── Empty State ─────────────────────────────────────────────────────────── */
+.inv-empty-state { text-align: center; padding: 3rem 1.5rem; }
+.inv-empty-icon { font-size: 2.5rem; color: #CBD5E1; margin-bottom: .75rem; }
+.inv-empty-title { font-size: 1rem; font-weight: 700; color: #475569; margin-bottom: .4rem; }
+.inv-empty-text { font-size: .85rem; color: #94A3B8; max-width: 340px; margin: 0 auto; }
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .inv-kpi-value { font-size: 1.3rem; }
+  .inv-page-header { gap: .75rem; }
+  .inv-header-actions { width: 100%; justify-content: flex-start; }
+}
+
+/* ── Reduced motion ──────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, .sd-low, .sd-out, .opt-flow-line { animation: none !important; transition: none !important; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ambient-healthcare-bg" style="min-height:100vh;">
+<div class="container-fluid py-4 px-3 px-md-4" style="position:relative;z-index:1;">
+
+  {# ── Page Header ──────────────────────────────────────────────────────── #}
+  <div class="inv-page-header">
+    <div>
+      <h1>
+        <i class="fas fa-boxes-stacked" style="color:#00A896;margin-right:.4rem;"></i>
+        Inventory &amp; Stock Management
+      </h1>
+      <p>Monitor medicine availability, batch-level stock, expiry risk, and stock movements.</p>
+    </div>
+    <div class="inv-header-actions">
+      <a href="{% url 'add_stock' %}" class="inv-btn-primary">
+        <i class="fas fa-plus"></i> Add Stock
+      </a>
+      <a href="{% url 'adjust_stock' %}" class="inv-btn-secondary">
+        <i class="fas fa-sliders-h"></i> Adjust Stock
+      </a>
+      <a href="{% url 'record_damage' %}" class="inv-btn-danger">
+        <i class="fas fa-exclamation-triangle"></i> Record Damage
+      </a>
+    </div>
+  </div>
+
+  {# ── Flash Messages ───────────────────────────────────────────────────── #}
+  {% if messages %}
+    {% for msg in messages %}
+      <div class="alert alert-{{ msg.tags }} alert-dismissible fade show mb-3" role="alert">
+        {{ msg }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  {# ── KPI Grid (2×4) ───────────────────────────────────────────────────── #}
+  <div class="inv-kpi-grid mb-4">
+
+    <div class="inv-kpi-card kpi-c-blue">
+      <div class="inv-kpi-icon"><i class="fas fa-pills"></i></div>
+      <div class="inv-kpi-body">
+        <div class="inv-kpi-value" data-kpi="{{ total_medicines }}">{{ total_medicines }}</div>
+        <div class="inv-kpi-label">Total Medicines</div>
+        <div class="inv-kpi-sub">Active in system</div>
+      </div>
+    </div>
+
+    <div class="inv-kpi-card kpi-c-teal">
+      <div class="inv-kpi-icon"><i class="fas fa-layer-group"></i></div>
+      <div class="inv-kpi-body">
+        <div class="inv-kpi-value" data-kpi="{{ total_stock }}">{{ total_stock }}</div>
+        <div class="inv-kpi-label">Total Stock Units</div>
+        <div class="inv-kpi-sub">All active batches</div>
+      </div>
+    </div>
+
+    <div class="inv-kpi-card kpi-c-green">
+      <div class="inv-kpi-icon"><i class="fas fa-check-circle"></i></div>
+      <div class="inv-kpi-body">
+        <div class="inv-kpi-value" data-kpi="{{ normal_count }}">{{ normal_count }}</div>
+        <div class="inv-kpi-label">Normal Stock</div>
+        <div class="inv-kpi-sub">Within healthy range</div>
+      </div>
+    </div>
+
+    <div class="inv-kpi-card kpi-c-orange">
+      <div class="inv-kpi-icon"><i class="fas fa-exclamation-triangle"></i></div>
+      <div class="inv-kpi-body">
+        <div class="inv-kpi-value" data-kpi="{{ low_stock_count }}">{{ low_stock_count }}</div>
+        <div class="inv-kpi-label">Low Stock</div>
+        <div class="inv-kpi-sub">Below reorder level</div>
+      </div>
+    </div>
+
+    <div class="inv-kpi-card kpi-c-red">
+      <div class="inv-kpi-icon"><i class="fas fa-times-circle"></i></div>
+      <div class="inv-kpi-body">
+        <div class="inv-kpi-value" data-kpi="{{ out_of_stock_count }}">{{ out_of_stock_count }}</div>
+        <div class="inv-kpi-label">Out of Stock</div>
+        <div class="inv-kpi-sub">Zero units available</div>
+      </div>
+    </div>
+
+    <div class="inv-kpi-card kpi-c-purple">
+      <div class="inv-kpi-icon"><i class="fas fa-arrow-up"></i></div>
+      <div class="inv-kpi-body">
+        <div class="inv-kpi-value" data-kpi="{{ overstock_count }}">{{ overstock_count }}</div>
+        <div class="inv-kpi-label">Overstock</div>
+        <div class="inv-kpi-sub">Above max level</div>
+      </div>
+    </div>
+
+    <div class="inv-kpi-card kpi-c-amber">
+      <div class="inv-kpi-icon"><i class="fas fa-hourglass-half"></i></div>
+      <div class="inv-kpi-body">
+        <div class="inv-kpi-value" data-kpi="{{ near_expiry_batches }}">{{ near_expiry_batches }}</div>
+        <div class="inv-kpi-label">Near Expiry</div>
+        <div class="inv-kpi-sub">Expiring within 90 days</div>
+      </div>
+    </div>
+
+    <div class="inv-kpi-card kpi-c-crimson">
+      <div class="inv-kpi-icon"><i class="fas fa-skull-crossbones"></i></div>
+      <div class="inv-kpi-body">
+        <div class="inv-kpi-value" data-kpi="{{ expired_batches }}">{{ expired_batches }}</div>
+        <div class="inv-kpi-label">Expired Batches</div>
+        <div class="inv-kpi-sub">Past expiry date</div>
+      </div>
+    </div>
+
+  </div>
+
+  {# ── Distribution + Alerts Row ─────────────────────────────────────────── #}
+  <div class="row g-3 mb-4">
+
+    {# Stock Distribution #}
+    <div class="col-lg-5">
+      <div class="inv-card h-100">
+        <div class="inv-card-header">
+          <span class="inv-card-title">
+            <i class="fas fa-chart-pie"></i> Stock Distribution
+          </span>
+          <a href="{% url 'batch_stock' %}" class="inv-btn-secondary" style="padding:4px 12px;font-size:.75rem;">
+            <i class="fas fa-list me-1"></i>All Batches
+          </a>
+        </div>
+        <div class="inv-card-body">
+          {% if total_medicines > 0 %}
+            <div class="inv-chart-wrap">
+              <canvas id="stockDistChart" style="max-height:220px;max-width:220px;"></canvas>
+            </div>
+            <div class="d-flex justify-content-center gap-3 mt-2 flex-wrap" style="font-size:.75rem;">
+              <span style="color:#10B981;"><span class="status-dot sd-normal me-1"></span>Normal ({{ normal_count }})</span>
+              <span style="color:#F97316;"><span class="status-dot sd-low me-1"></span>Low ({{ low_stock_count }})</span>
+              <span style="color:#EF4444;"><span class="status-dot sd-out me-1"></span>Out ({{ out_of_stock_count }})</span>
+              <span style="color:#8B5CF6;"><span class="status-dot sd-over me-1"></span>Over ({{ overstock_count }})</span>
+            </div>
+          {% else %}
+            <div class="inv-chart-empty py-4">
+              <i class="fas fa-chart-pie d-block mb-2"></i>
+              <p class="mb-0" style="font-size:.85rem; color:#94A3B8;">Distribution will appear after stock records are created.</p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    {# Active Stock Alerts #}
+    <div class="col-lg-7">
+      <div class="inv-card h-100">
+        <div class="inv-card-header">
+          <span class="inv-card-title">
+            <i class="fas fa-bell" style="color:#D97706;"></i> Active Stock Alerts
+          </span>
+          <div style="display:flex;gap:.4rem;">
+            <a href="{% url 'expiry_management' %}" class="inv-btn-secondary" style="padding:4px 12px;font-size:.75rem;">
+              <i class="fas fa-clock me-1"></i>Expiry
+            </a>
+            <a href="{% url 'inventory_reorder_recommendations' %}" class="inv-btn-primary" style="padding:4px 12px;font-size:.75rem;">
+              <i class="fas fa-cart-plus me-1"></i>Reorder
+            </a>
+          </div>
+        </div>
+        <div class="inv-card-body" style="padding:.85rem 1.1rem;">
+          {% if active_alerts %}
+            <div class="alerts-scroll">
+              {% for alert in active_alerts %}
+                <div class="alert-row sev-{{ alert.severity|lower|default:'info' }}">
+                  <span class="alert-sev-badge">{{ alert.severity|default:"INFO" }}</span>
+                  <span class="alert-msg">{{ alert.message|truncatechars:130 }}</span>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="alerts-empty">
+              <i class="fas fa-check-circle"></i>
+              <p style="font-size:.85rem; color:#64748B; margin:.5rem 0 .25rem;">No active stock alerts.</p>
+              {% if total_medicines == 0 %}
+                <p style="font-size:.78rem; color:#94A3B8;">Add medicine stock records to begin monitoring.</p>
+              {% else %}
+                <p style="font-size:.78rem; color:#94A3B8;">All tracked medicines are within acceptable levels.</p>
+              {% endif %}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  {# ── Inventory Intelligence Strip ──────────────────────────────────────── #}
+  <div class="inv-card mb-4">
+    <div class="inv-card-header">
+      <span class="inv-card-title">
+        <i class="fas fa-brain" style="color:#7C3AED;"></i> Inventory Intelligence &amp; Velocity Overview
+      </span>
+      <div style="display:flex;gap:.4rem;flex-wrap:wrap;">
+        <a href="{% url 'inventory_consumption_analytics' %}" class="inv-btn-secondary" style="padding:5px 12px;font-size:.78rem;">
+          <i class="fas fa-chart-line me-1"></i>Consumption Analytics
+        </a>
+        <a href="{% url 'ai_recommendation_center' %}" class="inv-btn-primary" style="padding:5px 12px;font-size:.78rem;">
+          <i class="fas fa-wand-magic-sparkles me-1"></i>AI Recommendations
+        </a>
+      </div>
+    </div>
+    <div class="inv-card-body">
+      <div class="inv-intel-grid">
+        <div class="inv-intel-cell">
+          <div class="lbl">30D Pharmacy Consumption</div>
+          <div class="val text-teal">{{ consumption_summary.total_units_30d|default:"0" }} <span style="font-size:.8rem;font-weight:400;color:#64748B;">units</span></div>
+        </div>
+        <div class="inv-intel-cell">
+          <div class="lbl">Daily Velocity</div>
+          <div class="val" style="color:#0F2744;">{{ consumption_summary.daily_avg_30d|default:"0.0" }} <span style="font-size:.75rem;font-weight:400;color:#64748B;">units/day</span></div>
+        </div>
+        <div class="inv-intel-cell">
+          <div class="lbl">Critical / Out-of-Stock</div>
+          <div class="val text-danger">
+            {% widthratio health_summary.counts.CRITICAL|default:0 1 1 as c_count %}
+            {{ health_summary.counts.CRITICAL|default:0 }} <span style="font-size:.75rem;font-weight:400;color:#64748B;">medicines</span>
+          </div>
+        </div>
+        <div class="inv-intel-cell">
+          <div class="lbl">Dead Stock / Overstock</div>
+          <div class="val text-warn">{{ health_summary.counts.DEAD_STOCK|default:0 }} <span style="font-size:.75rem;font-weight:400;color:#64748B;">medicines</span></div>
+        </div>
+      </div>
+      {% if consumption_summary.total_units_30d == 0 or consumption_summary.total_units_30d == "0" %}
+        <p style="font-size:.75rem;color:#94A3B8;margin:.75rem 0 0;"><i class="fas fa-info-circle me-1 text-muted"></i>Velocity metrics require recorded sales or dispense transactions. Forecasts will appear after consumption history is available.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  {# ── Continuous Optimization Flow ──────────────────────────────────────── #}
+  <div class="inv-card mb-4">
+    <div class="inv-card-header">
+      <span class="inv-card-title">
+        <i class="fas fa-rotate" style="color:#00A896;"></i> Continuous Inventory Optimization Flow
+      </span>
+      <a href="{% url 'inventory_reorder_recommendations' %}" class="inv-btn-primary" style="padding:5px 12px;font-size:.78rem;">
+        <i class="fas fa-cart-plus me-1"></i>Reorder Recommendations
+      </a>
+    </div>
+    <div class="inv-card-body" style="padding:1rem 1.25rem;">
+
+      {# Row 1: Stock → Consumption → Forecast → Risk → Recommendation → Supplier #}
+      <div class="opt-flow-row">
+
+        <a href="{% url 'inventory_dashboard' %}" class="opt-step os-navy">
+          <div class="opt-step-circle"><i class="fas fa-boxes-stacked"></i></div>
+          <div class="opt-step-title">Inventory</div>
+          <div class="opt-step-desc">Batch-wise stock &amp; availability</div>
+        </a>
+
+        <a href="{% url 'inventory_consumption_analytics' %}" class="opt-step os-teal">
+          <div class="opt-step-circle"><i class="fas fa-fire-flame-curved"></i></div>
+          <div class="opt-step-title">Consumption</div>
+          <div class="opt-step-desc">Sales &amp; dispense deduplication</div>
+        </a>
+
+        <a href="{% url 'inventory_consumption_analytics' %}?trend=INCREASING" class="opt-step os-purple">
+          <div class="opt-step-circle"><i class="fas fa-chart-line"></i></div>
+          <div class="opt-step-title">Forecast</div>
+          <div class="opt-step-desc">Expected 30-day demand</div>
+        </a>
+
+        <a href="{% url 'inventory_reorder_recommendations' %}?risk=CRITICAL" class="opt-step os-orange">
+          <div class="opt-step-circle"><i class="fas fa-triangle-exclamation"></i></div>
+          <div class="opt-step-title">Risk Detection</div>
+          <div class="opt-step-desc">Low stock, stockout &amp; expiry</div>
+        </a>
+
+        <a href="{% url 'inventory_reorder_recommendations' %}" class="opt-step os-amber">
+          <div class="opt-step-circle"><i class="fas fa-cart-plus"></i></div>
+          <div class="opt-step-title">Reorder Rec.</div>
+          <div class="opt-step-desc">AI-suggested quantities</div>
+        </a>
+
+        <a href="{% url 'supplier_list' %}" class="opt-step os-green">
+          <div class="opt-step-circle"><i class="fas fa-truck"></i></div>
+          <div class="opt-step-title">Supplier Compare</div>
+          <div class="opt-step-desc">Price, lead time &amp; stock</div>
+        </a>
+
+      </div>
+
+      {# Animated connector between rows #}
+      <div class="opt-row-divider">
+        <span><i class="fas fa-angles-down" style="color:#00A896;"></i></span>
+      </div>
+
+      {# Row 2: Admin Review → Approved PO → Delivery → GRN Receive → Stock Update → Re-analysis #}
+      <div class="opt-flow-row">
+
+        <a href="{% url 'purchase_request_list' %}" class="opt-step os-slate">
+          <div class="opt-step-circle"><i class="fas fa-user-check"></i></div>
+          <div class="opt-step-title">Admin Review</div>
+          <div class="opt-step-desc">Human approval required</div>
+        </a>
+
+        <a href="{% url 'purchase_orders_list' %}" class="opt-step os-blue">
+          <div class="opt-step-circle"><i class="fas fa-file-invoice"></i></div>
+          <div class="opt-step-title">Purchase Order</div>
+          <div class="opt-step-desc">Approved procurement</div>
+        </a>
+
+        <a href="{% url 'delivery_tracking' %}" class="opt-step os-emerald">
+          <div class="opt-step-circle"><i class="fas fa-route"></i></div>
+          <div class="opt-step-title">Delivery Tracking</div>
+          <div class="opt-step-desc">In-transit monitoring</div>
+        </a>
+
+        <a href="{% url 'grn_list' %}" class="opt-step os-green">
+          <div class="opt-step-circle"><i class="fas fa-box-open"></i></div>
+          <div class="opt-step-title">GRN &amp; Inspect</div>
+          <div class="opt-step-desc">Verify batch &amp; expiry</div>
+        </a>
+
+        <div class="opt-step os-navy2" style="cursor:default;">
+          <div class="opt-step-circle"><i class="fas fa-database"></i></div>
+          <div class="opt-step-title">Stock Updated</div>
+          <div class="opt-step-desc">Atomic FEFO batch entry</div>
+        </div>
+
+        <div class="opt-step os-reset" style="cursor:default;">
+          <div class="opt-step-circle"><i class="fas fa-rotate"></i></div>
+          <div class="opt-step-title">Re-analysis</div>
+          <div class="opt-step-desc">Forecasts refresh automatically</div>
+        </div>
+
+      </div>
+
+      <p style="font-size:.72rem;color:#94A3B8;margin:1rem 0 0;">
+        <i class="fas fa-info-circle me-1"></i>
+        Conceptual workflow — each stage links to the corresponding Sanalogx page. All reorders require human admin approval before stock changes.
+      </p>
+    </div>
+  </div>
+
+  {# ── Inventory Table ────────────────────────────────────────────────────── #}
+  <div class="inv-card mb-4">
+    <div class="inv-card-header">
+      <span class="inv-card-title"><i class="fas fa-table"></i> Medicine Inventory</span>
+      <form method="get" class="inv-filter-bar">
+        <input type="text" name="search" value="{{ search_q }}" placeholder="Search medicine…"
+               class="inv-filter-input" style="max-width:170px; min-width:100px; flex:1;">
+        <select name="status" class="inv-filter-select" style="max-width:140px; min-width:90px;">
+          <option value="">All Statuses</option>
+          <option value="NORMAL"       {% if status_filter == "NORMAL" %}selected{% endif %}>Normal</option>
+          <option value="LOW_STOCK"    {% if status_filter == "LOW_STOCK" %}selected{% endif %}>Low Stock</option>
+          <option value="OUT_OF_STOCK" {% if status_filter == "OUT_OF_STOCK" %}selected{% endif %}>Out of Stock</option>
+          <option value="OVERSTOCK"    {% if status_filter == "OVERSTOCK" %}selected{% endif %}>Overstock</option>
+        </select>
+        <select name="category" class="inv-filter-select" style="max-width:140px; min-width:90px;">
+          <option value="">All Categories</option>
+          {% for cat in categories %}
+            <option value="{{ cat.id }}" {% if category_filter == cat.id|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit" class="inv-filter-btn"><i class="fas fa-search"></i></button>
+        <a href="{% url 'inventory_dashboard' %}" class="inv-filter-reset"><i class="fas fa-times"></i></a>
+      </form>
+    </div>
+
+    <div class="inv-table-wrap">
+      <table class="inv-table">
+        <thead>
+          <tr>
+            <th>Medicine</th>
+            <th>Category</th>
+            <th>Current Stock</th>
+            <th>Available</th>
+            <th>Min</th>
+            <th>Max</th>
+            <th>Reorder Level</th>
+            <th>Batches</th>
+            <th>Nearest Expiry</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in page_obj %}
+            {% with inv=item.inventory med=item.inventory.medicine %}
+            <tr>
+              <td>
+                <div class="med-name">{{ med.medicine_name }}</div>
+                <div class="med-generic">{{ med.generic_name|default:"—" }}</div>
+              </td>
+              <td><span class="cat-badge">{{ med.category.name|default:"—" }}</span></td>
+              <td class="{% if inv.stock_status == 'OUT_OF_STOCK' %}stock-out{% elif inv.stock_status == 'LOW_STOCK' %}stock-low{% elif inv.stock_status == 'OVERSTOCK' %}stock-over{% else %}stock-normal{% endif %}">
+                {{ inv.current_stock }}
+              </td>
+              <td style="color:#334155;">{{ inv.available_stock }}</td>
+              <td style="color:#94A3B8;">{{ inv.minimum_stock }}</td>
+              <td style="color:#94A3B8;">{{ inv.maximum_stock }}</td>
+              <td style="color:#94A3B8;">{{ inv.reorder_level }}</td>
+              <td>
+                <span style="display:inline-block;background:#EFF6FF;color:#2563EB;border:1px solid #BFDBFE;border-radius:6px;font-size:.71rem;padding:1px 7px;font-weight:600;">
+                  {{ item.active_batches_count }}
+                </span>
+              </td>
+              <td>
+                {% if item.nearest_expiry %}
+                  <span class="{% if item.nearest_expiry.status == 'NEAR_EXPIRY' %}stock-low{% else %}stock-normal{% endif %}" style="font-size:.82rem;">
+                    {{ item.nearest_expiry.expiry_date|date:"d M Y" }}
+                  </span>
+                {% else %}
+                  <span style="color:#CBD5E1;font-size:.8rem;">—</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if inv.stock_status == 'NORMAL' %}
+                  <span class="status-pill sp-normal"><span class="status-dot sd-normal"></span>Normal</span>
+                {% elif inv.stock_status == 'LOW_STOCK' %}
+                  <span class="status-pill sp-low"><span class="status-dot sd-low"></span>Low Stock</span>
+                {% elif inv.stock_status == 'OUT_OF_STOCK' %}
+                  <span class="status-pill sp-out"><span class="status-dot sd-out"></span>Out of Stock</span>
+                {% else %}
+                  <span class="status-pill sp-over"><span class="status-dot sd-over"></span>Overstock</span>
+                {% endif %}
+              </td>
+              <td>
+                <div style="display:flex;gap:.25rem;">
+                  <a href="{% url 'medicine_inventory_detail' med.pk %}" class="tbl-action-btn" title="View Detail"><i class="fas fa-eye"></i></a>
+                  <a href="{% url 'add_stock' %}?medicine={{ med.pk }}" class="tbl-action-btn tbl-add" title="Add Stock"><i class="fas fa-plus"></i></a>
+                  <a href="{% url 'stock_history' %}?medicine={{ med.pk }}" class="tbl-action-btn tbl-hist" title="Stock History"><i class="fas fa-history"></i></a>
+                </div>
+              </td>
+            </tr>
+            {% endwith %}
+          {% empty %}
+            <tr>
+              <td colspan="11">
+                <div class="inv-empty-state">
+                  <div class="inv-empty-icon"><i class="fas fa-box-open"></i></div>
+                  <div class="inv-empty-title">No inventory records found</div>
+                  {% if search_q or status_filter or category_filter %}
+                    <p class="inv-empty-text">No records match the current filters. <a href="{% url 'inventory_dashboard' %}" style="color:#00A896;">Clear filters</a></p>
+                  {% else %}
+                    <p class="inv-empty-text">Inventory records will appear after medicine batches and stock transactions are recorded.</p>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if page_obj.has_other_pages %}
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:.75rem 1.25rem;border-top:1px solid #F1F5F9;">
+      <small style="color:#94A3B8;">Showing {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ page_obj.paginator.count }} medicines</small>
+      <nav>
+        <div class="inv-pagination">
+          {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}&search={{ search_q }}&status={{ status_filter }}&category={{ category_filter }}" class="pg-btn">‹</a>
+          {% endif %}
+          <span class="pg-btn active">{{ page_obj.number }}</span>
+          {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}&search={{ search_q }}&status={{ status_filter }}&category={{ category_filter }}" class="pg-btn">›</a>
+          {% endif %}
+        </div>
+      </nav>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ── Animated KPI Counters ────────────────────────────────────────────────────
+document.querySelectorAll('[data-kpi]').forEach(el => {
+  const target = parseInt(el.dataset.kpi) || 0;
+  if (target === 0) return;
+  let current = 0;
+  const step = Math.ceil(target / 40);
+  const timer = setInterval(() => {
+    current = Math.min(current + step, target);
+    el.textContent = current.toLocaleString();
+    if (current >= target) clearInterval(timer);
+  }, 20);
+});
+
+// ── Stock Distribution Doughnut ──────────────────────────────────────────────
+const ctx = document.getElementById('stockDistChart');
+if (ctx) {
+  const total = {{ total_medicines }};
+  if (total > 0) {
+    new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: {{ chart_labels|safe }},
+        datasets: [{
+          data: {{ chart_data|safe }},
+          backgroundColor: ['#10B981','#F97316','#EF4444','#8B5CF6'],
+          borderWidth: 2, borderColor: '#fff', hoverOffset: 6
+        }]
+      },
+      options: {
+        responsive: true, cutout: '68%',
+        plugins: { legend: { display: false } }
+      }
+    });
+  }
+}
+</script>
+{% endblock %}

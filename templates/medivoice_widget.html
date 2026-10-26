@@ -1,0 +1,519 @@
+{% if user.is_authenticated %}
+<!-- MediVault — Sanalogx AI Assistant Unified Chatbot & MediVoice Widget -->
+<div id="medivoiceWidgetContainer" class="medivoice-floating-container" aria-label="Sanalogx AI Assistant">
+
+    <!-- AI Assistant Modal Panel -->
+    <div id="medivoiceModal" class="card card-medivault shadow-lg border-0 mb-3 d-none medivoice-modal-panel">
+
+        <!-- Header -->
+        <div class="card-header bg-navy text-white d-flex justify-content-between align-items-center py-2.5 px-3" style="background: #0F2744;">
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-teal rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; background: #00A99D !important;">
+                    <i class="fas fa-robot text-white"></i>
+                </span>
+                <div>
+                    <h6 class="fw-bold mb-0 text-white small" style="letter-spacing: 0.3px;">Sanalogx AI Assistant</h6>
+                    <span id="medivoiceStateBadge" class="extra-small text-teal" style="color: #00D2B4; font-size: 0.72rem;">
+                        <i class="fas fa-circle fa-xs me-1"></i>Ready
+                    </span>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-1.5">
+                <button type="button" onclick="clearChat()" class="btn btn-sm btn-outline-light py-0.5 px-2 extra-small" title="Clear Conversation" aria-label="Clear Conversation">
+                    <i class="fas fa-trash-alt me-1"></i>Clear
+                </button>
+                <a href="{% url 'ai_dashboard' %}" class="btn btn-sm btn-outline-light py-0.5 px-2 extra-small" title="Open AI Intelligence Dashboard" aria-label="AI Intelligence">
+                    <i class="fas fa-brain"></i>
+                </a>
+                <button type="button" onclick="toggleMediVoiceModal()" class="btn-close btn-close-white small ms-1" aria-label="Close Assistant"></button>
+            </div>
+        </div>
+
+        <!-- Chat Body -->
+        <div class="card-body p-3 bg-light" style="flex: 1 1 auto; max-height: 400px; min-height: 280px; overflow-y: auto;" id="medivoiceChatBody">
+            <div id="medivoiceMessages">
+                <!-- Welcome Message Card -->
+                <div class="d-flex align-items-start gap-2 mb-3 chat-msg-row assistant-row">
+                    <div class="badge bg-teal rounded-circle p-2 mt-1 flex-shrink-0" style="background: #00A99D !important;">
+                        <i class="fas fa-robot text-white extra-small"></i>
+                    </div>
+                    <div class="p-3 bg-white rounded-3 shadow-sm text-navy small" style="max-width: 92%; border: 1px solid #E2E8F0;">
+                        <div class="fw-bold text-teal mb-1" style="color: #0F766E;">Sanalogx AI Assistant</div>
+                        <p class="mb-2">
+                            Hello <strong>{{ user.username }}</strong>! Welcome to <strong>Sanalogx AI Assistant</strong>.
+                            I can help you analyze inventory, check low-stock medicines, review sales, monitor expiry risks, understand medicine information and evaluate reorder recommendations.
+                        </p>
+                        <p class="mb-2 text-muted extra-small">
+                            <strong>What would you like to check?</strong> Click any quick action or ask a question:
+                        </p>
+                        <!-- Interactive 14 Quick Actions Grid inside Welcome Card -->
+                        <div class="d-flex flex-wrap gap-1.5 mt-2 pt-1 border-top" id="initialQuickActions">
+                            <button onclick="sendChatQuery('Inventory Overview')" class="btn btn-outline-secondary btn-sm py-0.5 px-2 extra-small rounded-pill">1. Inventory Overview</button>
+                            <button onclick="sendChatQuery('Low Stock Medicines')" class="btn btn-outline-secondary btn-sm py-0.5 px-2 extra-small rounded-pill">2. Low Stock</button>
+                            <button onclick="sendChatQuery('Out-of-Stock Medicines')" class="btn btn-outline-secondary btn-sm py-0.5 px-2 extra-small rounded-pill">3. Out of Stock</button>
+                            <button onclick="sendChatQuery('Expiry and Near-Expiry Batches')" class="btn btn-outline-secondary btn-sm py-0.5 px-2 extra-small rounded-pill">4. Expiry Watch</button>
+                            <button onclick="sendChatQuery('Today\'s Sales')" class="btn btn-outline-secondary btn-sm py-0.5 px-2 extra-small rounded-pill">5. Today's Sales</button>
+                            <button onclick="sendChatQuery('Weekly Sales')" class="btn btn-outline-secondary btn-sm py-0.5 px-2 extra-small rounded-pill">6. Weekly Sales</button>
+                            <button onclick="sendChatQuery('Monthly Sales')" class="btn btn-outline-secondary btn-sm py-0.5 px-2 extra-small rounded-pill">7. Monthly Sales</button>
+                            <button onclick="sendChatQuery('Dispensing History')" class="btn btn-outline-secondary btn-sm py-0.5 px-2 extra-small rounded-pill">8. Dispensing History</button>
+                            <button onclick="sendChatQuery('Consumption Analytics')" class="btn btn-outline-secondary btn-sm py-0.5 px-2 extra-small rounded-pill">9. Consumption Analytics</button>
+                            <button onclick="sendChatQuery('AI Reorder Recommendations')" class="btn btn-outline-secondary btn-sm py-0.5 px-2 extra-small rounded-pill">10. AI Reorder</button>
+                            <button onclick="sendChatQuery('What is Paracetamol?')" class="btn btn-outline-secondary btn-sm py-0.5 px-2 extra-small rounded-pill">11. Medicine Info</button>
+                            <button onclick="sendChatQuery('Stock Discrepancies')" class="btn btn-outline-secondary btn-sm py-0.5 px-2 extra-small rounded-pill">12. Discrepancies</button>
+                            <button onclick="sendChatQuery('Purchase Orders')" class="btn btn-outline-secondary btn-sm py-0.5 px-2 extra-small rounded-pill">13. Purchase Orders</button>
+                            <button onclick="sendChatQuery('Help and Supported Questions')" class="btn btn-outline-secondary btn-sm py-0.5 px-2 extra-small rounded-pill">14. Help & Commands</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sticky Quick Actions Bar -->
+        <div class="p-1.5 bg-white border-top d-flex gap-1 overflow-x-auto quick-actions-scroller" style="scrollbar-width: thin;">
+            <button onclick="sendChatQuery('Inventory Overview')" class="btn btn-light btn-sm py-0.5 px-2 extra-small text-nowrap border">📦 Inventory</button>
+            <button onclick="sendChatQuery('Low Stock Medicines')" class="btn btn-light btn-sm py-0.5 px-2 extra-small text-nowrap border text-warning fw-bold">⚠️ Low Stock</button>
+            <button onclick="sendChatQuery('Expiry and Near-Expiry Batches')" class="btn btn-light btn-sm py-0.5 px-2 extra-small text-nowrap border text-danger">⏳ Expiry Risk</button>
+            <button onclick="sendChatQuery('Today\'s Sales')" class="btn btn-light btn-sm py-0.5 px-2 extra-small text-nowrap border text-success">💰 Today Sales</button>
+            <button onclick="sendChatQuery('AI Reorder Recommendations')" class="btn btn-light btn-sm py-0.5 px-2 extra-small text-nowrap border text-primary">🤖 AI Reorder</button>
+            <button onclick="sendChatQuery('What is Paracetamol?')" class="btn btn-light btn-sm py-0.5 px-2 extra-small text-nowrap border">💊 Paracetamol</button>
+            <button onclick="sendChatQuery('Consumption Analytics')" class="btn btn-light btn-sm py-0.5 px-2 extra-small text-nowrap border">📊 Consumption</button>
+            <button onclick="sendChatQuery('Dispensing History')" class="btn btn-light btn-sm py-0.5 px-2 extra-small text-nowrap border">🩺 Dispensing</button>
+            <button onclick="sendChatQuery('Stock Discrepancies')" class="btn btn-light btn-sm py-0.5 px-2 extra-small text-nowrap border">🔍 Discrepancies</button>
+            <button onclick="sendChatQuery('Purchase Orders')" class="btn btn-light btn-sm py-0.5 px-2 extra-small text-nowrap border">📝 Orders</button>
+        </div>
+
+        <!-- Input Footer -->
+        <div class="card-footer bg-white p-2 border-top">
+            <div class="input-group input-group-sm">
+                <textarea id="medivoiceTextInput"
+                    class="form-control border-end-0 py-1.5"
+                    rows="1"
+                    placeholder="Ask about medicines, stock, sales, expiry... (Enter to send)"
+                    aria-label="Ask Sanalogx AI Assistant"
+                    style="resize: none; font-size: 0.85rem; max-height: 80px;"
+                    onkeydown="handleChatKeydown(event)"></textarea>
+                <button type="button" onclick="startSpeechRecognition()" id="micRecordBtn" class="btn btn-outline-secondary" title="Voice Input" aria-label="Voice Input">
+                    <i class="fas fa-microphone"></i>
+                </button>
+                <button type="button" onclick="handleSendClick()" class="btn btn-teal text-white fw-bold px-3" style="background: #00A99D !important;" title="Send Message" aria-label="Send Query">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mt-1 px-1">
+                <span class="text-muted extra-small" style="font-size: 0.70rem;">
+                    <i class="fas fa-shield-alt me-1 text-teal"></i>Role-secured · Read-only MySQL Intelligence
+                </span>
+                <span class="text-muted extra-small" style="font-size: 0.70rem;">
+                    Enter ↵ to send · Shift+Enter newline
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Trigger Launcher Button -->
+    <button id="medivoiceTriggerBtn" onclick="toggleMediVoiceModal()"
+        class="medivoice-trigger-btn"
+        title="Sanalogx AI Assistant"
+        aria-label="Open Sanalogx AI Assistant">
+        <i class="fas fa-robot fs-5 text-white" id="triggerBtnIcon"></i>
+        <span class="medivoice-pulse-dot" title="Sanalogx AI Ready"></span>
+    </button>
+</div>
+
+<script>
+let recognition = null;
+let synth = window.speechSynthesis;
+const CHAT_API_URL = '{% url "api_ai_chat" %}';
+const VOICE_API_URL = '{% url "api_voice_assistant" %}';
+const CSRF_TOKEN = '{{ csrf_token }}';
+let lastUserQuery = '';
+
+function toggleMediVoiceModal() {
+    let modal = document.getElementById('medivoiceModal');
+    let icon = document.getElementById('triggerBtnIcon');
+    if (!modal) return;
+    modal.classList.toggle('d-none');
+    let isClosed = modal.classList.contains('d-none');
+    if (icon) {
+        icon.className = isClosed ? 'fas fa-robot text-white' : 'fas fa-times text-white';
+    }
+    if (!isClosed) {
+        setTimeout(() => {
+            let input = document.getElementById('medivoiceTextInput');
+            if (input) input.focus();
+            scrollChat();
+        }, 120);
+    }
+}
+
+// Close assistant on Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        let modal = document.getElementById('medivoiceModal');
+        if (modal && !modal.classList.contains('d-none')) {
+            toggleMediVoiceModal();
+        }
+    }
+});
+
+function handleChatKeydown(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleSendClick();
+    }
+}
+
+function handleSendClick() {
+    let input = document.getElementById('medivoiceTextInput');
+    if (input) {
+        let val = input.value;
+        sendChatQuery(val);
+    }
+}
+
+function updateState(stateText, dotClass = 'text-teal') {
+    let badge = document.getElementById('medivoiceStateBadge');
+    if (badge) {
+        badge.innerHTML = `<i class="fas fa-circle fa-xs me-1 ${dotClass}"></i>${stateText}`;
+    }
+}
+
+function getFormattedTime() {
+    let d = new Date();
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function appendUserMessage(text) {
+    let container = document.getElementById('medivoiceMessages');
+    let timeStr = getFormattedTime();
+    container.insertAdjacentHTML('beforeend', `
+        <div class="d-flex align-items-start justify-content-end gap-2 mb-3 chat-msg-row user-row">
+            <div class="p-2.5 text-white rounded-3 shadow-sm small" style="max-width:85%; background: #00A99D; word-break: break-word;">
+                <div>${escapeHtml(text)}</div>
+                <div class="text-end text-white-50 extra-small mt-1" style="font-size: 0.65rem;">${timeStr}</div>
+            </div>
+            <div class="badge rounded-circle p-2 mt-1 flex-shrink-0" style="background: #0F2744;"><i class="fas fa-user text-white extra-small"></i></div>
+        </div>
+    `);
+    scrollChat();
+}
+
+function appendTypingIndicator() {
+    removeTypingIndicator();
+    let container = document.getElementById('medivoiceMessages');
+    container.insertAdjacentHTML('beforeend', `
+        <div class="d-flex align-items-start gap-2 mb-3 chat-msg-row" id="typingIndicator">
+            <div class="badge bg-teal rounded-circle p-2 mt-1 flex-shrink-0" style="background: #00A99D !important;"><i class="fas fa-robot text-white extra-small"></i></div>
+            <div class="p-2.5 bg-white rounded-3 shadow-sm text-navy small border">
+                <span class="text-muted extra-small me-2"><i class="fas fa-database fa-spin me-1"></i>Analyzing MySQL database</span>
+                <span class="typing-dots"><span>.</span><span>.</span><span>.</span></span>
+            </div>
+        </div>
+    `);
+    scrollChat();
+}
+
+function removeTypingIndicator() {
+    let indicator = document.getElementById('typingIndicator');
+    if (indicator) indicator.remove();
+}
+
+function appendAIMessage(markdownText, actionUrl = null, actionLabel = null, followUps = []) {
+    let container = document.getElementById('medivoiceMessages');
+    let timeStr = getFormattedTime();
+
+    let actionBtn = '';
+    if (actionUrl) {
+        let label = actionLabel || 'Open Workspace';
+        actionBtn = `
+            <div class="mt-2.5 pt-2 border-top">
+                <a href="${actionUrl}" class="btn btn-sm text-white py-1 px-2.5 extra-small fw-bold shadow-sm" style="background: #0F766E;">
+                    <i class="fas fa-external-link-alt me-1"></i>${label}
+                </a>
+            </div>
+        `;
+    }
+
+    let followUpChips = '';
+    if (followUps && followUps.length > 0) {
+        let chips = followUps.map(q => `
+            <button onclick="sendChatQuery('${escapeHtml(q).replace(/'/g, "\\'")}')" class="btn btn-outline-secondary btn-sm py-0.5 px-2 extra-small rounded-pill text-nowrap">
+                ${escapeHtml(q)}
+            </button>
+        `).join('');
+        followUpChips = `
+            <div class="mt-2 pt-2 border-top">
+                <div class="text-muted extra-small mb-1"><i class="fas fa-lightbulb text-warning me-1"></i>Suggested questions:</div>
+                <div class="d-flex flex-wrap gap-1">${chips}</div>
+            </div>
+        `;
+    }
+
+    let parsedHtml = formatMarkdown(markdownText);
+
+    container.insertAdjacentHTML('beforeend', `
+        <div class="d-flex align-items-start gap-2 mb-3 chat-msg-row assistant-row">
+            <div class="badge bg-teal rounded-circle p-2 mt-1 flex-shrink-0" style="background: #00A99D !important;">
+                <i class="fas fa-robot text-white extra-small"></i>
+            </div>
+            <div class="p-3 bg-white rounded-3 shadow-sm text-navy small" style="max-width:92%; border: 1px solid #E2E8F0; word-break: break-word;">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="fw-bold text-teal" style="color: #0F766E; font-size: 0.8rem;">Sanalogx AI Assistant</span>
+                    <span class="text-muted extra-small" style="font-size: 0.65rem;">${timeStr}</span>
+                </div>
+                <div class="chat-markdown-content">${parsedHtml}</div>
+                ${actionBtn}
+                ${followUpChips}
+            </div>
+        </div>
+    `);
+    scrollChat();
+}
+
+function appendErrorMessage(errorMsg, failedQuery) {
+    let container = document.getElementById('medivoiceMessages');
+    container.insertAdjacentHTML('beforeend', `
+        <div class="d-flex align-items-start gap-2 mb-3 chat-msg-row error-row">
+            <div class="badge bg-danger rounded-circle p-2 mt-1 flex-shrink-0"><i class="fas fa-exclamation-triangle text-white extra-small"></i></div>
+            <div class="p-3 bg-white rounded-3 shadow-sm text-danger small border border-danger-subtle" style="max-width:92%;">
+                <div class="fw-bold mb-1"><i class="fas fa-circle-exclamation me-1"></i>Assistant Response Unavailable</div>
+                <p class="mb-2 text-dark extra-small">${escapeHtml(errorMsg)}</p>
+                <button onclick="retryLastQuery()" class="btn btn-outline-danger btn-sm py-0.5 px-2.5 extra-small">
+                    <i class="fas fa-rotate-right me-1"></i>Retry Query
+                </button>
+            </div>
+        </div>
+    `);
+    scrollChat();
+}
+
+function retryLastQuery() {
+    if (lastUserQuery) {
+        sendChatQuery(lastUserQuery);
+    }
+}
+
+function scrollChat() {
+    let body = document.getElementById('medivoiceChatBody');
+    if (body) {
+        body.scrollTop = body.scrollHeight;
+    }
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    return text.toString()
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+function formatMarkdown(text) {
+    if (!text) return '';
+    let raw = text.toString();
+
+    // Escape raw HTML first
+    let escaped = escapeHtml(raw);
+
+    // Headers: ### Header
+    escaped = escaped.replace(/^### (.*$)/gim, '<h6 class="fw-bold text-navy mt-2 mb-1">$1</h6>');
+    escaped = escaped.replace(/^## (.*$)/gim, '<h6 class="fw-bold text-navy mt-2 mb-1">$1</h6>');
+
+    // Bold: **text**
+    escaped = escaped.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+    // Italic: *text*
+    escaped = escaped.replace(/\*(.*?)\*/g, '<em>$1</em>');
+
+    // Code tags: `code`
+    escaped = escaped.replace(/`([^`]+)`/g, '<code class="bg-light px-1 py-0.5 rounded text-teal" style="font-size: 0.8em; color: #00A99D;">$1</code>');
+
+    // Blockquote: > text
+    escaped = escaped.replace(/^&gt; (.*$)/gim, '<blockquote class="border-start border-teal border-3 ps-2 my-2 text-muted fst-italic extra-small">$1</blockquote>');
+
+    // Unordered lists: - item
+    escaped = escaped.replace(/^\- (.*$)/gim, '<li class="ms-3 mb-0.5">$1</li>');
+
+    // Wrap continuous <li> into <ul>
+    escaped = escaped.replace(/(<li.*<\/li>)/gms, '<ul class="ps-0 mb-2">$1</ul>');
+
+    // Line breaks to <br> where appropriate
+    escaped = escaped.replace(/\n\n/g, '<div class="my-1.5"></div>');
+    escaped = escaped.replace(/\n/g, '<br>');
+
+    return escaped;
+}
+
+// ─── Send Chat Query ────────────────────────────────────────────────────────
+function sendChatQuery(query) {
+    if (!query || !query.trim()) return;
+    let queryText = query.trim();
+    lastUserQuery = queryText;
+
+    appendUserMessage(queryText);
+    let inputElem = document.getElementById('medivoiceTextInput');
+    if (inputElem) inputElem.value = '';
+
+    appendTypingIndicator();
+    updateState('Analyzing Database...', 'text-warning');
+
+    // Ensure modal is visible
+    let modal = document.getElementById('medivoiceModal');
+    if (modal && modal.classList.contains('d-none')) {
+        modal.classList.remove('d-none');
+        let icon = document.getElementById('triggerBtnIcon');
+        if (icon) icon.className = 'fas fa-times text-white';
+    }
+
+    fetch(CHAT_API_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': CSRF_TOKEN
+        },
+        body: JSON.stringify({ message: queryText })
+    })
+    .then(res => {
+        // Always parse JSON — backend returns JSON for all status codes
+        return res.json().then(data => ({ status: res.status, data }));
+    })
+    .then(({ status, data }) => {
+        removeTypingIndicator();
+        if (status === 429) {
+            // Rate limited — show the friendly server message as an AI bubble
+            updateState('Rate Limited', 'text-warning');
+            appendAIMessage(data.answer || '⚠️ Too many requests. Please wait a moment before asking again.');
+            return;
+        }
+        if (status >= 500) {
+            updateState('Service Error', 'text-danger');
+            appendErrorMessage('The AI assistant service encountered an error. Please try again in a moment.', queryText);
+            return;
+        }
+        updateState('Ready', 'text-teal');
+        let answer = data.answer || "I couldn't process that query right now.";
+        appendAIMessage(answer, data.action_url, data.action_label, data.follow_up_suggestions);
+    })
+    .catch(err => {
+        removeTypingIndicator();
+        updateState('Offline / Error', 'text-danger');
+        appendErrorMessage('Unable to connect to Sanalogx AI Assistant backend service. Please check network connectivity or try again.', queryText);
+    });
+}
+
+// ─── Clear Chat Conversation ───────────────────────────────────────────────
+function clearChat() {
+    fetch(CHAT_API_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': CSRF_TOKEN
+        },
+        body: JSON.stringify({ action: 'clear' })
+    })
+    .then(res => res.json())
+    .catch(() => {});
+
+    let container = document.getElementById('medivoiceMessages');
+    if (container) {
+        container.innerHTML = `
+            <div class="d-flex align-items-start gap-2 mb-3 chat-msg-row assistant-row">
+                <div class="badge bg-teal rounded-circle p-2 mt-1 flex-shrink-0" style="background: #00A99D !important;">
+                    <i class="fas fa-robot text-white extra-small"></i>
+                </div>
+                <div class="p-3 bg-white rounded-3 shadow-sm text-navy small" style="max-width: 92%; border: 1px solid #E2E8F0;">
+                    <div class="fw-bold text-teal mb-1" style="color: #0F766E;">Sanalogx AI Assistant</div>
+                    <p class="mb-2">Conversation memory reset. How can I assist you with MediVault pharmacy operations?</p>
+                    <div class="d-flex flex-wrap gap-1.5 mt-2 pt-1 border-top">
+                        <button onclick="sendChatQuery('Inventory Overview')" class="btn btn-outline-secondary btn-sm py-0.5 px-2 extra-small rounded-pill">1. Inventory Overview</button>
+                        <button onclick="sendChatQuery('Low Stock Medicines')" class="btn btn-outline-secondary btn-sm py-0.5 px-2 extra-small rounded-pill">2. Low Stock</button>
+                        <button onclick="sendChatQuery('Today\'s Sales')" class="btn btn-outline-secondary btn-sm py-0.5 px-2 extra-small rounded-pill">3. Today's Sales</button>
+                        <button onclick="sendChatQuery('AI Reorder Recommendations')" class="btn btn-outline-secondary btn-sm py-0.5 px-2 extra-small rounded-pill">4. AI Reorder</button>
+                        <button onclick="sendChatQuery('What is Paracetamol?')" class="btn btn-outline-secondary btn-sm py-0.5 px-2 extra-small rounded-pill">5. Medicine Info</button>
+                        <button onclick="sendChatQuery('Help and Supported Questions')" class="btn btn-outline-secondary btn-sm py-0.5 px-2 extra-small rounded-pill">6. Help Menu</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    updateState('Ready', 'text-teal');
+}
+
+// ─── Speech Recognition (MediVoice Integration) ───────────────────────────
+function startSpeechRecognition() {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        appendAIMessage('Voice input is not supported in this browser. Please use Google Chrome or Microsoft Edge.', null);
+        return;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = 'en-IN';
+
+    let micBtn = document.getElementById('micRecordBtn');
+    if (micBtn) {
+        micBtn.classList.add('text-danger', 'border-danger');
+        micBtn.innerHTML = '<i class="fas fa-circle-dot fa-pulse"></i>';
+    }
+    updateState('Listening (Speak now)...', 'text-danger');
+
+    recognition.onresult = function(event) {
+        let transcript = event.results[0][0].transcript;
+        let input = document.getElementById('medivoiceTextInput');
+        if (input) input.value = transcript;
+        sendChatQuery(transcript);
+    };
+
+    recognition.onerror = function() {
+        updateState('Mic Error', 'text-warning');
+        resetMicBtn();
+    };
+
+    recognition.onend = function() {
+        resetMicBtn();
+    };
+
+    recognition.start();
+}
+
+function resetMicBtn() {
+    let micBtn = document.getElementById('micRecordBtn');
+    if (micBtn) {
+        micBtn.classList.remove('text-danger', 'border-danger');
+        micBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+    }
+}
+</script>
+
+<style>
+.typing-dots span {
+    display: inline-block;
+    animation: typing-bounce 1.2s infinite;
+    font-size: 1.4rem;
+    line-height: 0.5;
+}
+.typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes typing-bounce {
+    0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+    40% { transform: translateY(-5px); opacity: 1; }
+}
+.quick-actions-scroller::-webkit-scrollbar {
+    height: 4px;
+}
+.quick-actions-scroller::-webkit-scrollbar-thumb {
+    background: #CBD5E1;
+    border-radius: 4px;
+}
+.chat-markdown-content p {
+    margin-bottom: 0.4rem;
+}
+.chat-markdown-content ul {
+    margin-bottom: 0.4rem;
+}
+</style>
+{% endif %}

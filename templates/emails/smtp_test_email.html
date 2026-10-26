@@ -1,0 +1,64 @@
+{% extends 'emails/base_email.html' %}
+
+{% block email_title %}Sanalogx | Real SMTP Delivery Verification{% endblock %}
+
+{% block email_content %}
+<div style="text-align: center; margin-bottom: 24px;">
+  <span style="display: inline-block; width: 48px; height: 48px; line-height: 48px; background-color: #E6FFFA; color: #00A896; border-radius: 50%; font-size: 24px; font-weight: bold;">
+    &#10003;
+  </span>
+  <h2 style="margin: 12px 0 6px 0; color: #0F2744; font-size: 22px; font-weight: 700;">
+    SMTP Delivery Verification Successful
+  </h2>
+  <p style="margin: 0; font-size: 14px; color: #64748B;">
+    Live transmission test from Sanalogx Hospital Pharmacy Platform
+  </p>
+</div>
+
+<p style="margin: 0 0 16px 0; font-size: 14px; color: #475569; line-height: 1.6;">
+  Hello,
+</p>
+<p style="margin: 0 0 20px 0; font-size: 14px; color: #475569; line-height: 1.6;">
+  This email confirms that the Sanalogx production SMTP relay is active and properly communicating with the configured mail transfer agent.
+</p>
+
+<!-- Test Diagnostic Summary -->
+<table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; margin-bottom: 24px;">
+  <tr>
+    <td style="padding: 18px 20px;">
+      <table border="0" cellpadding="0" cellspacing="0" width="100%">
+        <tr>
+          <td style="padding-bottom: 8px; font-size: 12px; font-weight: 600; color: #64748B; text-transform: uppercase; width: 35%;">Target Recipient:</td>
+          <td style="padding-bottom: 8px; font-size: 13px; font-weight: 700; color: #0F2744;">{{ recipient }}</td>
+        </tr>
+        <tr>
+          <td style="padding-bottom: 8px; font-size: 12px; font-weight: 600; color: #64748B; text-transform: uppercase;">Verified Sender:</td>
+          <td style="padding-bottom: 8px; font-size: 13px; color: #00A896; font-weight: 600;">{{ sender }}</td>
+        </tr>
+        <tr>
+          <td style="padding-bottom: 8px; font-size: 12px; font-weight: 600; color: #64748B; text-transform: uppercase;">SMTP Relay Host:</td>
+          <td style="padding-bottom: 8px; font-size: 13px; font-family: monospace; color: #334155;">{{ smtp_host }}:{{ smtp_port }}</td>
+        </tr>
+        <tr>
+          <td style="padding-bottom: 8px; font-size: 12px; font-weight: 600; color: #64748B; text-transform: uppercase;">Dispatch Timestamp:</td>
+          <td style="padding-bottom: 8px; font-size: 13px; color: #334155;">{{ timestamp }}</td>
+        </tr>
+        <tr>
+          <td style="font-size: 12px; font-weight: 600; color: #64748B; text-transform: uppercase;">Delivery Status:</td>
+          <td style="font-size: 12px; font-weight: 700;">
+            <span style="display: inline-block; padding: 3px 10px; background-color: #DEF7EC; color: #03543F; border-radius: 12px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">
+              Accepted by Provider (250 OK)
+            </span>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+<div style="background-color: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 6px; padding: 14px 16px; margin-bottom: 20px;">
+  <p style="margin: 0; font-size: 12px; color: #1E40AF; line-height: 1.5;">
+    <strong>Operational Note:</strong> This diagnostic transmission verifies live SMTP handshake and envelope routing. All subsequent platform workflows (Pharmacist Registration, Admin Approvals, Password Resets, and Security Notifications) use this verified dispatch pipeline.
+  </p>
+</div>
+{% endblock %}

@@ -1,0 +1,266 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Expiry Management — Sanalogx{% endblock %}
+{% block admin_breadcrumb %}Expiry Management{% endblock %}
+{% block pharmacist_breadcrumb %}Expiry Alerts{% endblock %}
+
+{% block content %}
+<div class="ambient-healthcare-bg" style="min-height:100vh;">
+<div class="container-fluid py-4 px-lg-4" style="position:relative;z-index:1;">
+
+  <!-- Header -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
+    <div>
+      <nav aria-label="breadcrumb"><ol class="breadcrumb mb-1" style="font-size:.78rem;">
+        <li class="breadcrumb-item"><a href="{% url 'inventory_dashboard' %}" class="text-decoration-none" style="color:#00A99D;"><i class="fas fa-boxes-stacked me-1"></i>Inventory</a></li>
+        <li class="breadcrumb-item active text-muted">Expiry Management</li>
+      </ol></nav>
+      <h3 class="fw-bold mb-0" style="color:#0F2744;"><i class="fas fa-hourglass-half me-2" style="color:#F59E0B;"></i>Expiry Management</h3>
+      <p class="text-muted small mb-0 mt-1">Monitor near-expiry and expired medicine batches. Take action before stock becomes unusable.</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <a href="{% url 'batch_stock' %}" class="btn btn-sm fw-semibold" style="background:#FFF;color:#0F2744;border:1px solid #CBD5E1;border-radius:9px;padding:.45rem 1rem;">
+        <i class="fas fa-layer-group me-1"></i> All Batches
+      </a>
+      <a href="{% url 'report_preview' %}?report_type=EXPIRY&days_threshold={{ days_filter }}" class="btn btn-sm fw-semibold text-white" style="background:linear-gradient(135deg,#DC2626,#B91C1C);border:none;border-radius:9px;padding:.45rem 1rem;">
+        <i class="fas fa-file-export me-1"></i> Export Report
+      </a>
+    </div>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="kpi-card-compact h-100">
+        <div><div class="kpi-label">Near Expiry Batches</div><div class="kpi-value" style="color:#0875B9;">{{ near_expiry_count }}</div></div>
+        <div class="kpi-icon-pill" style="background:rgba(8,117,185,.10);color:#0875B9;"><i class="fas fa-clock"></i></div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="kpi-card-compact h-100">
+        <div><div class="kpi-label">Warning (31–60 days)</div><div class="kpi-value" style="color:#D97706;">{{ warning_count }}</div></div>
+        <div class="kpi-icon-pill" style="background:rgba(245,158,11,.10);color:#D97706;"><i class="fas fa-triangle-exclamation"></i></div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="kpi-card-compact h-100">
+        <div><div class="kpi-label">Critical (≤ 30 days)</div><div class="kpi-value" style="color:#DC2626;">{{ critical_count }}</div></div>
+        <div class="kpi-icon-pill" style="background:rgba(220,38,38,.10);color:#DC2626;"><i class="fas fa-fire"></i></div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="kpi-card-compact h-100">
+        <div><div class="kpi-label">Expired Batches (With Stock)</div><div class="kpi-value" style="color:#475569;">{{ expired_count }}</div></div>
+        <div class="kpi-icon-pill" style="background:rgba(71,85,105,.10);color:#475569;"><i class="fas fa-skull-crossbones"></i></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search & Filter Bar with Days Tabs -->
+  <div class="bg-white border rounded-3 p-3 mb-4 shadow-sm">
+    <form method="get" class="row g-2 align-items-end">
+      <input type="hidden" name="days" value="{{ days_filter }}">
+      <div class="col-md-4 col-sm-6">
+        <label class="form-label mb-1" style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748B;">Search Medicine / Batch</label>
+        <div class="input-group input-group-sm">
+          <span class="input-group-text bg-light border-end-0"><i class="fas fa-search text-muted" style="font-size:.75rem;"></i></span>
+          <input type="text" name="search" value="{{ search_q }}" placeholder="Medicine name, generic, batch #..." class="form-control border-start-0 ps-0" style="font-size:.82rem;">
+        </div>
+      </div>
+      <div class="col-md-3 col-sm-6">
+        <label class="form-label mb-1" style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748B;">Category</label>
+        <select name="category" class="form-select form-select-sm" style="font-size:.82rem;text-overflow:ellipsis;overflow:hidden;white-space:nowrap;">
+          <option value="">All Categories</option>
+          {% for cat in categories %}
+          <option value="{{ cat.id }}" {% if category_id == cat.id|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2 col-sm-6">
+        <label class="form-label mb-1" style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748B;">Sort Order</label>
+        <select name="sort" class="form-select form-select-sm" style="font-size:.82rem;">
+          <option value="expiry_asc" {% if sort == "expiry_asc" %}selected{% endif %}>Expiry (Earliest First)</option>
+          <option value="expiry_desc" {% if sort == "expiry_desc" %}selected{% endif %}>Expiry (Latest First)</option>
+          <option value="qty_desc" {% if sort == "qty_desc" %}selected{% endif %}>Stock Quantity (High → Low)</option>
+          <option value="name_asc" {% if sort == "name_asc" %}selected{% endif %}>Medicine Name (A → Z)</option>
+        </select>
+      </div>
+      <div class="col-md-3 col-sm-6 d-flex gap-1">
+        <button type="submit" class="btn btn-sm text-white fw-semibold flex-grow-1" style="background:#00A99D;border:none;border-radius:8px;font-size:.8rem;height:31px;">
+          <i class="fas fa-filter me-1"></i>Filter
+        </button>
+        <a href="{% url 'expiry_management' %}?days={{ days_filter }}" class="btn btn-sm btn-light border" style="border-radius:8px;height:31px;" title="Reset filters">
+          <i class="fas fa-rotate-left" style="font-size:.75rem;"></i>
+        </a>
+      </div>
+    </form>
+
+    <div class="d-flex align-items-center gap-2 mt-3 pt-3 border-top flex-wrap" style="border-color:#F1F5F9!important;">
+      <span class="text-muted fw-semibold me-1" style="font-size:.8rem;">Expiry Window:</span>
+      <a href="?days=30{% if search_q %}&search={{ search_q }}{% endif %}{% if category_id %}&category={{ category_id }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}" class="btn btn-sm fw-semibold {% if days_filter == 30 %}text-white{% endif %}"
+         style="border-radius:20px;padding:.25rem .85rem;font-size:.78rem;
+         {% if days_filter == 30 %}background:#DC2626;border:1px solid #DC2626;{% else %}background:#FEF2F2;color:#DC2626;border:1px solid #FECACA;{% endif %}">
+        <i class="fas fa-fire me-1"></i>30 Days (Critical)
+      </a>
+      <a href="?days=60{% if search_q %}&search={{ search_q }}{% endif %}{% if category_id %}&category={{ category_id }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}" class="btn btn-sm fw-semibold {% if days_filter == 60 %}text-white{% endif %}"
+         style="border-radius:20px;padding:.25rem .85rem;font-size:.78rem;
+         {% if days_filter == 60 %}background:#D97706;border:1px solid #D97706;{% else %}background:#FFFBEB;color:#D97706;border:1px solid #FDE68A;{% endif %}">
+        <i class="fas fa-triangle-exclamation me-1"></i>60 Days (Warning)
+      </a>
+      <a href="?days=90{% if search_q %}&search={{ search_q }}{% endif %}{% if category_id %}&category={{ category_id }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}" class="btn btn-sm fw-semibold {% if days_filter == 90 %}text-white{% endif %}"
+         style="border-radius:20px;padding:.25rem .85rem;font-size:.78rem;
+         {% if days_filter == 90 %}background:#0875B9;border:1px solid #0875B9;{% else %}background:#EFF6FF;color:#0875B9;border:1px solid #BFDBFE;{% endif %}">
+        <i class="fas fa-clock me-1"></i>90 Days (Standard Monitoring)
+      </a>
+    </div>
+  </div>
+
+  <!-- Near Expiry Table -->
+  <div class="bg-white border rounded-3 shadow-sm mb-4" style="overflow:hidden;">
+    <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom" style="background:#FFFBEB;">
+      <div class="fw-bold d-flex align-items-center gap-2" style="color:#92400E;font-size:.9rem;">
+        <i class="fas fa-clock text-warning"></i> Near Expiry Batches (≤ {{ days_filter }} Days)
+        <span class="badge bg-warning text-dark" style="font-size:.72rem;">{{ filtered_near_count }} matching</span>
+      </div>
+    </div>
+    <div class="table-responsive">
+      <table class="table-medivault-compact table table-hover mb-0 align-middle" style="min-width: 900px;">
+        <thead>
+          <tr>
+            <th class="ps-3">Medicine</th>
+            <th>Category</th>
+            <th>Batch #</th>
+            <th>Expiry Date</th>
+            <th class="text-center">Days Left</th>
+            <th class="text-center">Qty Available</th>
+            <th class="text-center">Priority</th>
+            <th class="pe-3 text-center">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in near_expiry_data %}
+          {% with b=item.batch %}
+          <tr style="{% if item.priority == 'critical' %}border-left:3px solid #EF4444;{% elif item.priority == 'warning' %}border-left:3px solid #F97316;{% else %}border-left:3px solid #3B82F6;{% endif %}">
+            <td class="ps-3">
+              <div class="fw-semibold" style="color:#0F2744;font-size:.83rem;">{{ b.medicine.medicine_name }}</div>
+              <div style="font-size:.7rem;color:#94A3B8;">{{ b.medicine.generic_name|default:"" }}</div>
+            </td>
+            <td><span class="badge bg-light text-secondary border" style="font-size:.72rem;">{{ b.medicine.category.name|default:"—" }}</span></td>
+            <td><code style="font-size:.78rem;background:#F1F5F9;padding:2px 7px;border-radius:5px;color:#0F2744;border:1px solid #E2E8F0;">{{ b.batch_number }}</code></td>
+            <td class="fw-semibold {% if item.priority == 'critical' %}text-danger{% elif item.priority == 'warning' %}text-warning{% else %}text-primary{% endif %}" style="font-size:.82rem;">
+              {{ b.expiry_date|date:"d M Y" }}
+            </td>
+            <td class="text-center">
+              <span class="badge {% if item.priority == 'critical' %}bg-danger{% elif item.priority == 'warning' %}bg-warning text-dark{% else %}bg-primary{% endif %}" style="font-size:.72rem;min-width:50px;">
+                {{ item.days_left }}d
+              </span>
+            </td>
+            <td class="text-center fw-bold" style="color:#0F2744;font-size:.88rem;">{{ b.quantity_available }}</td>
+            <td class="text-center">
+              {% if item.priority == 'critical' %}
+                <span class="badge" style="background:#FEE2E2;color:#991B1B;font-size:.7rem;"><i class="fas fa-fire me-1"></i>Critical</span>
+              {% elif item.priority == 'warning' %}
+                <span class="badge" style="background:#FEF3C7;color:#92400E;font-size:.7rem;"><i class="fas fa-triangle-exclamation me-1"></i>Warning</span>
+              {% else %}
+                <span class="badge" style="background:#DBEAFE;color:#1D4ED8;font-size:.7rem;"><i class="fas fa-circle-info me-1"></i>Monitor</span>
+              {% endif %}
+            </td>
+            <td class="pe-3 text-center">
+              <a href="{% url 'medicine_inventory_detail' b.medicine.pk %}" class="btn btn-sm"
+                 style="background:#F0FDFA;color:#00A99D;border:1px solid #CCFBF1;border-radius:7px;padding:.22rem .55rem;font-size:.76rem;">
+                <i class="fas fa-eye me-1"></i>View
+              </a>
+            </td>
+          </tr>
+          {% endwith %}
+          {% empty %}
+          <tr><td colspan="8">
+            <div class="empty-state-compact">
+              <div class="empty-icon-wrap" style="color:#10B981;"><i class="fas fa-check-circle"></i></div>
+              <div class="empty-title" style="color:#065F46;">All Clear</div>
+              <div class="empty-desc">No near-expiry batches within {{ days_filter }} days. All stock is safely within expiry margins.</div>
+            </div>
+          </td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Expired Batches Table -->
+  <div class="bg-white border rounded-3 shadow-sm" style="overflow:hidden;">
+    <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom" style="background:#FEF2F2;">
+      <div class="fw-bold d-flex align-items-center gap-2" style="color:#991B1B;font-size:.9rem;">
+        <i class="fas fa-skull-crossbones text-danger"></i> Expired Batches with Remaining Stock
+        <span class="badge bg-danger" style="font-size:.72rem;">{{ expired_count }}</span>
+      </div>
+      {% if expired_count > 0 %}
+      <span class="badge" style="background:#FEE2E2;color:#991B1B;border:1px solid #FECACA;font-size:.72rem;"><i class="fas fa-exclamation-triangle me-1"></i>Requires immediate action</span>
+      {% endif %}
+    </div>
+    <div class="table-responsive">
+      <table class="table-medivault-compact table table-hover mb-0 align-middle" style="min-width: 900px;">
+        <thead>
+          <tr>
+            <th class="ps-3">Medicine</th>
+            <th>Category</th>
+            <th>Batch #</th>
+            <th>Expiry Date</th>
+            <th class="text-center">Days Expired</th>
+            <th class="text-center">Qty Remaining</th>
+            <th class="text-center">Status</th>
+            <th class="pe-3 text-center">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in expired_data %}
+          {% with b=item.batch %}
+          <tr style="opacity:.95;border-left:3px solid #EF4444;">
+            <td class="ps-3">
+              <div class="fw-semibold" style="color:#0F2744;font-size:.83rem;">{{ b.medicine.medicine_name }}</div>
+              <div style="font-size:.7rem;color:#94A3B8;">{{ b.medicine.generic_name|default:"" }}</div>
+            </td>
+            <td><span class="badge bg-light text-secondary border" style="font-size:.72rem;">{{ b.medicine.category.name|default:"—" }}</span></td>
+            <td><code style="font-size:.78rem;background:#F1F5F9;padding:2px 7px;border-radius:5px;color:#0F2744;border:1px solid #E2E8F0;">{{ b.batch_number }}</code></td>
+            <td class="fw-bold text-danger" style="font-size:.82rem;">{{ b.expiry_date|date:"d M Y" }}</td>
+            <td class="text-center">
+              <span class="badge bg-secondary" style="font-size:.72rem;">{{ item.days_expired }}d ago</span>
+            </td>
+            <td class="text-center fw-bold" style="color:#DC2626;font-size:.88rem;">{{ b.quantity_available }}</td>
+            <td class="text-center">
+              <span class="badge" style="background:#FEE2E2;color:#991B1B;border:1px solid #FECACA;font-size:.7rem;">
+                <i class="fas fa-ban me-1"></i>Expired
+              </span>
+            </td>
+            <td class="pe-3 text-center">
+              <div class="d-inline-flex gap-1">
+                <a href="{% url 'medicine_inventory_detail' b.medicine.pk %}" class="btn btn-sm"
+                   style="background:#F0FDFA;color:#00A99D;border:1px solid #CCFBF1;border-radius:7px;padding:.22rem .5rem;font-size:.74rem;">
+                  <i class="fas fa-eye me-1"></i>View
+                </a>
+                <a href="{% url 'record_damage' %}?medicine={{ b.medicine.pk }}&batch={{ b.pk }}" class="btn btn-sm text-danger"
+                   style="background:#FEF2F2;border:1px solid #FECACA;border-radius:7px;padding:.22rem .5rem;font-size:.74rem;" title="Record write-off / disposal">
+                  <i class="fas fa-trash-can me-1"></i>Write-Off
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% endwith %}
+          {% empty %}
+          <tr><td colspan="8">
+            <div class="empty-state-compact">
+              <div class="empty-icon-wrap" style="color:#10B981;"><i class="fas fa-shield-halved"></i></div>
+              <div class="empty-title" style="color:#065F46;">No Expired Stock</div>
+              <div class="empty-desc">No expired batches with available quantities. Your inventory is safely within expiry margins.</div>
+            </div>
+          </td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+</div>
+{% endblock %}

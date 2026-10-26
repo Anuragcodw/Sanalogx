@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Category Management — Sanalogx{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 bg-healthcare-accent">
+    <div class="row g-4">
+
+        <!-- Left: Add New Category Form -->
+        <div class="col-lg-4">
+            <div class="card card-medivault bg-white shadow-sm p-4 border">
+                <h5 class="fw-bold text-navy mb-4 pb-2 border-bottom"><i class="fas fa-tag text-teal me-2"></i> Add New Category</h5>
+
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show small mb-3">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                <form method="POST" action="{% url 'category_list' %}">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label text-navy fw-semibold small">Category Name <span class="text-danger">*</span></label>
+                        {{ form.name }}
+                        {% if form.name.errors %}
+                            <div class="invalid-feedback d-block small text-danger mt-1">{{ form.name.errors.0 }}</div>
+                        {% endif %}
+                        <div class="form-text small">Must be unique. e.g. Antibiotics, Analgesics</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-navy fw-semibold small">Description</label>
+                        {{ form.description }}
+                        {% if form.description.errors %}
+                            <div class="invalid-feedback d-block small text-danger mt-1">{{ form.description.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="mb-4">
+                        <div class="form-check">
+                            {{ form.is_active }}
+                            <label class="form-check-label text-navy fw-semibold small" for="id_is_active">Active (visible in medicine form dropdowns)</label>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-medivault-primary w-100 py-2 fw-bold">
+                        <i class="fas fa-plus me-2"></i> Add Category
+                    </button>
+                </form>
+            </div>
+
+            <!-- Back link -->
+            <div class="text-center mt-3">
+                <a href="{% url 'medicine_list' %}" class="btn btn-link text-muted text-decoration-none small">
+                    <i class="fas fa-arrow-left me-1"></i> Back to Medicine Master
+                </a>
+            </div>
+        </div>
+
+        <!-- Right: Categories Table -->
+        <div class="col-lg-8">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h4 class="fw-bold text-navy mb-1">Medicine Categories</h4>
+                    <p class="text-muted small mb-0">{{ categories|length }} categories registered in the system.</p>
+                </div>
+            </div>
+
+            <div class="card card-medivault bg-white shadow-sm border">
+                {% if categories %}
+                    <div class="table-responsive">
+                        <table class="table table-medivault align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Category Name</th>
+                                    <th>Description</th>
+                                    <th class="text-center">Medicines</th>
+                                    <th class="text-center">Status</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for cat in categories %}
+                                    <tr>
+                                        <td class="text-muted small">{{ forloop.counter }}</td>
+                                        <td>
+                                            <strong class="text-navy">{{ cat.name }}</strong>
+                                        </td>
+                                        <td class="text-muted small">{{ cat.description|default:"—" }}</td>
+                                        <td class="text-center">
+                                            <span class="badge bg-light text-navy border">{{ cat.medicines.count }}</span>
+                                        </td>
+                                        <td class="text-center">
+                                            {% if cat.is_active %}
+                                                <span class="badge bg-success rounded-pill px-2 py-1 small">Active</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary rounded-pill px-2 py-1 small">Inactive</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end">
+                                            <button class="btn btn-outline-secondary btn-sm" disabled title="Edit via Django Admin">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5 text-muted">
+                        <i class="fas fa-folder-open fs-1 text-teal mb-3"></i>
+                        <p>No categories found. Add the first one using the form on the left.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

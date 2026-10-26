@@ -1,0 +1,256 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Management Analytics Dashboard — Sanalogx{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 px-lg-4">
+    <!-- Header & Date Filter Bar -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1 small text-muted">
+                    <li class="breadcrumb-item"><a href="{% url 'reports_center' %}" class="text-decoration-none text-teal"><i class="fas fa-chart-pie me-1"></i> Reports</a></li>
+                    <li class="breadcrumb-item active">Management Dashboard</li>
+                </ol>
+            </nav>
+            <h3 class="fw-bold text-navy mb-0"><i class="fas fa-chart-line text-teal me-2"></i> Pharmacy Management Analytics Dashboard</h3>
+            <p class="text-muted small mb-0">Real-time MySQL metrics for inventory, sales revenue, profit, purchases, and stock risks.</p>
+        </div>
+
+        <!-- Period Filter Pills & Custom Date Modal Trigger -->
+        <form method="GET" action="{% url 'management_dashboard' %}" class="d-flex flex-wrap align-items-center gap-2">
+            <div class="btn-group btn-group-sm" role="group" aria-label="Period selector">
+                <a href="?period=today" class="btn btn-outline-navy {% if period == 'today' %}active{% endif %}">Today</a>
+                <a href="?period=yesterday" class="btn btn-outline-navy {% if period == 'yesterday' %}active{% endif %}">Yesterday</a>
+                <a href="?period=7d" class="btn btn-outline-navy {% if period == '7d' %}active{% endif %}">7 Days</a>
+                <a href="?period=30d" class="btn btn-outline-navy {% if period == '30d' %}active{% endif %}">30 Days</a>
+                <a href="?period=this_month" class="btn btn-outline-navy {% if period == 'this_month' %}active{% endif %}">This Month</a>
+                <a href="?period=last_month" class="btn btn-outline-navy {% if period == 'last_month' %}active{% endif %}">Last Month</a>
+                <a href="?period=this_year" class="btn btn-outline-navy {% if period == 'this_year' %}active{% endif %}">This Year</a>
+            </div>
+
+            <!-- Custom date range inputs -->
+            <input type="hidden" name="period" value="custom">
+            <input type="date" name="date_from" value="{{ date_from }}" class="form-control form-control-sm" style="max-width:130px;" title="Start Date">
+            <input type="date" name="date_to" value="{{ date_to }}" class="form-control form-control-sm" style="max-width:130px;" title="End Date">
+            <button type="submit" class="btn btn-teal text-white btn-sm fw-bold px-3"><i class="fas fa-filter me-1"></i> Filter</button>
+        </form>
+    </div>
+
+    <!-- Row 1: KPI Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="card card-medivault p-3 bg-white shadow-sm border-start border-4 border-teal h-100">
+                <span class="text-muted extra-small font-uppercase fw-bold d-block mb-1">Today Gross Sales</span>
+                <h4 class="fw-bold text-navy mb-0">₹{{ today_revenue }}</h4>
+                <span class="extra-small text-teal"><i class="fas fa-cart-check me-1"></i>{{ today_sales_count }} Sales (Profit: ₹{{ today_profit }})</span>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="card card-medivault p-3 bg-white shadow-sm border-start border-4 border-success h-100">
+                <span class="text-muted extra-small font-uppercase fw-bold d-block mb-1">Period Net Sales (Excl Tax)</span>
+                <h4 class="fw-bold text-success mb-0">₹{{ period_net_sales }}</h4>
+                <span class="extra-small text-muted"><i class="fas fa-receipt text-success me-1"></i>Invoice Total: ₹{{ period_revenue }}</span>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="card card-medivault p-3 bg-white shadow-sm border-start border-4 border-info h-100">
+                <span class="text-muted extra-small font-uppercase fw-bold d-block mb-1">Gross Profit (COGS Basis)</span>
+                <h4 class="fw-bold text-info mb-0">₹{{ period_profit }}</h4>
+                <span class="extra-small text-muted"><i class="fas fa-percent text-info me-1"></i>{{ gross_margin_pct }}% Gross Margin</span>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="card card-medivault p-3 bg-white shadow-sm border-start border-4 border-danger h-100">
+                <span class="text-muted extra-small font-uppercase fw-bold d-block mb-1">Cost of Goods Sold</span>
+                <h4 class="fw-bold text-danger mb-0">₹{{ period_cogs }}</h4>
+                <span class="extra-small text-muted"><i class="fas fa-tags text-danger me-1"></i>Historical Batch Cost</span>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="card card-medivault p-3 bg-white shadow-sm border-start border-4 border-purple h-100" style="border-left-color: var(--color-purple)!important;">
+                <span class="text-muted extra-small font-uppercase fw-bold d-block mb-1">Usable Inventory Value</span>
+                <h4 class="fw-bold text-navy mb-0">₹{{ inventory_value }}</h4>
+                <span class="extra-small text-muted"><i class="fas fa-coins text-purple me-1"></i>Retail: ₹{{ retail_potential_value }}</span>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="card card-medivault p-3 bg-white shadow-sm border-start border-4 border-warning h-100">
+                <span class="text-muted extra-small font-uppercase fw-bold d-block mb-1">Pending Payments</span>
+                <h4 class="fw-bold text-amber mb-0">₹{{ pending_payments }}</h4>
+                <span class="extra-small text-muted"><i class="fas fa-clock text-amber me-1"></i>{{ period_refunds|default:"0.00" }} Refunds</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Row 2: Secondary KPI Strip (Period Summary) -->
+    <div class="card card-medivault bg-navy text-white p-3 shadow-sm mb-4">
+        <div class="row text-center divide-md">
+            <div class="col-md-3 mb-2 mb-md-0">
+                <span class="text-teal extra-small font-uppercase fw-bold d-block">Period Purchases (Procurement)</span>
+                <h4 class="fw-bold mb-0 text-white">₹{{ total_purchases }}</h4>
+                <span class="extra-small text-white-50">{{ pending_orders }} Pending Orders</span>
+            </div>
+            <div class="col-md-3 mb-2 mb-md-0">
+                <span class="text-teal extra-small font-uppercase fw-bold d-block">Collected Statutory Taxes</span>
+                <h4 class="fw-bold mb-0 text-white">₹{{ period_taxes }}</h4>
+                <span class="extra-small text-white-50">GST & Health Cesses</span>
+            </div>
+            <div class="col-md-3 mb-2 mb-md-0">
+                <span class="text-teal extra-small font-uppercase fw-bold d-block">Customer Refunds Issued</span>
+                <h4 class="fw-bold mb-0 text-warning">₹{{ period_refunds }}</h4>
+                <span class="extra-small text-white-50">{{ period_returns_count }} Returns Processed</span>
+            </div>
+            <div class="col-md-3">
+                <span class="text-teal extra-small font-uppercase fw-bold d-block">Expired Stock Write-Off Value</span>
+                <h4 class="fw-bold mb-0 text-danger">₹{{ expired_stock_value }}</h4>
+                <span class="extra-small text-white-50">{{ expired_count }} Units at Risk</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Row 3: Charts & Tables -->
+    <div class="row g-4 mb-4">
+        <!-- Daily Revenue, COGS & Gross Profit Trend Chart -->
+        <div class="col-lg-8">
+            <div class="card card-medivault bg-white shadow-sm p-4 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold text-navy mb-0"><i class="fas fa-chart-area text-teal me-2"></i> Revenue, Cost of Goods & Gross Profit Trend</h5>
+                    <span class="badge bg-teal">{{ period_label }}</span>
+                </div>
+                <div style="position: relative; height: 300px;">
+                    <canvas id="revenueTrendChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Selling Medicines -->
+        <div class="col-lg-4">
+            <div class="card card-medivault bg-white shadow-sm p-4 h-100">
+                <h5 class="fw-bold text-navy mb-3"><i class="fas fa-trophy text-amber me-2"></i> Top Revenue Medicines</h5>
+                <div class="list-group list-group-flush">
+                    {% for m in top_meds %}
+                    <div class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center border-bottom-dashed">
+                        <div>
+                            <strong class="text-navy small d-block">{{ m.medicine_name }}</strong>
+                            <span class="text-muted extra-small">{{ m.quantity }} units sold (Cost: ₹{{ m.cogs|floatformat:2 }})</span>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge bg-light text-navy fw-bold font-monospace d-block">₹{{ m.revenue|floatformat:2 }}</span>
+                            <span class="extra-small text-success fw-semibold">+₹{{ m.gross_profit|floatformat:2 }} profit</span>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted small py-4 text-center">No sales records in selected period.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Row 4: Quick Report Generator Link Bar -->
+    <div class="card card-medivault bg-white p-4 shadow-sm text-center border-top border-4 border-teal">
+        <h5 class="fw-bold text-navy mb-1"><i class="fas fa-file-export text-teal me-2"></i> Need Official Exported Reports?</h5>
+        <p class="text-muted small mb-3">Generate QR-verified PDF, Excel, or CSV reports for compliance, audit, inventory, or financial review.</p>
+        <div>
+            <a href="{% url 'reports_center' %}" class="btn btn-teal text-white fw-bold px-4 py-2 me-2">
+                <i class="fas fa-file-invoice me-1"></i> Open Report Center
+            </a>
+            <a href="{% url 'report_history' %}" class="btn btn-outline-navy fw-bold px-4 py-2">
+                <i class="fas fa-history me-1"></i> Report History
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let ctx = document.getElementById('revenueTrendChart').getContext('2d');
+    let labels = {{ chart_labels|safe }};
+    let revenues = {{ chart_revenue|safe }};
+    let cogs = {{ chart_cogs|safe }};
+    let profits = {{ chart_profit|safe }};
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Net Sales Revenue (₹)',
+                    data: revenues,
+                    borderColor: '#00B4A6',
+                    backgroundColor: 'rgba(0, 180, 166, 0.06)',
+                    borderWidth: 2.5,
+                    fill: false,
+                    tension: 0.3,
+                    pointBackgroundColor: '#00B4A6',
+                    pointRadius: 3,
+                },
+                {
+                    label: 'Cost of Goods Sold (₹)',
+                    data: cogs,
+                    borderColor: '#E63946',
+                    backgroundColor: 'rgba(230, 57, 70, 0.05)',
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    fill: false,
+                    tension: 0.3,
+                    pointBackgroundColor: '#E63946',
+                    pointRadius: 3,
+                },
+                {
+                    label: 'Gross Profit (₹)',
+                    data: profits,
+                    borderColor: '#2A9D8F',
+                    backgroundColor: 'rgba(42, 157, 143, 0.12)',
+                    borderWidth: 2.5,
+                    fill: true,
+                    tension: 0.3,
+                    pointBackgroundColor: '#2A9D8F',
+                    pointRadius: 3.5,
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        boxWidth: 12,
+                        font: { size: 11, family: 'Inter, sans-serif' }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.dataset.label + ': ₹' + Number(context.parsed.y).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: '#F1F3F5' },
+                    ticks: {
+                        callback: function(value) { return '₹' + value; }
+                    }
+                },
+                x: {
+                    grid: { display: false }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

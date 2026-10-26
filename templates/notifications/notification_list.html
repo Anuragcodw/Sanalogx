@@ -1,0 +1,177 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Notification Center — Sanalogx{% endblock %}
+{% block admin_breadcrumb %}Notifications{% endblock %}
+{% block pharmacist_breadcrumb %}Notifications{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 px-lg-4">
+    <!-- Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1 small text-muted">
+                    <li class="breadcrumb-item"><a href="{% url 'inventory_dashboard' %}" class="text-decoration-none text-teal"><i class="fas fa-boxes-stacked me-1"></i> Inventory</a></li>
+                    <li class="breadcrumb-item active">Notification Center</li>
+                </ol>
+            </nav>
+            <h3 class="fw-bold text-navy mb-0">
+                <i class="fas fa-bell text-teal me-2"></i> Central Notification Center
+                {% if unread_count > 0 %}
+                <span class="badge bg-danger rounded-pill fs-6 ms-2">{{ unread_count }} Unread</span>
+                {% endif %}
+            </h3>
+            <p class="text-muted small mb-0">Real-time and scheduled alerts for stock, expiry, suppliers, procurement, and AI recommendations.</p>
+        </div>
+
+        <div class="d-flex gap-2">
+            <button onclick="markAllNotificationsRead()" class="btn btn-outline-teal fw-bold py-2 px-3">
+                <i class="fas fa-check-double me-1"></i> Mark All as Read
+            </button>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="card card-medivault bg-white p-3 shadow-sm mb-4">
+        <form method="GET" action="{% url 'notification_list' %}" class="row g-2 align-items-center">
+            <div class="col-md-3">
+                <label class="form-label extra-small text-muted mb-1">Status</label>
+                <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="unread" {% if filter_status == 'unread' %}selected{% endif %}>Unread Notifications</option>
+                    <option value="read" {% if filter_status == 'read' %}selected{% endif %}>Read Notifications</option>
+                    <option value="all" {% if filter_status == 'all' %}selected{% endif %}>All Notifications</option>
+                    <option value="archived" {% if filter_status == 'archived' %}selected{% endif %}>Archived</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label extra-small text-muted mb-1">Priority</label>
+                <select name="priority" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">All Priorities</option>
+                    <option value="CRITICAL" {% if filter_priority == 'CRITICAL' %}selected{% endif %}>🔴 Critical</option>
+                    <option value="HIGH" {% if filter_priority == 'HIGH' %}selected{% endif %}>🟠 High</option>
+                    <option value="MEDIUM" {% if filter_priority == 'MEDIUM' %}selected{% endif %}>🟡 Medium</option>
+                    <option value="LOW" {% if filter_priority == 'LOW' %}selected{% endif %}>🔵 Low / Info</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label extra-small text-muted mb-1">Notification Category</label>
+                <select name="type" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">All Categories</option>
+                    {% for t_key, t_name in notification_types %}
+                    <option value="{{ t_key }}" {% if filter_type == t_key %}selected{% endif %}>{{ t_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2 text-end mt-4">
+                <a href="{% url 'notification_list' %}" class="btn btn-light border btn-sm w-100">Reset Filters</a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Notification List Cards -->
+    <div class="d-flex flex-column gap-3 mb-4" id="notificationListContainer">
+        {% for n in notifications %}
+        <div class="card card-medivault bg-white shadow-sm p-3 border-start border-4
+            {% if n.priority == 'CRITICAL' %}border-danger
+            {% elif n.priority == 'HIGH' %}border-warning
+            {% elif n.priority == 'MEDIUM' %}border-info
+            {% else %}border-secondary{% endif %}
+            {% if not n.is_read %}bg-light-teal{% endif %}"
+            id="notifCard-{{ n.id }}">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+                <div class="d-flex align-items-start gap-3">
+                    <div class="mt-1">
+                        {% if n.priority == 'CRITICAL' %}
+                            <span class="badge bg-danger rounded-circle p-2"><i class="fas fa-triangle-exclamation text-white"></i></span>
+                        {% elif n.priority == 'HIGH' %}
+                            <span class="badge bg-warning text-dark rounded-circle p-2"><i class="fas fa-circle-exclamation"></i></span>
+                        {% elif n.priority == 'MEDIUM' %}
+                            <span class="badge bg-info text-dark rounded-circle p-2"><i class="fas fa-bell"></i></span>
+                        {% else %}
+                            <span class="badge bg-secondary rounded-circle p-2"><i class="fas fa-info"></i></span>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <h6 class="fw-bold text-navy mb-0">{{ n.title }}</h6>
+                            {% if not n.is_read %}
+                            <span class="badge bg-teal rounded-pill extra-small">NEW</span>
+                            {% endif %}
+                            <span class="badge bg-light text-muted extra-small">{{ n.get_notification_type_display }}</span>
+                        </div>
+                        <p class="text-navy small mb-1">{{ n.message }}</p>
+                        <span class="text-muted extra-small"><i class="fas fa-clock me-1"></i> {{ n.created_at|date:"d B Y H:i" }}</span>
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-center gap-2 align-self-end align-self-md-center">
+                    {% if n.action_url %}
+                    <a href="{{ n.action_url }}" class="btn btn-teal btn-sm text-white fw-bold py-1 px-3">
+                        <i class="fas fa-external-link-alt me-1"></i> {{ n.action_label|default:"View Details" }}
+                    </a>
+                    {% endif %}
+                    {% if not n.is_read %}
+                    <button onclick="markNotificationRead({{ n.id }})" class="btn btn-outline-secondary btn-sm py-1 px-2" title="Mark as Read">
+                        <i class="fas fa-check"></i>
+                    </button>
+                    {% endif %}
+                    <button onclick="archiveNotification({{ n.id }})" class="btn btn-outline-danger btn-sm py-1 px-2" title="Archive">
+                        <i class="fas fa-box-archive"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="card card-medivault bg-white shadow-sm p-5 text-center">
+            <i class="fas fa-bell-slash text-muted fs-1 mb-2 d-block"></i>
+            <h5 class="fw-bold text-navy mb-1">No notifications found</h5>
+            <p class="text-muted small mb-0">You have no {{ filter_status }} notifications matching your filter criteria.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+function markNotificationRead(id) {
+    fetch(`/api/notifications/${id}/read/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            let card = document.getElementById(`notifCard-${id}`);
+            if (card) card.style.opacity = '0.5';
+        }
+    });
+}
+
+function archiveNotification(id) {
+    fetch(`/api/notifications/${id}/archive/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            let card = document.getElementById(`notifCard-${id}`);
+            if (card) card.remove();
+        }
+    });
+}
+
+function markAllNotificationsRead() {
+    fetch('{% url "api_mark_notifications_read" %}', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            window.location.reload();
+        }
+    });
+}
+</script>
+{% endblock %}

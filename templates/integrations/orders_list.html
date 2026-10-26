@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Medication Orders Queue | Sanalogx{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+
+    <!-- Page Header -->
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h4 class="fw-bold text-navy mb-1">
+                <i class="fas fa-clipboard-list text-teal me-2"></i>Medication Orders Queue
+            </h4>
+            <p class="text-muted mb-0 small">
+                Inbound FHIR R4 medication requests from connected EHR systems — pending pharmacist review and verification.
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'integration_dashboard' %}" class="btn btn-outline-navy btn-sm">
+                <i class="fas fa-arrow-left me-1"></i> Dashboard
+            </a>
+            {% if user.role == 'ADMIN' %}
+            <a href="{% url 'mock_ehr_simulator' %}" class="btn btn-outline-warning btn-sm">
+                <i class="fas fa-flask me-1"></i> Mock Simulator
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Status Filter Badges -->
+    <div class="d-flex flex-wrap gap-2 mb-4">
+        <a href="{% url 'integration_orders' %}" class="badge {% if not status_filter %}bg-navy{% else %}bg-light text-navy border{% endif %} text-decoration-none px-3 py-2 fs-7">
+            All Orders
+        </a>
+        {% for val, label in order_statuses %}
+        <a href="?status={{ val }}{% if search %}&q={{ search }}{% endif %}"
+           class="badge {% if status_filter == val %}bg-navy{% else %}bg-light text-dark border{% endif %} text-decoration-none px-3 py-2 fs-7">
+            {{ label }}
+            {% if status_counts|default:'' %}
+                <span class="ms-1 opacity-75">({{ status_counts|default_if_none:'' }})</span>
+            {% endif %}
+        </a>
+        {% endfor %}
+    </div>
+
+    <!-- Search Bar -->
+    <form method="GET" class="mb-4">
+        {% if status_filter %}
+        <input type="hidden" name="status" value="{{ status_filter }}">
+        {% endif %}
+        <div class="input-group" style="max-width: 480px;">
+            <input type="text" class="form-control border-2" name="q" value="{{ search }}"
+                   placeholder="Search by patient, UHID, medication, order ID...">
+            <button class="btn btn-navy" type="submit">
+                <i class="fas fa-search"></i>
+            </button>
+            {% if search %}
+            <a href="?{% if status_filter %}status={{ status_filter }}{% endif %}" class="btn btn-outline-secondary">
+                <i class="fas fa-times"></i>
+            </a>
+            {% endif %}
+        </div>
+    </form>
+
+    <!-- Orders Table -->
+    <div class="card shadow-sm border-0 rounded-4">
+        <div class="card-body p-0">
+            {% if page_obj %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" style="font-size:0.875rem;">
+                    <thead class="bg-light border-bottom">
+                        <tr>
+                            <th class="ps-4 py-3 text-uppercase text-muted" style="font-size:0.75rem; letter-spacing:0.05em;">Order ID</th>
+                            <th class="py-3 text-uppercase text-muted" style="font-size:0.75rem; letter-spacing:0.05em;">Patient</th>
+                            <th class="py-3 text-uppercase text-muted" style="font-size:0.75rem; letter-spacing:0.05em;">Medication</th>
+                            <th class="py-3 text-uppercase text-muted" style="font-size:0.75rem; letter-spacing:0.05em;">Source System</th>
+                            <th class="py-3 text-uppercase text-muted" style="font-size:0.75rem; letter-spacing:0.05em;">Qty</th>
+                            <th class="py-3 text-uppercase text-muted" style="font-size:0.75rem; letter-spacing:0.05em;">Status</th>
+                            <th class="py-3 text-uppercase text-muted" style="font-size:0.75rem; letter-spacing:0.05em;">Received</th>
+                            <th class="pe-4 py-3 text-uppercase text-muted text-end" style="font-size:0.75rem; letter-spacing:0.05em;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in page_obj %}
+                        <tr class="{% if order.status == 'PENDING_REVIEW' %}table-warning-subtle{% endif %}">
+                            <td class="ps-4">
+                                <code class="text-navy small">{{ order.external_order_id|truncatechars:18 }}</code>
+                            </td>
+                            <td>
+                                <div class="fw-semibold text-dark">{{ order.patient_name|truncatechars:25 }}</div>
+                                <div class="text-muted extra-small">{{ order.patient_uhid }}</div>
+                            </td>
+                            <td>
+                                <div class="text-dark">{{ order.raw_medication_name|truncatechars:30 }}</div>
+                                {% if order.mapped_medicine %}
+                                <div class="text-success extra-small"><i class="fas fa-check-circle me-1"></i>{{ order.mapped_medicine.medicine_name|truncatechars:25 }}</div>
+                                {% else %}
+                                <div class="text-warning extra-small"><i class="fas fa-exclamation-circle me-1"></i>Unmatched</div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if order.hospital_system %}
+                                <span class="badge bg-light text-navy border border-navy">{{ order.hospital_system.system_code }}</span>
+                                {% else %}
+                                <span class="text-muted extra-small">Unknown</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="fw-semibold">{{ order.prescribed_quantity }}</span>
+                            </td>
+                            <td>
+                                {% if order.status == 'PENDING_REVIEW' %}
+                                <span class="badge bg-warning text-dark">⏳ Pending Review</span>
+                                {% elif order.status == 'VERIFIED' %}
+                                <span class="badge bg-info">✓ Verified</span>
+                                {% elif order.status == 'DISPENSED' %}
+                                <span class="badge bg-success">✅ Dispensed</span>
+                                {% elif order.status == 'REJECTED' %}
+                                <span class="badge bg-danger">✗ Rejected</span>
+                                {% elif order.status == 'CANCELLED' %}
+                                <span class="badge bg-secondary">Cancelled</span>
+                                {% elif order.status == 'FAILED' %}
+                                <span class="badge bg-danger">Failed</span>
+                                {% else %}
+                                <span class="badge bg-light text-dark">{{ order.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="text-muted extra-small">{{ order.created_at|date:"d M Y H:i" }}</span>
+                            </td>
+                            <td class="pe-4 text-end">
+                                {% if order.status == 'PENDING_REVIEW' %}
+                                <a href="{% url 'order_review' order_id=order.id %}" class="btn btn-sm btn-navy py-1">
+                                    <i class="fas fa-eye me-1"></i>Review
+                                </a>
+                                {% else %}
+                                <a href="{% url 'order_review' order_id=order.id %}" class="btn btn-sm btn-outline-secondary py-1">
+                                    <i class="fas fa-eye me-1"></i>View
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if page_obj.has_other_pages %}
+            <div class="d-flex justify-content-center py-3 border-top">
+                <nav>
+                    <ul class="pagination pagination-sm mb-0">
+                        {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if search %}&q={{ search }}{% endif %}">
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                        </li>
+                        {% endif %}
+                        <li class="page-item active">
+                            <span class="page-link bg-navy border-navy">
+                                {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
+                            </span>
+                        </li>
+                        {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if search %}&q={{ search }}{% endif %}">
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-inbox text-muted" style="font-size:3rem;"></i>
+                <p class="text-muted mt-3 mb-1 fw-semibold">No medication orders found</p>
+                {% if search or status_filter %}
+                <p class="text-muted small">Try clearing your filters to see all orders.</p>
+                <a href="{% url 'integration_orders' %}" class="btn btn-sm btn-outline-navy mt-2">
+                    <i class="fas fa-times me-1"></i>Clear Filters
+                </a>
+                {% else %}
+                <p class="text-muted small">
+                    Use the <a href="{% url 'mock_ehr_simulator' %}" class="text-teal fw-semibold">Mock EHR Simulator</a>
+                    to test inbound FHIR order ingestion.
+                </p>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Help Text -->
+    <div class="mt-3">
+        <p class="text-muted extra-small mb-0">
+            <i class="fas fa-info-circle me-1"></i>
+            Orders in <strong>Pending Review</strong> status require pharmacist clinical verification before dispensing.
+            Verified orders can be processed in the
+            <a href="{% url 'secure_dispensing_workspace' %}" class="text-teal">Secure Dispensing Workspace</a>.
+        </p>
+    </div>
+
+</div>
+{% endblock %}

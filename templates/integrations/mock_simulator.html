@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Mock EHR Simulator — Sanalogx{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+  <!-- Breadcrumb -->
+  <nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'integration_dashboard' %}">Hospital Integration</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Mock EHR Simulator</li>
+    </ol>
+  </nav>
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="fw-bold text-navy mb-1" style="font-size: 1.75rem;">
+        <i class="fas fa-vial text-teal me-2"></i> Mock EHR Simulator (Cerner / Oracle Health)
+      </h1>
+      <p class="text-muted small mb-0">
+        Simulate real-time inbound FHIR R4 MedicationRequest orders without needing live hospital network credentials.
+      </p>
+    </div>
+    <a href="{% url 'integration_dashboard' %}" class="btn btn-outline-secondary rounded-3">
+      <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+    </a>
+  </div>
+
+  {% if simulation_result %}
+    <div class="alert {% if simulation_result.success %}alert-success{% else %}alert-danger{% endif %} shadow-sm rounded-4 mb-4">
+      <h6 class="fw-bold mb-1">
+        {% if simulation_result.success %}
+          <i class="fas fa-circle-check me-2"></i> FHIR MedicationRequest Processed Successfully
+        {% else %}
+          <i class="fas fa-times-circle me-2"></i> Ingestion Error
+        {% endif %}
+      </h6>
+      <p class="mb-2 small">{{ simulation_result.message|default:simulation_result.error }}</p>
+      {% if simulation_result.order %}
+        <div class="d-flex gap-2 mt-2">
+          <a href="{% url 'order_review' order_id=simulation_result.order.id %}" class="btn btn-sm btn-primary rounded-3">
+            <i class="fas fa-user-doctor me-1"></i> Open in Pharmacist Review Queue
+          </a>
+          <a href="/api/v1/fhir/MedicationRequest/{{ simulation_result.order.external_order_id }}/" target="_blank" class="btn btn-sm btn-outline-dark rounded-3">
+            <i class="fas fa-code me-1"></i> View FHIR JSON Endpoint
+          </a>
+        </div>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  <div class="row g-4">
+    <!-- Preset Templates -->
+    <div class="col-lg-4">
+      <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-header bg-white py-3 px-4 border-bottom">
+          <h6 class="fw-bold text-navy mb-0">
+            <i class="fas fa-bolt text-warning me-2"></i> Quick Test Presets
+          </h6>
+        </div>
+        <div class="card-body p-3">
+          <div class="d-grid gap-2">
+            <button type="button" class="btn btn-light text-start p-3 border rounded-3 hover-shadow" onclick="loadSample('paracetamol')">
+              <div class="fw-bold text-navy mb-1"><i class="fas fa-pills text-teal me-1"></i> Paracetamol 500mg Tablet</div>
+              <small class="text-muted d-block">Routine Inpatient Order (Ward 4B Bed 12)</small>
+            </button>
+
+            <button type="button" class="btn btn-light text-start p-3 border rounded-3 hover-shadow" onclick="loadSample('amoxicillin')">
+              <div class="fw-bold text-navy mb-1"><i class="fas fa-capsules text-primary me-1"></i> Amoxicillin 500mg Capsule</div>
+              <small class="text-muted d-block">Urgent Emergency Observation Order</small>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-header bg-white py-3 px-4 border-bottom">
+          <h6 class="fw-bold text-navy mb-0">
+            <i class="fas fa-circle-info text-teal me-2"></i> Architecture Rules
+          </h6>
+        </div>
+        <div class="card-body p-3 small text-muted">
+          <ul class="mb-0 ps-3">
+            <li class="mb-2"><strong>Zero Auto-Dispensing:</strong> Ingested orders enter the review queue and never deduct stock until a pharmacist verifies them.</li>
+            <li class="mb-2"><strong>Strict Idempotency:</strong> Resending the same payload with the same <code>id</code> returns the existing order instead of duplicating.</li>
+            <li><strong>FHIR R4 Schema:</strong> Payloads must adhere to the HL7 FHIR Release 4 standard.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- JSON Editor & Ingest Form -->
+    <div class="col-lg-8">
+      <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-header bg-white py-3 px-4 border-bottom d-flex justify-content-between align-items-center">
+          <h6 class="fw-bold text-navy mb-0">
+            <i class="fas fa-code text-teal me-2"></i> Inbound FHIR R4 MedicationRequest Payload
+          </h6>
+          <span class="badge bg-light text-muted border">POST /api/v1/fhir/MedicationRequest/</span>
+        </div>
+        <div class="card-body p-4">
+          <form method="POST">
+            {% csrf_token %}
+            <div class="mb-3">
+              <label class="form-label text-muted small fw-semibold">Payload JSON (Editable)</label>
+              <textarea name="fhir_json" id="fhir_json_input" class="form-control font-monospace rounded-3" rows="18" style="font-size: 0.88rem; background: #f8fafc;" required>{{ sample_paracetamol_json }}</textarea>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="text-muted small">
+                Target Adapter: <strong>{{ system.name }}</strong>
+              </span>
+              <button type="submit" class="btn btn-primary px-4 py-2 rounded-3 fw-semibold shadow-sm">
+                <i class="fas fa-paper-plane me-1"></i> Send MedicationRequest to MediVault
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const SAMPLES = {
+  paracetamol: {{ sample_paracetamol_json|safe }},
+  amoxicillin: {{ sample_amoxicillin_json|safe }}
+};
+
+function loadSample(key) {
+  const data = SAMPLES[key];
+  if (data) {
+    // Generate fresh ID so it's not immediately a duplicate
+    data.id = "CERNER-RX-" + key.toUpperCase() + "-" + Date.now();
+    document.getElementById('fhir_json_input').value = JSON.stringify(data, null, 2);
+  }
+}
+</script>
+{% endblock %}

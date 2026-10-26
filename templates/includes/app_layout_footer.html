@@ -1,0 +1,12 @@
+{% if user.is_authenticated and user.role == 'ADMIN' and not no_admin_sidebar and request.resolver_match.url_name != 'home' and request.resolver_match.url_name != 'setup_password' and request.resolver_match.url_name != 'pharmacist_login' and request.resolver_match.url_name != 'pharmacist_register' and request.resolver_match.url_name != 'login' and request.resolver_match.url_name != 'register' and request.resolver_match.url_name != 'registration_success' and request.resolver_match.url_name != 'verify_email' and request.resolver_match.url_name != 'forgot_password' and request.resolver_match.url_name != 'forgot_username' and request.resolver_match.url_name != 'pending' and request.resolver_match.url_name != 'rejected' and request.resolver_match.url_name != 'suspended' and request.resolver_match.url_name != 'unauthorized_403' and request.resolver_match.url_name != 'not_found_404' %}
+            </main>
+        </div>
+    </div>
+{% elif user.is_authenticated and user.role == 'PHARMACIST' and user.status == 'APPROVED' and not no_pharmacist_sidebar and request.resolver_match.url_name != 'home' and request.resolver_match.url_name != 'setup_password' and request.resolver_match.url_name != 'pharmacist_login' and request.resolver_match.url_name != 'pharmacist_register' and request.resolver_match.url_name != 'login' and request.resolver_match.url_name != 'register' and request.resolver_match.url_name != 'registration_success' and request.resolver_match.url_name != 'verify_email' and request.resolver_match.url_name != 'forgot_password' and request.resolver_match.url_name != 'forgot_username' and request.resolver_match.url_name != 'pending' and request.resolver_match.url_name != 'rejected' and request.resolver_match.url_name != 'suspended' and request.resolver_match.url_name != 'unauthorized_403' and request.resolver_match.url_name != 'not_found_404' %}
+            </main>
+        </div>
+    </div>
+{% else %}
+    </main>
+    {% include 'footer.html' %}
+{% endif %}

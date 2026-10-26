@@ -1,0 +1,19 @@
+{% if user.is_authenticated and user.role == 'ADMIN' and not no_admin_sidebar and request.resolver_match.url_name != 'home' and request.resolver_match.url_name != 'setup_password' and request.resolver_match.url_name != 'pharmacist_login' and request.resolver_match.url_name != 'pharmacist_register' and request.resolver_match.url_name != 'login' and request.resolver_match.url_name != 'register' and request.resolver_match.url_name != 'registration_success' and request.resolver_match.url_name != 'verify_email' and request.resolver_match.url_name != 'forgot_password' and request.resolver_match.url_name != 'forgot_username' and request.resolver_match.url_name != 'pending' and request.resolver_match.url_name != 'rejected' and request.resolver_match.url_name != 'suspended' and request.resolver_match.url_name != 'unauthorized_403' and request.resolver_match.url_name != 'not_found_404' %}
+    <!-- Modern Admin Layout: Left Sidebar + Top Header -->
+    <div class="admin-app-container" id="adminAppContainer">
+        {% include 'includes/admin_sidebar.html' %}
+        <div class="admin-app-main" id="adminAppMain">
+            {% include 'includes/admin_top_header.html' %}
+            <main class="admin-app-content" id="adminAppContent">
+{% elif user.is_authenticated and user.role == 'PHARMACIST' and user.status == 'APPROVED' and not no_pharmacist_sidebar and request.resolver_match.url_name != 'home' and request.resolver_match.url_name != 'setup_password' and request.resolver_match.url_name != 'pharmacist_login' and request.resolver_match.url_name != 'pharmacist_register' and request.resolver_match.url_name != 'login' and request.resolver_match.url_name != 'register' and request.resolver_match.url_name != 'registration_success' and request.resolver_match.url_name != 'verify_email' and request.resolver_match.url_name != 'forgot_password' and request.resolver_match.url_name != 'forgot_username' and request.resolver_match.url_name != 'pending' and request.resolver_match.url_name != 'rejected' and request.resolver_match.url_name != 'suspended' and request.resolver_match.url_name != 'unauthorized_403' and request.resolver_match.url_name != 'not_found_404' %}
+    <!-- Pharmacist Layout: Left Sidebar + Main Content -->
+    <div class="pharmacist-app-container" id="pharmacistAppContainer">
+        {% include 'includes/pharmacist_sidebar.html' %}
+        <div class="pharmacist-app-main" id="pharmacistAppMain">
+            {% include 'includes/pharmacist_top_header.html' %}
+            <main class="pharmacist-app-content" id="pharmacistAppContent">
+{% else %}
+    <!-- Public / Unauthenticated Layout -->
+    {% include 'navbar.html' %}
+    <main class="main-content">
+{% endif %}

@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Pending Review Medicines — Sanalogx{% endblock %}
+{% block admin_breadcrumb %}Draft Review{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 px-md-4 py-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex align-items-center gap-3">
+      <div class="page-header-glow-badge flex-shrink-0" style="background:rgba(245,158,11,0.15);color:#F59E0B;">
+        <i class="fas fa-clock"></i>
+      </div>
+      <div>
+        <h2 class="fw-bold text-navy mb-0 fs-3">Pending Review Medicines</h2>
+        <p class="text-muted small mb-0">
+          {{ total_drafts }} draft record{{ total_drafts|pluralize }} awaiting pharmacy verification before activation.
+        </p>
+      </div>
+    </div>
+    <a href="{% url 'medicine_import_upload' %}" class="btn btn-outline-secondary btn-sm fw-semibold">
+      <i class="fas fa-file-import me-1"></i> Import More
+    </a>
+  </div>
+
+  {% if messages %}
+    {% for msg in messages %}
+      <div class="alert alert-{{ msg.tags|default:'info' }} alert-dismissible fade show" role="alert">
+        {{ msg }} <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  {% if total_drafts == 0 %}
+  <div class="alert alert-success">
+    <i class="fas fa-check-circle me-2"></i>No pending review medicines. All imports have been reviewed.
+  </div>
+  {% else %}
+  <div class="card shadow-sm border-0" style="border-radius:14px;">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Medicine Name</th><th>Generic Name</th><th>Strength</th><th>Dosage Form</th>
+            <th>Category</th><th>Source</th><th>Added</th><th class="text-end">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for med in page_obj %}
+          <tr>
+            <td class="fw-medium">{{ med.medicine_name }}</td>
+            <td>{{ med.generic_name }}</td>
+            <td><code class="small">{{ med.strength }}</code></td>
+            <td>{{ med.dosage_form }}</td>
+            <td><span class="badge bg-light text-navy border">{{ med.category.name }}</span></td>
+            <td><span class="badge bg-secondary small">{{ med.source_reference|default:"—" }}</span></td>
+            <td class="small text-muted">{{ med.created_at|date:"d M Y" }}</td>
+            <td class="text-end">
+              <a href="{% url 'medicine_draft_review' med.id %}" class="btn btn-warning btn-sm fw-semibold">
+                <i class="fas fa-clipboard-check me-1"></i> Review
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if page_obj.has_other_pages %}
+    <div class="card-footer bg-white border-top">
+      <nav>
+        <ul class="pagination pagination-sm mb-0 justify-content-center">
+          {% if page_obj.has_previous %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">«</a></li>
+          {% endif %}
+          <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span></li>
+          {% if page_obj.has_next %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">»</a></li>
+          {% endif %}
+        </ul>
+      </nav>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Review Purchase Request — {{ pr.request_id }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-9">
+            <div class="card card-medivault bg-white shadow-lg p-4 p-md-5">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h4 class="fw-bold text-navy mb-0"><i class="fas fa-shield-alt text-teal me-2"></i> Review & Approve Purchase Request {{ pr.request_id }}</h4>
+                        <span class="text-muted small">Raised by <strong>{{ pr.created_by.username|default:"System" }}</strong> on {{ pr.created_at|date:"d M Y, H:i" }}</span>
+                    </div>
+                    <a href="{% url 'purchase_request_list' %}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i> Back to Queue</a>
+                </div>
+
+                <!-- Items Details Card -->
+                <div class="card bg-light border-0 p-3 mb-4">
+                    <h6 class="fw-bold text-navy mb-3">Requested Medicine Items</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-borderless align-middle mb-0 small">
+                            <thead class="text-muted fw-bold">
+                                <tr>
+                                    <th>MEDICINE</th>
+                                    <th class="text-center">CURRENT STOCK</th>
+                                    <th class="text-center">REORDER LEVEL</th>
+                                    <th class="text-center">AI REC QTY</th>
+                                    <th class="text-center">REQUESTED QTY</th>
+                                    <th class="text-end">EST. UNIT PRICE</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in pr.items.all %}
+                                <tr>
+                                    <td class="fw-bold text-navy">{{ item.medicine.medicine_name }} ({{ item.medicine.strength }})</td>
+                                    <td class="text-center font-monospace">{{ item.current_stock }}</td>
+                                    <td class="text-center font-monospace text-amber">{{ item.reorder_level }}</td>
+                                    <td class="text-center font-monospace text-teal fw-bold">{{ item.ai_recommended_qty }}</td>
+                                    <td class="text-center font-monospace fw-bold text-navy fs-6">{{ item.requested_qty }}</td>
+                                    <td class="text-end font-monospace">₹{{ item.suggested_unit_price }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-muted">Approved Quantity</label>
+                            <input type="number" name="approved_qty" min="1" value="{% for item in pr.items.all %}{{ item.requested_qty }}{% endfor %}" class="form-control font-monospace fw-bold fs-5">
+                            <span class="extra-small text-muted">You may modify the requested quantity before approving.</span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-muted">Assign Vendor / Supplier <span class="text-danger">*</span></label>
+                            <select name="supplier" class="form-select" required>
+                                {% for sup in suppliers %}
+                                    <option value="{{ sup.id }}" {% if pr.recommended_supplier and pr.recommended_supplier.id == sup.id %}selected{% endif %}>
+                                        {{ sup.company_name }} (Rating: {{ sup.rating }}/5, Lead: {{ sup.average_delivery_days }} days)
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-4 d-none" id="rejectionReasonBox">
+                        <label class="form-label small fw-semibold text-danger">Rejection Reason</label>
+                        <textarea name="rejection_reason" class="form-control border-danger" rows="2" placeholder="Specify reason for rejecting this purchase request..."></textarea>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center">
+                        <button type="submit" name="action" value="REJECT" onclick="document.getElementById('rejectionReasonBox').classList.remove('d-none');" class="btn btn-outline-danger py-2 px-3 fw-bold">
+                            <i class="fas fa-times-circle me-1"></i> Reject Request
+                        </button>
+                        <button type="submit" name="action" value="APPROVE" class="btn btn-teal text-white py-2 px-4 fw-bold">
+                            <i class="fas fa-check-circle me-1"></i> Approve & Generate Purchase Order
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,266 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Sales History & Billing Log — Sanalogx{% endblock %}
+{% block admin_breadcrumb %}Sales & Billing{% endblock %}
+{% block pharmacist_breadcrumb %}Sales History{% endblock %}
+
+{% block content %}
+<div class="ambient-healthcare-bg" style="min-height:100vh;">
+<div class="container-fluid py-4 px-lg-4" style="position:relative;z-index:1;">
+
+    <!-- Page Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
+        <div>
+            <h3 class="fw-bold mb-0" style="color:#0F2744;">
+                <i class="fas fa-history me-2" style="color:#00A99D;"></i> Pharmacy Sales History &amp; Invoices
+            </h3>
+            <p class="text-muted small mb-0 mt-1">Audit trail of completed sales, generated invoices, payment statuses, and customer receipts.</p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{% url 'new_sale' %}" class="btn btn-sm fw-semibold text-white d-inline-flex align-items-center gap-2"
+               style="background:linear-gradient(135deg,#00A99D,#008779);border:none;border-radius:9px;padding:0.5rem 1.1rem;box-shadow:0 2px 6px rgba(0,169,157,0.25);">
+                <i class="fas fa-cart-plus"></i> New Pharmacy Sale
+            </a>
+            {% if request.user.role == 'ADMIN' %}
+            <a href="{% url 'sales_analytics' %}" class="btn btn-sm fw-semibold text-white d-inline-flex align-items-center gap-2"
+               style="background:linear-gradient(135deg,#0F2744,#1a3a5c);border:none;border-radius:9px;padding:0.5rem 1.1rem;">
+                <i class="fas fa-chart-line"></i> Sales Analytics
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-md-3">
+            <div class="kpi-card-compact">
+                <div>
+                    <div class="kpi-label">Today's Sales</div>
+                    <div class="kpi-value">{{ today_sales_count }}</div>
+                </div>
+                <div class="kpi-icon-pill" style="background:rgba(0,169,157,0.10);color:#00A99D;">
+                    <i class="fas fa-receipt"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-3">
+            <div class="kpi-card-compact">
+                <div>
+                    <div class="kpi-label">Today's Revenue</div>
+                    <div class="kpi-value" style="color:#10B981;">₹{{ today_revenue }}</div>
+                </div>
+                <div class="kpi-icon-pill" style="background:rgba(16,185,129,0.10);color:#10B981;">
+                    <i class="fas fa-indian-rupee-sign"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-3">
+            <div class="kpi-card-compact">
+                <div>
+                    <div class="kpi-label">Filtered Results</div>
+                    <div class="kpi-value" style="color:#0F2744;">{{ filtered_sales_count }}</div>
+                </div>
+                <div class="kpi-icon-pill" style="background:rgba(8,117,185,0.10);color:#0875B9;">
+                    <i class="fas fa-filter"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-3">
+            <div class="kpi-card-compact">
+                <div>
+                    <div class="kpi-label">Total Sales (All)</div>
+                    <div class="kpi-value" style="color:#0F2744;">{{ total_sales_count }}</div>
+                </div>
+                <div class="kpi-icon-pill" style="background:rgba(245,158,11,0.10);color:#F59E0B;">
+                    <i class="fas fa-database"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Toolbar -->
+    <div class="bg-white border rounded-3 p-3 mb-4 shadow-sm">
+        <form method="GET" class="row g-2 align-items-end">
+            <div class="col-md-3 col-sm-6">
+                <label class="form-label mb-1" style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#64748B;">Search</label>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-light border-end-0"><i class="fas fa-search text-muted" style="font-size:0.78rem;"></i></span>
+                    <input type="text" name="search" class="form-control border-start-0 ps-0" placeholder="Sale #, Invoice #, Patient..." value="{{ search_q }}" style="font-size:0.83rem;">
+                </div>
+            </div>
+            <div class="col-md-2 col-sm-6">
+                <label class="form-label mb-1" style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#64748B;">Status</label>
+                <select name="status" class="form-select form-select-sm" style="font-size:0.83rem;">
+                    <option value="">All Statuses</option>
+                    {% for code, label in statuses %}
+                    <option value="{{ code }}" {% if status_filter == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2 col-sm-6">
+                <label class="form-label mb-1" style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#64748B;">Payment</label>
+                <select name="payment_method" class="form-select form-select-sm" style="font-size:0.83rem;">
+                    <option value="">All Methods</option>
+                    {% for code, label in payment_methods %}
+                    <option value="{{ code }}" {% if payment_filter == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2 col-sm-6">
+                <label class="form-label mb-1" style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#64748B;">From Date</label>
+                <input type="date" name="date_from" class="form-control form-control-sm" value="{{ date_from }}" style="font-size:0.83rem;">
+            </div>
+            <div class="col-md-2 col-sm-6">
+                <label class="form-label mb-1" style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#64748B;">To Date</label>
+                <input type="date" name="date_to" class="form-control form-control-sm" value="{{ date_to }}" style="font-size:0.83rem;">
+            </div>
+            <div class="col-md-1 col-sm-6 d-flex gap-1">
+                <button type="submit" class="btn btn-sm text-white fw-semibold flex-grow-1" style="background:#00A99D;border:none;border-radius:8px;font-size:0.8rem;">
+                    <i class="fas fa-filter"></i>
+                </button>
+                <a href="{% url 'sales_history' %}" class="btn btn-sm btn-light border" style="border-radius:8px;" title="Reset filters">
+                    <i class="fas fa-rotate-left" style="font-size:0.78rem;"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Table Card -->
+    <div class="bg-white border rounded-3 shadow-sm" style="overflow:hidden;">
+        <div class="table-responsive">
+            <table class="table-medivault-compact table mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-3">Sale Number</th>
+                        <th>Invoice Number</th>
+                        <th>Customer / Patient</th>
+                        <th class="text-center">Payment</th>
+                        <th class="text-center">Status</th>
+                        <th class="text-end">Total Amount</th>
+                        <th>Pharmacist</th>
+                        <th class="pe-3 text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sale in sales %}
+                    <tr>
+                        <td class="ps-3">
+                            <div class="fw-bold" style="color:#00A99D;font-size:0.83rem;">{{ sale.sale_number }}</div>
+                            <div style="font-size:0.7rem;color:#94A3B8;">{{ sale.sale_date|date:"d M Y, H:i" }}</div>
+                        </td>
+                        <td>
+                            <span class="badge" style="background:#F1F5F9;color:#0F2744;border:1px solid #E2E8F0;font-size:0.72rem;font-family:monospace;">
+                                {{ sale.invoice_number|default:"N/A" }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="fw-semibold" style="color:#0F2744;font-size:0.83rem;">{{ sale.patient_name }}</div>
+                            {% if sale.patient_id %}<div style="font-size:0.7rem;color:#94A3B8;">ID: {{ sale.patient_id }}</div>{% endif %}
+                        </td>
+                        <td class="text-center">
+                            <span class="badge" style="background:#EFF6FF;color:#1D4ED8;border:1px solid #DBEAFE;font-size:0.72rem;">
+                                {{ sale.get_payment_method_display }}
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            {% if sale.status == 'COMPLETED' %}
+                                <span class="badge bg-success" style="font-size:0.72rem;"><i class="fas fa-check-circle me-1"></i>Completed</span>
+                            {% elif sale.status == 'RETURNED' %}
+                                <span class="badge bg-danger" style="font-size:0.72rem;"><i class="fas fa-undo me-1"></i>Returned</span>
+                            {% elif sale.status == 'PARTIAL_RETURN' %}
+                                <span class="badge bg-warning text-dark" style="font-size:0.72rem;"><i class="fas fa-undo me-1"></i>Partial Return</span>
+                            {% else %}
+                                <span class="badge bg-secondary" style="font-size:0.72rem;">{{ sale.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <span class="fw-bold" style="color:#0F2744;font-family:monospace;font-size:0.88rem;">₹{{ sale.total_amount }}</span>
+                        </td>
+                        <td style="color:#475569;font-size:0.82rem;">{{ sale.sold_by.username|default:"System" }}</td>
+                        <td class="pe-3 text-end">
+                            <a href="{% url 'sale_detail' sale.pk %}" class="btn btn-sm me-1"
+                               style="background:#F0FDFA;color:#00A99D;border:1px solid #CCFBF1;border-radius:7px;padding:0.25rem 0.6rem;font-size:0.78rem;">
+                                <i class="fas fa-eye me-1"></i>View
+                            </a>
+                            <a href="{% url 'sale_invoice' sale.pk %}" class="btn btn-sm"
+                               style="background:#0F2744;color:#FFFFFF;border:none;border-radius:7px;padding:0.25rem 0.6rem;font-size:0.78rem;">
+                                <i class="fas fa-print me-1"></i>Invoice
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8">
+                            <div class="empty-state-compact">
+                                <div class="empty-icon-wrap"><i class="fas fa-receipt"></i></div>
+                                <div class="empty-title">No Sales Records Found</div>
+                                <div class="empty-desc">
+                                    {% if search_q or status_filter or payment_filter or date_from or date_to %}
+                                    No sales match your current filters. Try adjusting or resetting them.
+                                    {% else %}
+                                    No sales have been recorded yet. Start by creating a new pharmacy sale.
+                                    {% endif %}
+                                </div>
+                                {% if search_q or status_filter or payment_filter %}
+                                <a href="{% url 'sales_history' %}" class="btn btn-sm" style="background:#00A99D;color:#fff;border:none;border-radius:8px;font-size:0.8rem;">
+                                    <i class="fas fa-rotate-left me-1"></i> Reset Filters
+                                </a>
+                                {% else %}
+                                <a href="{% url 'new_sale' %}" class="btn btn-sm" style="background:#00A99D;color:#fff;border:none;border-radius:8px;font-size:0.8rem;">
+                                    <i class="fas fa-cart-plus me-1"></i> New Pharmacy Sale
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+        <div class="d-flex align-items-center justify-content-between px-3 py-2 border-top" style="background:#FAFBFD;">
+            <div style="font-size:0.78rem;color:#64748B;">
+                Showing {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ page_obj.paginator.count }} records
+            </div>
+            <nav aria-label="Sales pagination">
+                <ul class="pagination pagination-sm mb-0 gap-1">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}&search={{ search_q }}&status={{ status_filter }}&payment_method={{ payment_filter }}&date_from={{ date_from }}&date_to={{ date_to }}"
+                           style="border-radius:6px;font-size:0.78rem;">
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link" style="background:#00A99D;border-color:#00A99D;border-radius:6px;font-size:0.78rem;">{{ num }}</span>
+                        </li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}&search={{ search_q }}&status={{ status_filter }}&payment_method={{ payment_filter }}&date_from={{ date_from }}&date_to={{ date_to }}"
+                               style="border-radius:6px;font-size:0.78rem;">{{ num }}</a>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}&search={{ search_q }}&status={{ status_filter }}&payment_method={{ payment_filter }}&date_from={{ date_from }}&date_to={{ date_to }}"
+                           style="border-radius:6px;font-size:0.78rem;">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+</div>
+{% endblock %}

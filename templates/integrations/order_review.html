@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Review Medication Order #{{ order.external_order_id }} — Sanalogx{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+  <!-- Breadcrumb -->
+  <nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'integration_dashboard' %}">Hospital Integration</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Review Order #{{ order.external_order_id }}</li>
+    </ol>
+  </nav>
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="fw-bold text-navy mb-1" style="font-size: 1.75rem;">
+        Pharmacist Clinical Verification
+      </h1>
+      <p class="text-muted small mb-0">
+        Review external EHR prescription details and map to verified inventory batches prior to dispensing.
+      </p>
+    </div>
+    <div>
+      {% if order.status == 'PENDING_REVIEW' %}
+        <span class="badge bg-warning-subtle text-warning fs-6 px-3 py-2 rounded-pill">
+          <i class="fas fa-clock me-1"></i> Awaiting Pharmacist Review
+        </span>
+      {% elif order.status == 'VERIFIED' %}
+        <span class="badge bg-info-subtle text-info fs-6 px-3 py-2 rounded-pill">
+          <i class="fas fa-check-circle me-1"></i> Verified & Ready
+        </span>
+      {% elif order.status == 'DISPENSED' %}
+        <span class="badge bg-success-subtle text-success fs-6 px-3 py-2 rounded-pill">
+          <i class="fas fa-prescription-bottle-alt me-1"></i> Dispensing Completed
+        </span>
+      {% else %}
+        <span class="badge bg-secondary-subtle text-secondary fs-6 px-3 py-2 rounded-pill">
+          {{ order.get_status_display }}
+        </span>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- Left Column: Patient & Order Details -->
+    <div class="col-lg-7">
+      <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-header bg-white py-3 px-4 border-bottom">
+          <h6 class="fw-bold text-navy mb-0">
+            <i class="fas fa-user-injured text-teal me-2"></i> Patient & Prescriber Information
+          </h6>
+        </div>
+        <div class="card-body p-4">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="text-muted small">Patient Full Name</label>
+              <div class="fw-bold text-navy fs-5">{{ order.patient_name }}</div>
+            </div>
+            <div class="col-md-6">
+              <label class="text-muted small">Hospital UHID</label>
+              <div><code>{{ order.patient_uhid }}</code></div>
+            </div>
+            <div class="col-md-6">
+              <label class="text-muted small">Prescribing Physician</label>
+              <div class="fw-semibold">{{ order.prescribing_practitioner }}</div>
+            </div>
+            <div class="col-md-6">
+              <label class="text-muted small">Hospital System / Source</label>
+              <div><span class="badge bg-light text-navy border">{{ order.hospital_system.name|default:"Cerner EHR" }}</span></div>
+            </div>
+            <div class="col-12">
+              <label class="text-muted small">Clinical Indication / Diagnosis</label>
+              <div class="p-2 bg-light rounded-3 text-secondary">{{ order.diagnosis|default:"No specific diagnosis provided in FHIR payload." }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-header bg-white py-3 px-4 border-bottom">
+          <h6 class="fw-bold text-navy mb-0">
+            <i class="fas fa-prescription text-teal me-2"></i> Prescribed Medication Details (EHR)
+          </h6>
+        </div>
+        <div class="card-body p-4">
+          <div class="row g-3">
+            <div class="col-md-8">
+              <label class="text-muted small">Raw Medication Name</label>
+              <div class="fw-bold text-navy fs-5">{{ order.raw_medication_name }}</div>
+              {% if order.medication_code %}
+                <small class="text-muted">Standard Coding: <code>{{ order.medication_code }}</code></small>
+              {% endif %}
+            </div>
+            <div class="col-md-4">
+              <label class="text-muted small">Prescribed Quantity</label>
+              <div class="fw-bold text-teal fs-4">{{ order.prescribed_quantity }} units</div>
+            </div>
+            <div class="col-12">
+              <label class="text-muted small">Dosage Instructions</label>
+              <div class="p-3 bg-light rounded-3 fw-semibold text-navy">
+                <i class="fas fa-info-circle text-teal me-2"></i> {{ order.dosage_instruction|default:"Take as directed by physician." }}
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label class="text-muted small">Order Priority</label>
+              <div>
+                <span class="badge bg-light text-uppercase border text-navy">{{ order.priority }}</span>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label class="text-muted small">Received Timestamp</label>
+              <div class="text-muted">{{ order.received_at|date:"d M Y H:i:s" }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Verification & Action Panel -->
+    <div class="col-lg-5">
+      <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-header bg-white py-3 px-4 border-bottom">
+          <h6 class="fw-bold text-navy mb-0">
+            <i class="fas fa-shield-halved text-teal me-2"></i> Clinical Verification & Mapping
+          </h6>
+        </div>
+        <div class="card-body p-4">
+          {% if order.status == 'PENDING_REVIEW' %}
+            <form method="POST">
+              {% csrf_token %}
+              <div class="mb-3">
+                <label class="form-label fw-semibold text-navy">Map to MediVault Medicine</label>
+                <select name="medicine_id" class="form-select rounded-3" required>
+                  <option value="">— Select Sanalogx Master Medicine —</option>
+                  {% for med in active_medicines %}
+                    <option value="{{ med.id }}" {% if order.mapped_medicine_id == med.id %}selected{% endif %}>
+                      {{ med.medicine_name }} (Stock: {{ med.inventory.current_stock|default:0 }})
+                      {% if med.is_controlled %} [Controlled {{ med.regulatory_category }}]{% endif %}
+                    </option>
+                  {% endfor %}
+                </select>
+                <div class="form-text">Maps the external name to an official pharmacy catalogue entry.</div>
+              </div>
+
+              <div class="alert alert-info border-0 rounded-3 small mb-4">
+                <i class="fas fa-lock me-1"></i>
+                <strong>Security Rule:</strong> Approving this order creates a verified prescription. Stock is only deducted when the pharmacist confirms dispensing in the Secure Dispensing Workspace.
+              </div>
+
+              <div class="d-grid gap-2">
+                <button type="submit" name="action" value="verify" class="btn btn-success py-2 rounded-3 fw-semibold">
+                  <i class="fas fa-check-circle me-1"></i> Approve & Verify Order
+                </button>
+              </div>
+            </form>
+
+            <hr class="my-3">
+
+            <!-- Clinical Hold Option -->
+            <form method="POST" class="mb-3">
+              {% csrf_token %}
+              <div class="mb-2">
+                <input type="text" name="hold_reason" class="form-control form-control-sm rounded-3" placeholder="Clinical hold notes (e.g. awaiting dosage clarification)...">
+              </div>
+              <div class="d-grid">
+                <button type="submit" name="action" value="hold" class="btn btn-outline-warning btn-sm py-2 rounded-3 fw-semibold">
+                  <i class="fas fa-pause-circle me-1"></i> Place Order on Clinical Hold
+                </button>
+              </div>
+            </form>
+
+            <hr class="my-3">
+
+            <!-- Rejection Option -->
+            <form method="POST">
+              {% csrf_token %}
+              <div class="mb-3">
+                <label class="form-label text-danger fw-semibold small">Clinical Rejection Reason</label>
+                <textarea name="rejection_reason" class="form-control rounded-3" rows="2" placeholder="e.g. Contraindication, out of stock, dosage clarification needed..."></textarea>
+              </div>
+              <div class="d-grid">
+                <button type="submit" name="action" value="reject" class="btn btn-outline-danger py-2 rounded-3">
+                  <i class="fas fa-times-circle me-1"></i> Reject Order
+                </button>
+              </div>
+            </form>
+
+          {% elif order.status == 'VERIFIED' %}
+            <div class="alert alert-success border-0 rounded-3 mb-4">
+              <i class="fas fa-check-double me-2"></i>
+              This order has been verified by <strong>{{ order.reviewed_by.username }}</strong> on {{ order.reviewed_at|date:"d M Y H:i" }}.
+            </div>
+            <div class="d-grid">
+              <a href="{% url 'secure_dispensing_workspace' %}?rx={{ order.prescription.prescription_id }}" class="btn btn-primary py-3 rounded-3 fw-semibold">
+                <i class="fas fa-prescription-bottle-alt me-2"></i> Proceed to Secure Dispensing Workspace
+              </a>
+            </div>
+
+          {% elif order.status == 'DISPENSED' %}
+            <div class="alert alert-success border-0 rounded-3 mb-4">
+              <i class="fas fa-circle-check me-2"></i>
+              Dispensing completed. Dispensing Record ID: <strong>{{ order.dispensing_record.dispensing_id }}</strong>.
+            </div>
+            {% if order.dispensing_record %}
+              <a href="/api/v1/fhir/MedicationDispense/{{ order.dispensing_record.dispensing_id }}/" target="_blank" class="btn btn-outline-primary w-100 rounded-3">
+                <i class="fas fa-file-code me-1"></i> View FHIR MedicationDispense Payload
+              </a>
+            {% endif %}
+
+          {% elif order.status == 'REJECTED' %}
+            <div class="alert alert-danger border-0 rounded-3">
+              <strong>Order Rejected:</strong> {{ order.rejection_reason }}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Raw FHIR JSON Payload Accordion -->
+      <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-header bg-white py-3 px-4 border-bottom">
+          <h6 class="fw-bold text-navy mb-0">
+            <i class="fas fa-code text-teal me-2"></i> Raw FHIR R4 JSON Payload
+          </h6>
+        </div>
+        <div class="card-body p-3">
+          <pre class="bg-light p-3 rounded-3 small mb-0 font-monospace" style="max-height: 250px; overflow-y: auto;">{{ order.fhir_payload|pprint }}</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,651 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ medicine.medicine_name }} — Inventory Intelligence Detail{% endblock %}
+
+{% block extra_css %}
+<style>
+  .detail-header { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border-radius: 16px; color: white; }
+  .stat-card { border-radius: 12px; border: 1px solid #e2e8f0; background: #fff; padding: 1rem; }
+  .stat-value { font-size: 1.6rem; font-weight: 700; }
+  .batch-row:hover { background: #f0f9ff; }
+  .exp-badge-normal   { background:#d1fae5; color:#065f46; }
+  .exp-badge-near     { background:#fef3c7; color:#92400e; }
+  .exp-badge-critical { background:#fee2e2; color:#991b1b; }
+  .exp-badge-expired  { background:#f1f5f9; color:#475569; }
+  
+  .nav-tabs .nav-link { font-weight: 600; color: #64748b; border: none; border-bottom: 3px solid transparent; padding: 0.75rem 1.25rem; }
+  .nav-tabs .nav-link.active { color: #0f172a; border-bottom-color: #0d9488; background: transparent; }
+  .health-badge-card { border-radius: 12px; padding: 1rem; border-left: 5px solid; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 px-4">
+
+  <!-- Breadcrumb -->
+  <nav class="mb-3" style="font-size:.85rem;">
+    <a href="{% url 'inventory_dashboard' %}" class="text-teal text-decoration-none"><i class="fas fa-boxes-stacked me-1"></i>Inventory</a>
+    <span class="text-muted mx-2">/</span>
+    <span class="text-muted">{{ medicine.medicine_name }}</span>
+  </nav>
+
+  <!-- Medicine Header Card -->
+  <div class="detail-header p-4 mb-4 d-flex align-items-center gap-4 flex-wrap">
+    {% if medicine.image %}
+      <img src="{{ medicine.image.url }}" alt="{{ medicine.medicine_name }}" class="rounded-3" style="width:80px;height:80px;object-fit:cover;border:3px solid rgba(255,255,255,.2);">
+    {% else %}
+      <div class="rounded-3 d-flex align-items-center justify-content-center" style="width:80px;height:80px;background:rgba(255,255,255,.1);border:2px dashed rgba(255,255,255,.3);">
+        <i class="fas fa-pills fa-2x" style="color:rgba(255,255,255,.6);"></i>
+      </div>
+    {% endif %}
+    <div class="flex-grow-1">
+      <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+        <h2 class="fw-bold mb-0 text-white">{{ medicine.medicine_name }}</h2>
+        <span class="badge bg-light text-dark small">{{ medicine.dosage_form }}</span>
+        {% if risk_score.level == 'CRITICAL' %}
+        <span class="badge bg-danger">Risk Score: {{ risk_score.score }}/100 (Critical)</span>
+        {% elif risk_score.level == 'HIGH' %}
+        <span class="badge bg-warning text-dark">Risk Score: {{ risk_score.score }}/100 (High)</span>
+        {% else %}
+        <span class="badge bg-success">Risk Score: {{ risk_score.score }}/100 (Low)</span>
+        {% endif %}
+      </div>
+      <div class="d-flex flex-wrap gap-3" style="font-size:.87rem; color:rgba(255,255,255,.75);">
+        <span><i class="fas fa-flask me-1"></i>{{ medicine.generic_name }}</span>
+        <span><i class="fas fa-tag me-1"></i>{{ medicine.category.name }}</span>
+        {% if medicine.manufacturer %}<span><i class="fas fa-industry me-1"></i>{{ medicine.manufacturer }}</span>{% endif %}
+        {% if medicine.barcode %}<span><i class="fas fa-barcode me-1"></i>{{ medicine.barcode }}</span>{% endif %}
+        <span><i class="fas fa-capsules me-1"></i>{{ medicine.strength }}</span>
+      </div>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <a href="{% url 'add_stock' %}?medicine={{ medicine.pk }}" class="btn btn-success btn-sm rounded-pill px-3"><i class="fas fa-plus me-1"></i>Add Stock</a>
+      <a href="{% url 'adjust_stock' %}?medicine={{ medicine.pk }}" class="btn btn-outline-light btn-sm rounded-pill px-3"><i class="fas fa-sliders-h me-1"></i>Adjust</a>
+    </div>
+  </div>
+
+  <!-- Key Inventory & Intelligence Stats -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-lg-2">
+      <div class="stat-card text-center">
+        <div class="stat-value {% if inventory.stock_status == 'OUT_OF_STOCK' %}text-danger{% elif inventory.stock_status == 'LOW_STOCK' or inventory.stock_status == 'CRITICAL' %}text-warning{% else %}text-navy{% endif %}">{{ inventory.current_stock }}</div>
+        <div class="text-muted small">Current Stock</div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-2">
+      <div class="stat-card text-center">
+        <div class="stat-value text-teal">
+          {% if health_info.days_of_stock is not None and health_info.days_of_stock < 999 %}
+            {{ health_info.days_of_stock }}d
+          {% else %}
+            &infin;
+          {% endif %}
+        </div>
+        <div class="text-muted small">Days of Stock</div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-2">
+      <div class="stat-card text-center">
+        <div class="stat-value text-success">{{ consumption_analytics.daily_avg_30d|default:"0.0" }}</div>
+        <div class="text-muted small">Daily Run Rate (30d)</div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-2">
+      <div class="stat-card text-center">
+        <div class="stat-value text-purple">{{ multi_forecast.forecast_30d|default:inventory.reorder_level }}</div>
+        <div class="text-muted small">AI 30D Forecast</div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-2">
+      <div class="stat-card text-center">
+        <div class="stat-value text-orange">{{ inventory.reorder_level }}</div>
+        <div class="text-muted small">Reorder Level</div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-2">
+      <div class="stat-card text-center">
+        <div class="stat-value text-muted">{{ inventory.safety_stock }}</div>
+        <div class="text-muted small">Safety Buffer</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Health Diagnosis Banner -->
+  <div class="alert bg-white border shadow-sm rounded-4 mb-4 d-flex align-items-center justify-content-between flex-wrap gap-2">
+    <div class="d-flex align-items-center gap-3">
+      <span class="badge bg-{{ health_info.badge_color }} fs-6 py-2 px-3">{{ health_info.status }}</span>
+      <span class="text-secondary small mb-0">{{ health_info.explanation }}</span>
+    </div>
+    {% if multi_forecast.explanation %}
+    <span class="text-muted small fst-italic"><i class="fas fa-robot text-purple me-1"></i>{{ multi_forecast.explanation }}</span>
+    {% endif %}
+  </div>
+
+  <!-- Navigation Tabs for Detailed Modules -->
+  <ul class="nav nav-tabs mb-4" id="medicineTabs" role="tablist">
+    <li class="nav-item">
+      <button class="nav-link active" id="batches-tab" data-bs-toggle="tab" data-bs-target="#batches-pane" type="button"><i class="fas fa-boxes-stacked me-1"></i>Batches & Stock</button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" id="optimization-tab" data-bs-toggle="tab" data-bs-target="#optimization-pane" type="button"><i class="fas fa-robot me-1"></i>Optimization Flow</button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" id="consumption-tab" data-bs-toggle="tab" data-bs-target="#consumption-pane" type="button"><i class="fas fa-chart-pie me-1"></i>Consumption Velocity</button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" id="forecast-tab" data-bs-toggle="tab" data-bs-target="#forecast-pane" type="button"><i class="fas fa-brain me-1"></i>Multi-Horizon AI Forecast</button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" id="suppliers-tab" data-bs-toggle="tab" data-bs-target="#suppliers-pane" type="button"><i class="fas fa-building-flag me-1"></i>Supplier Intelligence</button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#history-pane" type="button"><i class="fas fa-timeline me-1"></i>Movement & Audit</button>
+    </li>
+  </ul>
+
+  <!-- Tab Contents -->
+  <div class="tab-content" id="medicineTabsContent">
+
+    <!-- Tab 1: Batches & Stock -->
+    <div class="tab-pane fade show active" id="batches-pane">
+      <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-header bg-white border-0 py-3">
+          <h6 class="fw-bold text-navy mb-0"><i class="fas fa-layer-group text-teal me-2"></i>Physical Batch Stock Breakdown ({{ batch_data|length }})</h6>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0 small">
+            <thead class="table-light">
+              <tr>
+                <th class="ps-3">Batch Number</th>
+                <th>Expiry Date</th>
+                <th>Qty Available</th>
+                <th>Unit Cost</th>
+                <th>Selling Price</th>
+                <th>Storage Condition</th>
+                <th class="pe-3">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in batch_data %}
+              {% with b=item.batch %}
+              <tr class="batch-row">
+                <td class="ps-3"><code class="bg-light px-2 py-1 rounded">{{ b.batch_number }}</code></td>
+                <td>
+                  <span class="{% if item.exp_class == 'expired' or item.exp_class == 'critical' %}text-danger fw-bold{% elif item.exp_class == 'near' %}text-warning fw-bold{% else %}text-muted{% endif %}">
+                    {{ b.expiry_date|date:"d M Y" }}
+                  </span>
+                  <div class="text-muted" style="font-size:.72rem;">
+                    {% if item.days_left >= 0 %}{{ item.days_left }} days left{% else %}Expired {{ item.days_left }}d ago{% endif %}
+                  </div>
+                </td>
+                <td class="fw-bold fs-6">{{ b.quantity_available }} units</td>
+                <td>₹{{ b.purchase_price }}</td>
+                <td>₹{{ b.selling_price }}</td>
+                <td class="text-muted">{{ b.storage_condition|default:"Standard Room Temp" }}</td>
+                <td class="pe-3"><span class="badge exp-badge-{{ item.exp_class }}">{{ b.status }}</span></td>
+              </tr>
+              {% endwith %}
+              {% empty %}
+              <tr><td colspan="7" class="text-center py-4 text-muted">No active batches available.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Optimization Flow -->
+    <div class="tab-pane fade" id="optimization-pane">
+      {% if optimization %}
+      <div class="row g-4">
+
+        <!-- Status Banner -->
+        <div class="col-12">
+          <div class="alert border rounded-4 shadow-sm d-flex align-items-start gap-3 p-4
+            {% if optimization.optimization_status == 'URGENT REORDER' %}alert-danger
+            {% elif optimization.optimization_status == 'HIGH STOCKOUT RISK' %}alert-warning
+            {% elif optimization.optimization_status == 'REORDER SOON' %}alert-warning
+            {% elif optimization.optimization_status == 'LOW STOCK' %}alert-info
+            {% elif optimization.optimization_status == 'EXPIRY RISK' %}alert-warning
+            {% elif optimization.optimization_status == 'OVERSTOCK' %}alert-secondary
+            {% else %}alert-success{% endif %}">
+            <i class="fas fa-robot fa-2x mt-1"></i>
+            <div class="flex-grow-1">
+              <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                <span class="fw-bold fs-5">{{ optimization.optimization_status }}</span>
+                <span class="badge bg-dark text-white small">VED: {{ optimization.ved_category }}</span>
+                {% if optimization.is_cold_start %}<span class="badge bg-secondary small">Cold Start</span>{% endif %}
+              </div>
+              <p class="mb-2 small">{{ optimization.reason }}</p>
+              {% if optimization.needs_reorder and request.user.role == 'ADMIN' %}
+              <a href="{% url 'create_purchase_request' %}?medicine={{ medicine.pk }}&qty={{ optimization.recommended_reorder_qty }}"
+                 class="btn btn-danger btn-sm rounded-pill px-3">
+                <i class="fas fa-cart-plus me-1"></i>Create Purchase Request ({{ optimization.recommended_reorder_qty }} units)
+              </a>
+              {% elif optimization.needs_reorder %}
+              <span class="badge bg-danger-subtle text-danger border border-danger">Reorder required — Admin approval needed</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Stock Snapshot -->
+        <div class="col-md-6 col-xl-3">
+          <div class="card border-0 shadow-sm rounded-4 p-3 h-100">
+            <h6 class="fw-bold text-navy mb-3"><i class="fas fa-cubes text-teal me-2"></i>Stock Snapshot</h6>
+            <div class="d-flex justify-content-between py-2 border-bottom small">
+              <span class="text-muted">Physical Stock:</span>
+              <strong>{{ optimization.current_stock }} units</strong>
+            </div>
+            <div class="d-flex justify-content-between py-2 border-bottom small">
+              <span class="text-muted">Usable (non-expired):</span>
+              <strong>{{ optimization.usable_stock }} units</strong>
+            </div>
+            <div class="d-flex justify-content-between py-2 border-bottom small">
+              <span class="text-muted">Pending PO Incoming:</span>
+              <strong class="text-success">{{ optimization.open_po_qty }} units</strong>
+            </div>
+            <div class="d-flex justify-content-between py-2 border-bottom small">
+              <span class="text-muted">Effective Stock:</span>
+              <strong class="text-teal">{{ optimization.effective_stock }} units</strong>
+            </div>
+            {% if optimization.expiry_risk_qty > 0 %}
+            <div class="d-flex justify-content-between py-2 border-bottom small">
+              <span class="text-muted">Near-Expiry (90d):</span>
+              <strong class="text-warning">{{ optimization.expiry_risk_qty }} units</strong>
+            </div>
+            {% endif %}
+            <div class="d-flex justify-content-between py-2 small">
+              <span class="text-muted">Days Until Stockout:</span>
+              <strong>{% if optimization.days_until_stockout %}{{ optimization.days_until_stockout }}d{% else %}&infin;{% endif %}</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Consumption & Trend -->
+        <div class="col-md-6 col-xl-3">
+          <div class="card border-0 shadow-sm rounded-4 p-3 h-100">
+            <h6 class="fw-bold text-navy mb-3"><i class="fas fa-fire-flame-curved text-orange me-2"></i>Consumption & Trend</h6>
+            <div class="d-flex justify-content-between py-2 border-bottom small">
+              <span class="text-muted">Today:</span>
+              <strong>{{ optimization.consumed_today }} units</strong>
+            </div>
+            <div class="d-flex justify-content-between py-2 border-bottom small">
+              <span class="text-muted">7-Day Total:</span>
+              <strong>{{ optimization.consumed_7d }} units</strong>
+            </div>
+            <div class="d-flex justify-content-between py-2 border-bottom small">
+              <span class="text-muted">30-Day Total:</span>
+              <strong class="text-teal">{{ optimization.consumed_30d }} units</strong>
+            </div>
+            <div class="d-flex justify-content-between py-2 border-bottom small">
+              <span class="text-muted">90-Day Total:</span>
+              <strong>{{ optimization.consumed_90d }} units</strong>
+            </div>
+            <div class="d-flex justify-content-between py-2 border-bottom small">
+              <span class="text-muted">Daily Avg (30d):</span>
+              <strong>{{ optimization.daily_avg }} units</strong>
+            </div>
+            <div class="d-flex justify-content-between py-2 small">
+              <span class="text-muted">Demand Trend:</span>
+              <span class="badge
+                {% if optimization.demand_trend == 'INCREASING' %}bg-danger
+                {% elif optimization.demand_trend == 'DECREASING' %}bg-success
+                {% else %}bg-secondary{% endif %}">
+                {{ optimization.demand_trend }}
+                {% if optimization.trend_pct != 0 %}({{ optimization.trend_pct }}%){% endif %}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI Demand Forecast -->
+        <div class="col-md-6 col-xl-3">
+          <div class="card border-0 shadow-sm rounded-4 p-3 h-100">
+            <h6 class="fw-bold text-navy mb-3"><i class="fas fa-wand-magic-sparkles text-purple me-2"></i>AI Demand Forecast</h6>
+            <div class="row g-2 text-center">
+              <div class="col-6">
+                <div class="p-2 bg-light rounded-3">
+                  <div class="text-muted" style="font-size:.7rem;">7-Day</div>
+                  <div class="fw-bold text-navy">{{ optimization.forecast_7d }}</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="p-2 bg-light rounded-3 border border-teal">
+                  <div class="text-teal" style="font-size:.7rem;">30-Day</div>
+                  <div class="fw-bold text-teal">{{ optimization.forecast_30d }}</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="p-2 bg-light rounded-3">
+                  <div class="text-muted" style="font-size:.7rem;">60-Day</div>
+                  <div class="fw-bold text-navy">{{ optimization.forecast_60d }}</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="p-2 bg-light rounded-3">
+                  <div class="text-muted" style="font-size:.7rem;">90-Day</div>
+                  <div class="fw-bold text-navy">{{ optimization.forecast_90d }}</div>
+                </div>
+              </div>
+            </div>
+            <div class="mt-3 small border-top pt-2">
+              <div class="d-flex justify-content-between">
+                <span class="text-muted">Model:</span>
+                <span class="badge bg-purple text-white">{{ optimization.forecast_model }}</span>
+              </div>
+              <div class="d-flex justify-content-between mt-1">
+                <span class="text-muted">Lead Time Demand:</span>
+                <strong>{{ optimization.lead_time_demand }} units</strong>
+              </div>
+              <div class="d-flex justify-content-between mt-1">
+                <span class="text-muted">Supplier Lead Days:</span>
+                <strong>{{ optimization.supplier_lead_days }}d</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Supplier Recommendation -->
+        <div class="col-md-6 col-xl-3">
+          <div class="card border-0 shadow-sm rounded-4 p-3 h-100">
+            <h6 class="fw-bold text-navy mb-3"><i class="fas fa-truck text-primary me-2"></i>Supplier Recommendation</h6>
+            {% if optimization.recommended_supplier %}
+            <div class="p-3 rounded-3 bg-success-subtle border border-success mb-3">
+              <div class="fw-bold text-success">{{ optimization.recommended_supplier.company_name }}</div>
+              <div class="small text-muted mt-1">
+                Unit Price: <strong>&#8377;{{ optimization.estimated_unit_price }}</strong>
+              </div>
+              {% if optimization.recommended_reorder_qty > 0 %}
+              <div class="small text-muted">
+                Est. Total Cost: <strong>&#8377;{{ optimization.estimated_total_cost }}</strong>
+              </div>
+              <div class="small text-muted">
+                Qty Recommended: <strong>{{ optimization.recommended_reorder_qty }} units</strong>
+              </div>
+              {% endif %}
+            </div>
+            {% else %}
+            <div class="alert alert-secondary small mb-3">No suppliers mapped yet.</div>
+            {% endif %}
+
+            {% if optimization.alternative_suppliers %}
+            <div class="small">
+              <div class="text-muted fw-semibold mb-1">Alternative Suppliers:</div>
+              {% for alt in optimization.alternative_suppliers %}
+              <div class="d-flex justify-content-between border-bottom py-1">
+                <span>{{ alt.supplier.company_name }}</span>
+                <span class="text-muted">&#8377;{{ alt.unit_price }} / {{ alt.delivery_days }}d</span>
+              </div>
+              {% endfor %}
+            </div>
+            {% endif %}
+          </div>
+        </div>
+
+      </div><!-- end row -->
+      {% else %}
+      <div class="alert alert-info rounded-4">Optimization data unavailable for this medicine.</div>
+      {% endif %}
+    </div>
+
+        <!-- Tab 2: Consumption Velocity -->
+    <div class="tab-pane fade" id="consumption-pane">
+      <div class="row g-3">
+        <div class="col-md-4">
+          <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+            <h6 class="fw-bold text-navy mb-3"><i class="fas fa-gauge text-teal me-2"></i>Usage Velocities</h6>
+            <div class="d-flex justify-content-between py-2 border-bottom small">
+              <span class="text-muted">7-Day Total:</span>
+              <strong class="text-navy">{{ consumption_analytics.consumed_7d|default:"0" }} units</strong>
+            </div>
+            <div class="d-flex justify-content-between py-2 border-bottom small">
+              <span class="text-muted">14-Day Total:</span>
+              <strong class="text-navy">{{ consumption_analytics.consumed_14d|default:"0" }} units</strong>
+            </div>
+            <div class="d-flex justify-content-between py-2 border-bottom small">
+              <span class="text-muted">30-Day Total:</span>
+              <strong class="text-teal fw-bold">{{ consumption_analytics.consumed_30d|default:"0" }} units</strong>
+            </div>
+            <div class="d-flex justify-content-between py-2 border-bottom small">
+              <span class="text-muted">90-Day Total:</span>
+              <strong class="text-navy">{{ consumption_analytics.consumed_90d|default:"0" }} units</strong>
+            </div>
+            <div class="d-flex justify-content-between py-2 border-bottom small">
+              <span class="text-muted">Data Quality:</span>
+              <span class="badge bg-success-subtle text-success">{{ consumption_analytics.data_quality|default:"GOOD" }}</span>
+            </div>
+            <div class="d-flex justify-content-between py-2 small">
+              <span class="text-muted">Last Movement:</span>
+              <strong>{{ consumption_analytics.last_movement_date|date:"d M Y"|default:"No movement" }}</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-8">
+          <div class="card border-0 shadow-sm rounded-4 p-4">
+            <h6 class="fw-bold text-navy mb-3"><i class="fas fa-chart-column text-primary me-2"></i>Daily Consumption Trend (Last 30 Days)</h6>
+            <canvas id="consumptionDailyChart" style="max-height:220px;"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 3: Multi-Horizon AI Forecast -->
+    <div class="tab-pane fade" id="forecast-pane">
+      <div class="card border-0 shadow-sm rounded-4 p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+          <h6 class="fw-bold text-navy mb-0"><i class="fas fa-wand-magic-sparkles text-purple me-2"></i>Multi-Horizon Demand Predictions</h6>
+          <span class="badge bg-purple text-white">Engine: {{ multi_forecast.model_type }}</span>
+        </div>
+        <p class="text-muted small mb-4">{{ multi_forecast.explanation }}</p>
+
+        <div class="row g-3 text-center mb-4">
+          <div class="col">
+            <div class="p-3 bg-light rounded-3">
+              <div class="text-muted small">7-Day Forecast</div>
+              <div class="fw-bold fs-4 text-navy">{{ multi_forecast.forecast_7d }} units</div>
+            </div>
+          </div>
+          <div class="col">
+            <div class="p-3 bg-light rounded-3">
+              <div class="text-muted small">14-Day Forecast</div>
+              <div class="fw-bold fs-4 text-navy">{{ multi_forecast.forecast_14d }} units</div>
+            </div>
+          </div>
+          <div class="col">
+            <div class="p-3 bg-light rounded-3 border border-teal">
+              <div class="text-teal small fw-bold">30-Day Forecast</div>
+              <div class="fw-bold fs-3 text-teal">{{ multi_forecast.forecast_30d }} units</div>
+            </div>
+          </div>
+          <div class="col">
+            <div class="p-3 bg-light rounded-3">
+              <div class="text-muted small">60-Day Forecast</div>
+              <div class="fw-bold fs-4 text-navy">{{ multi_forecast.forecast_60d }} units</div>
+            </div>
+          </div>
+          <div class="col">
+            <div class="p-3 bg-light rounded-3">
+              <div class="text-muted small">90-Day Forecast</div>
+              <div class="fw-bold fs-4 text-navy">{{ multi_forecast.forecast_90d }} units</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="alert bg-light border text-muted small mb-0">
+          <strong>Cold Start Safety Notice:</strong> If transaction volume is below 5 records, the engine falls back to rule-based buffer models to prevent procurement shortfalls.
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 4: Supplier Intelligence -->
+    <div class="tab-pane fade" id="suppliers-pane">
+      <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-header bg-white border-0 py-3">
+          <h6 class="fw-bold text-navy mb-0"><i class="fas fa-truck text-primary me-2"></i>Ranked Suppliers for {{ medicine.medicine_name }}</h6>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0 small">
+            <thead class="table-light">
+              <tr>
+                <th class="ps-3">Rank</th>
+                <th>Supplier Company</th>
+                <th>Unit Price</th>
+                <th>Lead Time</th>
+                <th>Composite Score</th>
+                <th>Status</th>
+                <th class="pe-3">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for s in supplier_rankings %}
+              <tr>
+                <td class="ps-3">
+                  {% if forloop.first %}
+                  <span class="badge bg-warning text-dark"><i class="fas fa-crown me-1"></i>#1 Best</span>
+                  {% else %}
+                  <span class="text-muted">#{{ forloop.counter }}</span>
+                  {% endif %}
+                </td>
+                <td class="fw-bold text-navy">{{ s.supplier.company_name }}</td>
+                <td class="fw-bold text-success">₹{{ s.unit_price }}</td>
+                <td>{{ s.delivery_days }} days</td>
+                <td>
+                  <div class="progress" style="height: 6px; width: 100px;">
+                    <div class="progress-bar bg-teal" role="progressbar" style="width: {{ s.composite_score }}%;"></div>
+                  </div>
+                  <span class="text-muted" style="font-size:0.7rem;">{{ s.composite_score }}/100</span>
+                </td>
+                <td>
+                  {% if s.is_available %}
+                  <span class="badge bg-success-subtle text-success">Available</span>
+                  {% else %}
+                  <span class="badge bg-secondary-subtle text-secondary">Unavailable</span>
+                  {% endif %}
+                </td>
+                <td class="pe-3">
+                  <a href="{% url 'supplier_detail' s.supplier.id %}" class="btn btn-sm btn-outline-primary py-0 px-2">View Supplier</a>
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="7" class="text-center py-4 text-muted">No suppliers mapped for this medicine yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 5: Movement & Audit -->
+    <div class="tab-pane fade" id="history-pane">
+      <div class="row g-4">
+        <!-- Stock Movement Chart -->
+        <div class="col-12">
+          <div class="card border-0 shadow-sm rounded-4 p-4">
+            <h6 class="fw-bold text-navy mb-3"><i class="fas fa-chart-line text-teal me-2"></i>Stock Movement Velocity (Last 30 Days)</h6>
+            <canvas id="stockTrendChart" style="max-height:220px;"></canvas>
+          </div>
+        </div>
+
+        <!-- Recent Audit Log -->
+        <div class="col-12">
+          <div class="card border-0 shadow-sm rounded-4">
+            <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+              <h6 class="fw-bold text-navy mb-0"><i class="fas fa-history text-teal me-2"></i>Recent Stock Transactions</h6>
+              <a href="{% url 'stock_history' %}?medicine={{ medicine.pk }}" class="btn btn-outline-secondary btn-sm">Full Transaction History</a>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 small">
+                  <thead class="table-light">
+                    <tr>
+                      <th class="ps-3">Type</th>
+                      <th>Quantity</th>
+                      <th>Stock Change</th>
+                      <th>Reference</th>
+                      <th>Performed By</th>
+                      <th class="pe-3">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for txn in recent_transactions %}
+                    <tr>
+                      <td class="ps-3">
+                        <span class="badge {% if txn.transaction_type in 'PURCHASE,OPENING,RETURN' %}bg-success{% elif txn.transaction_type in 'SALE,DISPENSE,DAMAGE,EXPIRY' %}bg-danger{% else %}bg-secondary{% endif %}">
+                          {{ txn.get_transaction_type_display }}
+                        </span>
+                      </td>
+                      <td class="fw-bold">{{ txn.quantity }}</td>
+                      <td>{{ txn.previous_stock }} &rarr; {{ txn.new_stock }}</td>
+                      <td class="text-muted">{{ txn.reference_number|default:"—" }}</td>
+                      <td>{{ txn.performed_by.username|default:"System" }}</td>
+                      <td class="text-muted pe-3">{{ txn.created_at|date:"d M Y H:i" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6" class="text-center py-4 text-muted">No transactions recorded yet.</td></tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Stock Trend Chart
+const ctx = document.getElementById('stockTrendChart');
+if (ctx) {
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: {{ chart_labels|safe }},
+      datasets: [
+        { label: 'Purchases / Received', data: {{ chart_purchases|safe }}, backgroundColor: 'rgba(16,185,129,.6)', borderRadius: 4 },
+        { label: 'Sales / Dispensed', data: {{ chart_sales|safe }}, backgroundColor: 'rgba(239,68,68,.5)', borderRadius: 4 },
+        { label: 'Damage', data: {{ chart_damage|safe }}, backgroundColor: 'rgba(249,115,22,.5)', borderRadius: 4 },
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { position: 'top' } },
+      scales: { x: { stacked: false }, y: { beginAtZero: true } }
+    }
+  });
+}
+
+// Daily Consumption Trend Chart
+const cCtx = document.getElementById('consumptionDailyChart');
+if (cCtx) {
+  const trendData = {{ consumption_trend|safe }};
+  new Chart(cCtx, {
+    type: 'line',
+    data: {
+      labels: trendData.map(d => d.date),
+      datasets: [{
+        label: 'Units Consumed',
+        data: trendData.map(d => d.quantity),
+        borderColor: '#0d9488',
+        backgroundColor: 'rgba(13, 148, 136, 0.1)',
+        fill: true,
+        tension: 0.3
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true } }
+    }
+  });
+}
+</script>
+{% endblock %}

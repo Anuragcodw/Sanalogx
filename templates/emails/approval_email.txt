@@ -1,0 +1,36 @@
+Sanalogx | Pharmacist Account Approved
+=========================================
+
+Dear {{ user.full_name|default:user.username }},
+
+We are pleased to inform you that your application for pharmacist access to the Sanalogx Hospital Pharmacy Management Platform has been formally verified and approved by the hospital administration.
+
+Authorized Credentials:
+- Pharmacist ID: {{ user.registration_id }}
+- System Username: {{ user.username }}
+- Registered Email: {{ user.email }}
+- Status: Approved & Active
+
+{% if setup_url %}
+Password Setup Link:
+{{ setup_url }}
+(This single-use onboarding link expires in 48 hours.)
+{% elif temp_password %}
+Temporary Password: {{ temp_password }}
+(You will be required to change your password upon initial login.)
+{% elif forgot_password_url %}
+Password Reset (if needed):
+{{ forgot_password_url }}
+{% endif %}
+
+Sign In to Workspace:
+{{ login_url }}
+
+Operating Guidelines:
+1. Never share your credentials with colleagues or unverified personnel.
+2. All dispensing transactions, stock adjustments, and intelligence reports are tracked in the immutable audit log.
+3. Always sign out of shared clinical pharmacy terminals after completing your shift.
+
+---
+Sanalogx Pharmacy Operations & Intelligence System
+Automated Notification — Please do not reply directly.

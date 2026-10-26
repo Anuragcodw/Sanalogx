@@ -1,0 +1,237 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Report Preview — {{ record.report_id }} — Sanalogx{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 px-lg-4">
+    <!-- Header Action Bar (Hidden when printing) -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4 d-print-none">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1 small text-muted">
+                    <li class="breadcrumb-item"><a href="{% url 'reports_center' %}" class="text-decoration-none text-teal"><i class="fas fa-file-invoice me-1"></i> Report Center</a></li>
+                    <li class="breadcrumb-item active">Preview</li>
+                </ol>
+            </nav>
+            <h3 class="fw-bold text-navy mb-0">
+                <i class="fas fa-file-contract text-teal me-2"></i> Report Preview: {{ record.report_id }}
+            </h3>
+            <span class="badge bg-teal mt-1">{{ report_type_display }}</span>
+        </div>
+
+        <!-- Export Buttons Toolbar -->
+        <div class="d-flex flex-wrap gap-2">
+            <button onclick="window.print()" class="btn btn-navy text-white fw-bold py-2 px-3">
+                <i class="fas fa-print me-1"></i> Print Report
+            </button>
+            <a href="{% url 'download_report' record.report_id 'pdf' %}" class="btn btn-danger text-white fw-bold py-2 px-3">
+                <i class="fas fa-file-pdf me-1"></i> Download PDF
+            </a>
+            <a href="{% url 'download_report' record.report_id 'excel' %}" class="btn btn-success text-white fw-bold py-2 px-3">
+                <i class="fas fa-file-excel me-1"></i> Export Excel
+            </a>
+            <a href="{% url 'download_report' record.report_id 'csv' %}" class="btn btn-secondary text-white fw-bold py-2 px-3">
+                <i class="fas fa-file-csv me-1"></i> Export CSV
+            </a>
+            {% if user_role == 'ADMIN' %}
+            <button type="button" onclick="openEmailModal()" class="btn btn-teal text-white fw-bold py-2 px-3">
+                <i class="fas fa-paper-plane me-1"></i> Email Report
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Official Report Document Paper (Styled for Print & Screen) -->
+    <div class="card card-medivault bg-white shadow-lg border-0 p-4 p-md-5 mx-auto" style="max-width: 1000px;" id="printableReportDoc">
+
+        <!-- Report Header Header block -->
+        <div class="d-flex justify-content-between align-items-start border-bottom pb-4 mb-4">
+            <div>
+                <h2 class="fw-bold text-navy mb-1" style="font-family: 'Outfit', sans-serif;">Sanalogx</h2>
+                <p class="text-teal fw-bold mb-0 small">Hospital Pharmacy Stock Optimization</p>
+                <p class="text-muted extra-small mb-0">Official Regulatory & Management Report</p>
+            </div>
+            <div class="text-end">
+                <span class="badge bg-navy fs-6 mb-1 font-monospace">{{ record.report_id }}</span>
+                <p class="text-muted small mb-0">Generated: {{ record.generated_at|date:"d B Y H:i UTC" }}</p>
+                <p class="text-muted extra-small mb-0">By: {{ record.generated_by.username|default:"System" }}</p>
+            </div>
+        </div>
+
+        <!-- Meta Summary Grid -->
+        <div class="row g-3 p-3 bg-light rounded-3 mb-4">
+            <div class="col-md-4">
+                <span class="text-muted extra-small font-uppercase fw-bold d-block">Report Type</span>
+                <strong class="text-navy small">{{ report_type_display }}</strong>
+            </div>
+            <div class="col-md-4">
+                <span class="text-muted extra-small font-uppercase fw-bold d-block">Reporting Period</span>
+                <strong class="text-navy small">
+                    {% if record.date_from %}{{ record.date_from|date:"d B Y" }} — {{ record.date_to|date:"d B Y" }}{% else %}All Time{% endif %}
+                </strong>
+            </div>
+            <div class="col-md-4">
+                <span class="text-muted extra-small font-uppercase fw-bold d-block">Verification Code</span>
+                <strong class="text-teal small font-monospace">{{ record.verification_token|truncatechars:18 }}</strong>
+            </div>
+        </div>
+
+        <!-- Summary KPI Cards Section -->
+        {% if summary %}
+        <div class="mb-4">
+            <h6 class="fw-bold text-navy text-uppercase extra-small mb-3 letter-spacing-1">Summary KPI Indicators</h6>
+            <div class="row g-3">
+                {% for key, val in summary.items %}
+                <div class="col-6 col-md-3">
+                    <div class="p-3 bg-white border rounded shadow-sm">
+                        <span class="text-muted extra-small font-uppercase fw-bold d-block mb-1">{{ key|cut:"_" }}</span>
+                        <h4 class="fw-bold text-teal mb-0">{{ val }}</h4>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Main Report Data Table -->
+        <div class="mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold text-navy text-uppercase extra-small mb-0 letter-spacing-1">Report Data Records</h6>
+                <span class="text-muted extra-small">Showing {{ data_rows|length }} of {{ total_rows }} records</span>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-bordered align-middle mb-0 extra-small">
+                    <thead class="bg-navy text-white fw-bold">
+                        <tr>
+                            {% for col in columns %}
+                            <th class="py-2 px-2 text-center">{{ col }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in data_rows %}
+                        <tr>
+                            {% for val in row.values %}
+                            <td class="py-2 px-2 text-center">{{ val }}</td>
+                            {% endfor %}
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="{{ columns|length }}" class="text-center py-4 text-muted">
+                                No records found for the selected period.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if total_rows > 50 %}
+            <p class="text-muted extra-small mt-2 text-center d-print-none">
+                <i class="fas fa-info-circle me-1"></i> Preview is capped at 50 records. Download full PDF/Excel/CSV for complete {{ total_rows }} records.
+            </p>
+            {% endif %}
+        </div>
+
+        <!-- Official Report Verification Footer -->
+        <div class="border-top pt-4 mt-4 d-flex justify-content-between align-items-center">
+            <div>
+                <p class="text-muted extra-small mb-1">Generated automatically by Sanalogx Hospital Pharmacy System.</p>
+                <p class="text-muted extra-small mb-0">Report ID: <strong>{{ record.report_id }}</strong> | Confidential Pharmacy Record</p>
+            </div>
+            <div class="text-end">
+                <a href="{{ record.get_verification_url }}" target="_blank" class="text-decoration-none">
+                    <span class="badge bg-teal p-2"><i class="fas fa-qrcode me-1"></i> QR Verified</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Email Modal -->
+<div class="modal fade" id="emailReportModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form id="emailReportForm" onsubmit="submitEmailReport(event)" class="modal-content border-0 shadow-lg">
+            {% csrf_token %}
+            <div class="modal-header bg-navy text-white py-3 px-4">
+                <h5 class="modal-title fw-bold"><i class="fas fa-paper-plane text-teal me-2"></i> Email Report</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body p-4">
+                <div class="mb-3">
+                    <label class="form-label fw-bold text-navy small">Authorized Recipient Email</label>
+                    <input type="email" name="email" id="emailInput" class="form-control" required placeholder="pharmacist@hospital.org">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold text-navy small">Attachment Format</label>
+                    <select name="format" class="form-select">
+                        <option value="PDF">PDF Document (with QR Verification)</option>
+                        <option value="EXCEL">Excel Spreadsheet</option>
+                        <option value="CSV">CSV Text File</option>
+                    </select>
+                </div>
+
+                <div id="emailFeedback" class="alert d-none small"></div>
+            </div>
+
+            <div class="modal-footer bg-light p-3">
+                <button type="button" class="btn btn-light border px-3" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" id="emailSubmitBtn" class="btn btn-teal text-white fw-bold px-4">
+                    <i class="fas fa-paper-plane me-1"></i> Send Email
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openEmailModal() {
+    let modal = new bootstrap.Modal(document.getElementById('emailReportModal'));
+    modal.show();
+}
+
+function submitEmailReport(e) {
+    e.preventDefault();
+    let form = document.getElementById('emailReportForm');
+    let btn = document.getElementById('emailSubmitBtn');
+    let feedback = document.getElementById('emailFeedback');
+
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fas fa-spinner fa-spin me-1"></i> Sending...`;
+    feedback.classList.add('d-none');
+
+    let formData = new FormData(form);
+
+    fetch('{% url "email_report" record.report_id %}', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fas fa-paper-plane me-1"></i> Send Email`;
+        feedback.classList.remove('d-none');
+        if (data.success) {
+            feedback.className = 'alert alert-success small';
+            feedback.innerText = data.message;
+            setTimeout(() => { bootstrap.Modal.getInstance(document.getElementById('emailReportModal')).hide(); }, 1800);
+        } else {
+            feedback.className = 'alert alert-danger small';
+            feedback.innerText = data.error || 'Failed to send email.';
+        }
+    })
+    .catch(err => {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fas fa-paper-plane me-1"></i> Send Email`;
+        feedback.classList.remove('d-none');
+        feedback.className = 'alert alert-danger small';
+        feedback.innerText = 'Network error while sending email.';
+    });
+}
+</script>
+{% endblock %}

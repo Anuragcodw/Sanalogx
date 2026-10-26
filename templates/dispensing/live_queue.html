@@ -1,0 +1,177 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Pharmacist Live Requests Queue — Sanalogx{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 px-lg-4">
+    <!-- Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1 small text-muted">
+                    <li class="breadcrumb-item"><a href="{% url 'inventory_dashboard' %}" class="text-decoration-none text-teal"><i class="fas fa-boxes-stacked me-1"></i> Inventory</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Live Request Queue</li>
+                </ol>
+            </nav>
+            <h3 class="fw-bold text-navy mb-0"><i class="fas fa-list-check text-teal me-2"></i> Pharmacist Live Medicine Requests</h3>
+            <p class="text-muted small mb-0">Real-time incoming patient medicine requests from pharmacy counter QR code scans.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'pharmacy_qr_display' %}" class="btn btn-outline-teal py-2 px-3">
+                <i class="fas fa-qrcode me-1"></i> View Counter QR
+            </a>
+            <button onclick="window.location.reload()" class="btn btn-medivault-primary py-2 px-3">
+                <i class="fas fa-arrows-rotate me-1"></i> Refresh Queue
+            </button>
+        </div>
+    </div>
+
+    <!-- KPI Summary Cards Grid -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-2 col-6">
+            <div class="card card-medivault p-3 bg-white shadow-sm border-start border-4 border-primary">
+                <span class="text-muted extra-small font-uppercase fw-bold d-block mb-1">Today's Total</span>
+                <h3 class="fw-bold text-navy mb-0">{{ today_requests }}</h3>
+            </div>
+        </div>
+
+        <div class="col-md-2 col-6">
+            <div class="card card-medivault p-3 bg-white shadow-sm border-start border-4 border-warning">
+                <span class="text-muted extra-small font-uppercase fw-bold d-block mb-1">Pending</span>
+                <h3 class="fw-bold text-amber mb-0">{{ pending_count }}</h3>
+            </div>
+        </div>
+
+        <div class="col-md-2 col-6">
+            <div class="card card-medivault p-3 bg-white shadow-sm border-start border-4 border-info">
+                <span class="text-muted extra-small font-uppercase fw-bold d-block mb-1">Under Review</span>
+                <h3 class="fw-bold text-info mb-0">{{ under_review_count }}</h3>
+            </div>
+        </div>
+
+        <div class="col-md-2 col-6">
+            <div class="card card-medivault p-3 bg-white shadow-sm border-start border-4 border-teal">
+                <span class="text-muted extra-small font-uppercase fw-bold d-block mb-1">Processing</span>
+                <h3 class="fw-bold text-teal mb-0">{{ processing_count }}</h3>
+            </div>
+        </div>
+
+        <div class="col-md-2 col-6">
+            <div class="card card-medivault p-3 bg-white shadow-sm border-start border-4 border-success">
+                <span class="text-muted extra-small font-uppercase fw-bold d-block mb-1">Completed</span>
+                <h3 class="fw-bold text-success mb-0">{{ completed_count }}</h3>
+            </div>
+        </div>
+
+        <div class="col-md-2 col-6">
+            <div class="card card-medivault p-3 bg-white shadow-sm border-start border-4 border-danger">
+                <span class="text-muted extra-small font-uppercase fw-bold d-block mb-1">Rejected</span>
+                <h3 class="fw-bold text-danger mb-0">{{ rejected_count }}</h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter & Search Controls -->
+    <div class="card card-medivault bg-white shadow-sm p-3 mb-4">
+        <form method="GET" class="row g-2 align-items-center">
+            <div class="col-md-4">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-light border-end-0"><i class="fas fa-search text-muted"></i></span>
+                    <input type="text" name="search" class="form-control border-start-0" placeholder="Search Request ID, Patient Name, Mobile..." value="{{ search_q }}">
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">All Request Statuses</option>
+                    <option value="PENDING" {% if status_filter == 'PENDING' %}selected{% endif %}>Pending</option>
+                    <option value="UNDER_REVIEW" {% if status_filter == 'UNDER_REVIEW' %}selected{% endif %}>Under Review</option>
+                    <option value="PROCESSING" {% if status_filter == 'PROCESSING' %}selected{% endif %}>Processing</option>
+                    <option value="PARTIALLY_COMPLETED" {% if status_filter == 'PARTIALLY_COMPLETED' %}selected{% endif %}>Partially Completed</option>
+                    <option value="COMPLETED" {% if status_filter == 'COMPLETED' %}selected{% endif %}>Completed</option>
+                    <option value="REJECTED" {% if status_filter == 'REJECTED' %}selected{% endif %}>Rejected</option>
+                </select>
+            </div>
+
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-teal btn-sm w-100"><i class="fas fa-filter me-1"></i> Apply Filter</button>
+            </div>
+
+            {% if status_filter or search_q %}
+            <div class="col-md-2">
+                <a href="{% url 'live_requests_queue' %}" class="btn btn-outline-secondary btn-sm w-100"><i class="fas fa-times me-1"></i> Reset</a>
+            </div>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- Requests Table Card -->
+    <div class="card card-medivault bg-white shadow-sm border-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light text-navy small fw-bold">
+                    <tr>
+                        <th class="ps-3 py-3">REQUEST ID</th>
+                        <th class="py-3">PATIENT DETAILS</th>
+                        <th class="py-3">ITEMS</th>
+                        <th class="py-3">SUBMITTED TIME</th>
+                        <th class="py-3">STATUS</th>
+                        <th class="pe-3 py-3 text-end">ACTIONS</th>
+                    </tr>
+                </thead>
+                <tbody class="small">
+                    {% for req in requests_list %}
+                        <tr>
+                            <td class="ps-3 fw-bold text-navy">
+                                <a href="{% url 'request_detail' req.request_id %}" class="text-decoration-none text-teal">
+                                    {{ req.request_id }}
+                                </a>
+                            </td>
+                            <td>
+                                <div class="fw-bold text-navy">{{ req.patient_name }}</div>
+                                <span class="text-muted extra-small">UHID: {{ req.patient_id }} | Phone: {{ req.mobile_number }}</span>
+                            </td>
+                            <td>
+                                <span class="badge badge-soft-teal py-1 px-2">
+                                    <i class="fas fa-pills me-1"></i> {{ req.total_items }} Medicines
+                                </span>
+                            </td>
+                            <td class="text-muted">
+                                {{ req.created_at|date:"d M Y, H:i" }}
+                            </td>
+                            <td>
+                                {% if req.request_status == 'PENDING' %}
+                                    <span class="badge bg-amber text-dark"><i class="fas fa-clock me-1"></i> PENDING</span>
+                                {% elif req.request_status == 'UNDER_REVIEW' %}
+                                    <span class="badge bg-info text-white"><i class="fas fa-eye me-1"></i> UNDER REVIEW</span>
+                                {% elif req.request_status == 'PROCESSING' %}
+                                    <span class="badge bg-primary text-white"><i class="fas fa-spinner fa-spin me-1"></i> PROCESSING</span>
+                                {% elif req.request_status == 'PARTIALLY_COMPLETED' %}
+                                    <span class="badge bg-teal text-white"><i class="fas fa-circle-half-stroke me-1"></i> PARTIAL</span>
+                                {% elif req.request_status == 'COMPLETED' %}
+                                    <span class="badge bg-success text-white"><i class="fas fa-circle-check me-1"></i> COMPLETED</span>
+                                {% elif req.request_status == 'REJECTED' %}
+                                    <span class="badge bg-danger text-white"><i class="fas fa-circle-xmark me-1"></i> REJECTED</span>
+                                {% endif %}
+                            </td>
+                            <td class="pe-3 text-end">
+                                <a href="{% url 'request_detail' req.request_id %}" class="btn btn-teal btn-sm py-1 px-3">
+                                    <i class="fas fa-barcode me-1"></i> Process Request
+                                </a>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center py-5 text-muted">
+                                <i class="fas fa-inbox fs-1 mb-2 text-secondary opacity-50 d-block"></i>
+                                No medicine requests found in queue matching criteria.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

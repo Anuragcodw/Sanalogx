@@ -1,0 +1,40 @@
+{% extends 'emails/base_email.html' %}
+
+{% block email_title %}Sanalogx | Username Recovery{% endblock %}
+
+{% block email_content %}
+<div style="text-align: center; margin-bottom: 24px;">
+  <span style="display: inline-block; width: 48px; height: 48px; line-height: 48px; background-color: #E6FFFA; color: #00A896; border-radius: 50%; font-size: 24px;">
+    &#128100;
+  </span>
+  <h2 style="margin: 12px 0 6px 0; color: #0F2744; font-size: 22px; font-weight: 700;">
+    Username Recovery Assistance
+  </h2>
+  <p style="margin: 0; font-size: 14px; color: #64748B;">
+    Your administrative recovery request has been processed.
+  </p>
+</div>
+
+<p style="margin: 0 0 16px 0; font-size: 14px; color: #475569; line-height: 1.6;">
+  Dear <strong>{{ user.full_name|default:user.username }}</strong>,
+</p>
+<p style="margin: 0 0 20px 0; font-size: 14px; color: #475569; line-height: 1.6;">
+  Hospital administration has reviewed and approved your username recovery request. Here is your official registered username:
+</p>
+
+<!-- Username Box -->
+<div style="background-color: #F8FAFC; border: 1px solid #CBD5E1; border-radius: 8px; padding: 20px; text-align: center; margin-bottom: 24px;">
+  <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748B; letter-spacing: 1.5px; margin-bottom: 6px;">Your Authorized Username</div>
+  <div style="font-family: monospace; font-size: 22px; font-weight: 800; color: #00A896; letter-spacing: 1px;">{{ user.username }}</div>
+</div>
+
+<div style="text-align: center; margin-bottom: 24px;">
+  <a href="{{ base_url }}/auth/login/" style="display: inline-block; background-color: #0F2744; color: #FFFFFF; font-weight: 700; font-size: 14px; padding: 12px 28px; border-radius: 6px; text-decoration: none;">
+    Proceed to Sign In &rarr;
+  </a>
+</div>
+
+<p style="margin: 0; font-size: 13px; color: #64748B; line-height: 1.5;">
+  If you have also forgotten your password, you may initiate a secure password reset from the sign-in portal.
+</p>
+{% endblock %}

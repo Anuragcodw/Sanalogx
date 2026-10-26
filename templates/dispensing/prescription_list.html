@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Prescription Orders — Sanalogx{% endblock %}
+
+{% block content %}
+<div class="ambient-healthcare-bg" style="min-height:100vh;">
+<div class="container-fluid py-4 px-lg-4" style="position:relative;z-index:1;">
+
+    <!-- Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1" style="font-size:0.78rem;">
+                    <li class="breadcrumb-item">
+                        <a href="{% url 'secure_dispensing_workspace' %}" class="text-decoration-none" style="color:#00A99D;">
+                            <i class="fas fa-prescription-bottle-medical me-1"></i>Dispensing
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item active text-muted">Prescriptions</li>
+                </ol>
+            </nav>
+            <h3 class="fw-bold mb-0" style="color:#0F2744;">
+                <i class="fas fa-file-prescription me-2" style="color:#00A99D;"></i> Doctor Prescriptions &amp; Medication Orders
+            </h3>
+            <p class="text-muted small mb-0 mt-1">Pharmacist prescription verification, dosage checking, and FEFO dispensing allocation workspace.</p>
+        </div>
+            {% if user.role == 'PHARMACIST' %}
+            <a href="{% url 'secure_dispensing_workspace' %}" class="btn btn-sm fw-semibold"
+               style="background:#FFFFFF;color:#0F2744;border:1px solid #CBD5E1;border-radius:9px;padding:0.45rem 1rem;">
+                <i class="fas fa-shield-virus me-1"></i> Dispensing Workspace
+            </a>
+            {% endif %}
+            <a href="{% url 'create_prescription' %}" class="btn btn-sm fw-semibold text-white"
+               style="background:linear-gradient(135deg,#00A99D,#008779);border:none;border-radius:9px;padding:0.5rem 1.1rem;box-shadow:0 2px 6px rgba(0,169,157,0.25);">
+                <i class="fas fa-plus-circle me-1"></i> Record New Prescription
+            </a>
+        </div>
+    </div>
+
+    <!-- Summary KPI Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6">
+            <div class="kpi-card-compact">
+                <div>
+                    <div class="kpi-label">Pending Verification</div>
+                    <div class="kpi-value" style="color:#F59E0B;">{{ pending_count }}</div>
+                </div>
+                <div class="kpi-icon-pill" style="background:rgba(245,158,11,0.10);color:#F59E0B;">
+                    <i class="fas fa-clock"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6">
+            <div class="kpi-card-compact">
+                <div>
+                    <div class="kpi-label">Verified Prescriptions</div>
+                    <div class="kpi-value" style="color:#10B981;">{{ verified_count }}</div>
+                </div>
+                <div class="kpi-icon-pill" style="background:rgba(16,185,129,0.10);color:#10B981;">
+                    <i class="fas fa-circle-check"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Table Card -->
+    <div class="bg-white border rounded-3 shadow-sm" style="overflow:hidden;">
+        <div class="table-responsive">
+            <table class="table-medivault-compact table mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-3">Rx ID</th>
+                        <th>Patient</th>
+                        <th>Attending Doctor</th>
+                        <th>Department</th>
+                        <th class="text-center">Medicines</th>
+                        <th class="text-center">Status</th>
+                        <th class="pe-3 text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rx in prescriptions %}
+                    <tr>
+                        <td class="ps-3">
+                            <div class="fw-bold font-monospace" style="color:#00A99D;font-size:0.83rem;">{{ rx.prescription_id }}</div>
+                            <div style="font-size:0.7rem;color:#94A3B8;">{{ rx.created_at|date:"d M Y, H:i" }}</div>
+                        </td>
+                        <td>
+                            <div class="fw-semibold" style="color:#0F2744;font-size:0.83rem;">{{ rx.patient_name }}</div>
+                            <div style="font-size:0.7rem;color:#94A3B8;">ID: {{ rx.patient_id }}</div>
+                        </td>
+                        <td>
+                            <div class="fw-semibold" style="color:#0F2744;font-size:0.82rem;">{{ rx.doctor_name }}</div>
+                        </td>
+                        <td>
+                            <span class="badge" style="background:#F1F5F9;color:#0F2744;border:1px solid #E2E8F0;font-size:0.72rem;">
+                                {{ rx.department|default:"General" }}
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge" style="background:#EFF6FF;color:#1D4ED8;border:1px solid #DBEAFE;font-size:0.72rem;">
+                                {{ rx.items.count }} Item(s)
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            {% if rx.status == 'VERIFIED' %}
+                                <span class="badge bg-success" style="font-size:0.72rem;"><i class="fas fa-check me-1"></i>Verified</span>
+                            {% elif rx.status == 'DISPENSED' %}
+                                <span class="badge" style="background:#F0FDF4;color:#15803D;border:1px solid #BBF7D0;font-size:0.72rem;">Dispensed</span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark" style="font-size:0.72rem;">{{ rx.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="pe-3 text-end">
+                            <a href="{% url 'direct_dispensing' %}" class="btn btn-sm"
+                               style="background:#F0FDFA;color:#00A99D;border:1px solid #CCFBF1;border-radius:7px;padding:0.25rem 0.65rem;font-size:0.78rem;">
+                                <i class="fas fa-hand-holding-medical me-1"></i>Dispense
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7">
+                            <div class="empty-state-compact">
+                                <div class="empty-icon-wrap"><i class="fas fa-file-prescription"></i></div>
+                                <div class="empty-title">No Prescriptions Recorded</div>
+                                <div class="empty-desc">Hospital prescriptions received from doctor desks will appear here for verification and dispensing.</div>
+                                <a href="{% url 'create_prescription' %}" class="btn btn-sm"
+                                   style="background:#00A99D;color:#fff;border:none;border-radius:8px;font-size:0.8rem;">
+                                    <i class="fas fa-plus-circle me-1"></i> Record New Prescription
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+</div>
+{% endblock %}

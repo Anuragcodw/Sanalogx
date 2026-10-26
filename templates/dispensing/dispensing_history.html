@@ -1,0 +1,288 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Dispensing Audit History — Sanalogx{% endblock %}
+
+{% block content %}
+<div class="ambient-healthcare-bg" style="min-height:100vh;">
+<div class="container-fluid px-lg-5 py-4" style="position:relative;z-index:1;">
+
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div>
+            <h2 class="fw-bold mb-1" style="color:#0F2744;">
+                <i class="fas fa-file-signature me-2" style="color:#00A99D;"></i> Dispensing Audit &amp; Traceability History
+            </h2>
+            <p class="text-muted small mb-0">
+                Complete multi-batch audit trail of all prescription and medication dispensing transactions.
+            </p>
+        </div>
+            {% if user.role == 'PHARMACIST' %}
+            <a href="{% url 'secure_dispensing_workspace' %}" class="btn btn-sm fw-semibold text-white"
+               style="background:linear-gradient(135deg,#00A99D,#008779);border:none;border-radius:9px;padding:0.45rem 1rem;box-shadow:0 2px 6px rgba(0,169,157,0.25);">
+                <i class="fas fa-plus-circle me-1"></i> New Dispensing
+            </a>
+            {% endif %}
+            <a href="{% url 'controlled_register' %}" class="btn btn-sm fw-semibold"
+               style="background:#FEF2F2;color:#DC2626;border:1px solid #FECACA;border-radius:9px;padding:0.45rem 1rem;">
+                <i class="fas fa-book-medical me-1"></i> Controlled Register
+            </a>
+            <a href="{% url 'reports_center' %}" class="btn btn-sm fw-semibold"
+               style="background:#FFFFFF;color:#0F2744;border:1px solid #CBD5E1;border-radius:9px;padding:0.45rem 1rem;">
+                <i class="fas fa-file-export me-1"></i> Export Reports
+            </a>
+        </div>
+    </div>
+
+    <!-- Summary KPI Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-md-3">
+            <div class="kpi-card-compact">
+                <div>
+                    <div class="kpi-label">Total Dispensing Records</div>
+                    <div class="kpi-value">
+                        {{ total_records }}
+                        {% if q or regulatory_category or status or start_date or end_date %}
+                        <span style="font-size: 0.72rem; color: #64748B; font-weight: normal;">({{ all_time_records }} all-time)</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="kpi-icon-pill" style="background:rgba(0,169,157,0.10);color:#00A99D;">
+                    <i class="fas fa-file-signature"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-3">
+            <div class="kpi-card-compact">
+                <div>
+                    <div class="kpi-label">Total Units Dispensed</div>
+                    <div class="kpi-value" style="color:#0875B9;">
+                        {{ total_dispensed_units }}
+                        {% if q or regulatory_category or status or start_date or end_date %}
+                        <span style="font-size: 0.72rem; color: #64748B; font-weight: normal;">({{ all_time_units }} all-time)</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="kpi-icon-pill" style="background:rgba(8,117,185,0.10);color:#0875B9;">
+                    <i class="fas fa-cubes"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Bar Card -->
+    <div class="bg-white border rounded-3 p-3 mb-4 shadow-sm">
+        <form method="GET" class="row g-2 align-items-end">
+            <div class="col-md-3 col-sm-6">
+                <label class="form-label mb-1" style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#64748B;">Search Records</label>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-light border-end-0"><i class="fas fa-search text-muted" style="font-size:0.75rem;"></i></span>
+                    <input type="text" name="q" class="form-control border-start-0 ps-0" placeholder="ID, Patient, Medicine, Batch, Rx..." value="{{ q }}" style="font-size:0.82rem;">
+                </div>
+            </div>
+            <div class="col-md-2 col-sm-6">
+                <label class="form-label mb-1" style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#64748B;">Regulatory Class</label>
+                <select name="regulatory_category" class="form-select form-select-sm" style="font-size:0.82rem;">
+                    <option value="">-- All Categories --</option>
+                    {% for code, label in categories %}
+                    <option value="{{ code }}" {% if regulatory_category == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2 col-sm-6">
+                <label class="form-label mb-1" style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#64748B;">Status</label>
+                <select name="status" class="form-select form-select-sm" style="font-size:0.82rem;">
+                    <option value="">-- All Statuses --</option>
+                    {% for code, label in statuses %}
+                    <option value="{{ code }}" {% if status == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-1 col-sm-6">
+                <label class="form-label mb-1" style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#64748B;">Sort By</label>
+                <select name="sort" class="form-select form-select-sm" style="font-size:0.82rem;">
+                    <option value="date_desc" {% if sort == 'date_desc' %}selected{% endif %}>Newest</option>
+                    <option value="date_asc" {% if sort == 'date_asc' %}selected{% endif %}>Oldest</option>
+                    <option value="qty_desc" {% if sort == 'qty_desc' %}selected{% endif %}>Qty High</option>
+                    <option value="qty_asc" {% if sort == 'qty_asc' %}selected{% endif %}>Qty Low</option>
+                    <option value="med_asc" {% if sort == 'med_asc' %}selected{% endif %}>Medicine A-Z</option>
+                </select>
+            </div>
+            <div class="col-md-2 col-sm-6">
+                <label class="form-label mb-1" style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#64748B;">From Date</label>
+                <input type="date" name="start_date" class="form-control form-control-sm" value="{{ start_date }}" style="font-size:0.82rem;">
+            </div>
+            <div class="col-md-1 col-sm-6">
+                <label class="form-label mb-1" style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#64748B;">To Date</label>
+                <input type="date" name="end_date" class="form-control form-control-sm" value="{{ end_date }}" style="font-size:0.82rem;">
+            </div>
+            <div class="col-md-1 col-sm-6 d-flex gap-1">
+                <button type="submit" class="btn btn-sm text-white fw-semibold flex-grow-1"
+                        style="background:#00A99D;border:none;border-radius:8px;font-size:0.8rem;" title="Apply Filter">
+                    <i class="fas fa-filter"></i>
+                </button>
+                <a href="{% url 'dispensing_history' %}" class="btn btn-sm btn-light border" style="border-radius:8px;" title="Reset Filters">
+                    <i class="fas fa-rotate-left" style="font-size:0.75rem;"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Records Table Card -->
+    <div class="bg-white border rounded-3 shadow-sm" style="overflow:hidden;">
+        <div class="table-responsive">
+            <table class="table-medivault-compact table mb-0 align-middle" style="min-width: 1050px;">
+                <thead>
+                    <tr>
+                        <th class="ps-3" style="width: 130px;">Dispensing ID</th>
+                        <th>Timestamp</th>
+                        <th>Patient Details</th>
+                        <th>Medicine &amp; Strength</th>
+                        <th>Class</th>
+                        <th class="text-center">Qty</th>
+                        <th>Batches Allocated</th>
+                        <th>Pharmacist</th>
+                        <th class="text-center">Status</th>
+                        <th class="pe-3 text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rec in page_obj %}
+                    <tr>
+                        <td class="ps-3">
+                            <a href="{% url 'dispensing_detail' rec.dispensing_id %}" class="fw-bold font-monospace text-decoration-none" style="color:#00A99D;font-size:0.83rem;">
+                                {{ rec.dispensing_id }}
+                            </a>
+                            {% if rec.prescription %}
+                            <div style="font-size:0.7rem;color:#94A3B8;">Rx: {{ rec.prescription.prescription_id }}</div>
+                            {% endif %}
+                        </td>
+                        <td style="white-space:nowrap;">
+                            <div style="font-size:0.82rem;color:#1E293B;">{{ rec.created_at|date:"d M Y" }}</div>
+                            <div style="font-size:0.7rem;color:#94A3B8;">{{ rec.created_at|date:"H:i" }}</div>
+                        </td>
+                        <td>
+                            <div class="fw-semibold" style="color:#0F2744;font-size:0.83rem;">{{ rec.patient_name }}</div>
+                            <div style="font-size:0.7rem;color:#94A3B8;">ID: {{ rec.patient_id }}</div>
+                        </td>
+                        <td>
+                            <div class="fw-semibold" style="color:#0F2744;font-size:0.82rem;">{{ rec.medicine.medicine_name }}</div>
+                            <div style="font-size:0.7rem;color:#94A3B8;">{{ rec.medicine.strength }} ({{ rec.medicine.dosage_form }})</div>
+                        </td>
+                        <td>
+                            {% if rec.regulatory_category == 'NORMAL' %}
+                                <span class="badge bg-light text-dark border" style="font-size:0.7rem;">Normal</span>
+                            {% elif rec.regulatory_category in 'SCHEDULE_H1,SCHEDULE_X,NARCOTIC' %}
+                                <span class="badge" style="background:#FEE2E2;color:#991B1B;border:1px solid #FECACA;font-size:0.7rem;">{{ rec.get_regulatory_category_display }}</span>
+                            {% else %}
+                                <span class="badge" style="background:#FEF3C7;color:#92400E;border:1px solid #FDE68A;font-size:0.7rem;">{{ rec.get_regulatory_category_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center fw-bold" style="color:#0F2744;font-size:0.88rem;">{{ rec.total_quantity }}</td>
+                        <td>
+                            {% for alloc in rec.allocations.all %}
+                                <span class="badge font-monospace" style="background:#F1F5F9;color:#0F2744;border:1px solid #E2E8F0;font-size:0.7rem;margin-right:2px;margin-bottom:2px;">
+                                    {{ alloc.quantity_allocated }}× [{{ alloc.batch_number }}]
+                                </span>
+                            {% empty %}
+                                <span style="color:#CBD5E1;font-size:0.75rem;">N/A</span>
+                            {% endfor %}
+                        </td>
+                        <td>
+                            <span class="badge" style="background:#F1F5F9;color:#374151;border:1px solid #E2E8F0;font-size:0.7rem;">
+                                <i class="fas fa-user-check me-1" style="color:#00A99D;"></i>{{ rec.pharmacist.username }}
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            {% if rec.status == 'COMPLETED' %}
+                                <span class="badge bg-success" style="font-size:0.72rem;"><i class="fas fa-check-circle me-1"></i>Completed</span>
+                            {% elif rec.status == 'REVERSED' %}
+                                <span class="badge bg-secondary" style="font-size:0.72rem;"><i class="fas fa-arrow-rotate-left me-1"></i>Reversed</span>
+                            {% else %}
+                                <span class="badge bg-secondary" style="font-size:0.72rem;">{{ rec.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="pe-3 text-end">
+                            <a href="{% url 'dispensing_detail' rec.dispensing_id %}" class="btn btn-sm"
+                               style="background:#F0FDFA;color:#00A99D;border:1px solid #CCFBF1;border-radius:7px;padding:0.25rem 0.65rem;font-size:0.78rem;">
+                                <i class="fas fa-eye me-1"></i>Details
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="10">
+                            <div class="empty-state-compact">
+                                <div class="empty-icon-wrap"><i class="fas fa-file-signature"></i></div>
+                                <div class="empty-title">No Dispensing Records Found</div>
+                                <div class="empty-desc">
+                                    {% if q or regulatory_category or status or start_date or end_date %}
+                                    No records match your filter criteria. Try adjusting the search parameters.
+                                    {% else %}
+                                    Dispensing transactions and batch deductions will be logged here in real time.
+                                    {% endif %}
+                                </div>
+                                {% if q or regulatory_category or status or start_date or end_date %}
+                                <a href="{% url 'dispensing_history' %}" class="btn btn-sm"
+                                   style="background:#00A99D;color:#fff;border:none;border-radius:8px;font-size:0.8rem;">
+                                    <i class="fas fa-rotate-left me-1"></i> Reset Filters
+                                </a>
+                                {% elif user.role == 'PHARMACIST' %}
+                                <a href="{% url 'secure_dispensing_workspace' %}" class="btn btn-sm"
+                                   style="background:#00A99D;color:#fff;border:none;border-radius:8px;font-size:0.8rem;">
+                                    <i class="fas fa-shield-virus me-1"></i> Dispense Now
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+        <div class="d-flex align-items-center justify-content-between px-3 py-2 border-top" style="background:#FAFBFD;">
+            <div style="font-size:0.78rem;color:#64748B;">
+                Showing {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ page_obj.paginator.count }} records
+            </div>
+            <nav aria-label="Dispensing pagination">
+                <ul class="pagination pagination-sm mb-0 gap-1">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ q }}&regulatory_category={{ regulatory_category }}&status={{ status }}&start_date={{ start_date }}&end_date={{ end_date }}"
+                           style="border-radius:6px;font-size:0.78rem;">
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link" style="background:#00A99D;border-color:#00A99D;border-radius:6px;font-size:0.78rem;">{{ num }}</span>
+                        </li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}&q={{ q }}&regulatory_category={{ regulatory_category }}&status={{ status }}&start_date={{ start_date }}&end_date={{ end_date }}"
+                               style="border-radius:6px;font-size:0.78rem;">{{ num }}</a>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ q }}&regulatory_category={{ regulatory_category }}&status={{ status }}&start_date={{ start_date }}&end_date={{ end_date }}"
+                           style="border-radius:6px;font-size:0.78rem;">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+</div>
+{% endblock %}

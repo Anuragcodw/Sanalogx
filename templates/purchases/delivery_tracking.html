@@ -1,0 +1,165 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Delivery Tracking — Sanalogx Procurement{% endblock %}
+
+{% block content %}
+<div class="ambient-healthcare-bg" style="min-height:100vh;">
+<div class="container-fluid py-4 px-lg-4" style="position:relative;z-index:1;">
+
+  <!-- Header -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
+    <div>
+      <nav aria-label="breadcrumb"><ol class="breadcrumb mb-1" style="font-size:.78rem;">
+        <li class="breadcrumb-item"><a href="{% url 'purchase_orders_list' %}" class="text-decoration-none" style="color:#00A99D;"><i class="fas fa-file-invoice me-1"></i>Purchase Orders</a></li>
+        <li class="breadcrumb-item active text-muted">Delivery Tracking</li>
+      </ol></nav>
+      <h3 class="fw-bold mb-0" style="color:#0F2744;"><i class="fas fa-truck-fast me-2" style="color:#00A99D;"></i>Delivery Tracking Dashboard</h3>
+      <p class="text-muted small mb-0 mt-1">Real-time visibility of all in-flight Purchase Orders awaiting delivery or partial receipt.</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <a href="{% url 'grn_list' %}" class="btn btn-sm fw-semibold" style="background:#FFF;color:#0F2744;border:1px solid #CBD5E1;border-radius:9px;padding:.45rem 1rem;">
+        <i class="fas fa-dolly me-1"></i> GRN Queue
+      </a>
+      <a href="{% url 'create_po' %}" class="btn btn-sm fw-semibold text-white" style="background:linear-gradient(135deg,#00A99D,#008779);border:none;border-radius:9px;padding:.45rem 1rem;box-shadow:0 2px 6px rgba(0,169,157,.25);">
+        <i class="fas fa-plus me-1"></i> New PO
+      </a>
+    </div>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="kpi-card-compact">
+        <div><div class="kpi-label">In-Flight Orders</div><div class="kpi-value">{{ total_in_flight }}</div></div>
+        <div class="kpi-icon-pill" style="background:rgba(8,117,185,.10);color:#0875B9;"><i class="fas fa-truck-fast"></i></div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="kpi-card-compact">
+        <div>
+          <div class="kpi-label">Overdue Orders</div>
+          <div class="kpi-value" style="color:{% if overdue_count > 0 %}#DC2626{% else %}#10B981{% endif %};">{{ overdue_count }}</div>
+        </div>
+        <div class="kpi-icon-pill" style="background:rgba({% if overdue_count > 0 %}220,38,38{% else %}16,185,129{% endif %},.10);color:{% if overdue_count > 0 %}#DC2626{% else %}#10B981{% endif %};">
+          <i class="fas fa-{% if overdue_count > 0 %}exclamation-triangle{% else %}circle-check{% endif %}"></i>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="kpi-card-compact">
+        <div><div class="kpi-label">Today's Date</div><div class="kpi-value" style="color:#0F2744;font-size:1.3rem;">{{ today|date:"d M Y" }}</div></div>
+        <div class="kpi-icon-pill" style="background:rgba(0,169,157,.10);color:#00A99D;"><i class="fas fa-calendar-day"></i></div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="kpi-card-compact">
+        <div><div class="kpi-label">Receive Goods Now</div><div class="kpi-value" style="font-size:1rem;margin-top:2px;"><a href="{% url 'grn_list' %}" class="text-decoration-none" style="color:#00A99D;font-size:.85rem;">Open GRN Queue <i class="fas fa-arrow-right ms-1" style="font-size:.75rem;"></i></a></div></div>
+        <div class="kpi-icon-pill" style="background:rgba(0,169,157,.10);color:#00A99D;"><i class="fas fa-box-open"></i></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tracking Table -->
+  {% if tracking_data %}
+  <div class="bg-white border rounded-3 shadow-sm" style="overflow:hidden;">
+    <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom" style="background:#FAFBFD;">
+      <div class="fw-bold d-flex align-items-center gap-2" style="color:#0F2744;font-size:.9rem;">
+        <i class="fas fa-list-check" style="color:#00A99D;"></i> In-Flight Purchase Orders
+        {% if overdue_count > 0 %}
+        <span class="badge bg-danger" style="font-size:.7rem;"><i class="fas fa-exclamation-triangle me-1"></i>{{ overdue_count }} Overdue</span>
+        {% endif %}
+      </div>
+    </div>
+    <div class="table-responsive">
+      <table class="table-medivault-compact table mb-0">
+        <thead>
+          <tr>
+            <th class="ps-3">PO Number</th>
+            <th>Supplier</th>
+            <th class="text-center">Status</th>
+            <th class="text-center">Order Date</th>
+            <th class="text-center">Expected By</th>
+            <th class="text-center">Ordered Qty</th>
+            <th class="text-center">Received Qty</th>
+            <th class="text-center">Outstanding</th>
+            <th class="text-center">Delay</th>
+            <th class="text-center">Discrepancies</th>
+            <th class="pe-3 text-center">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in tracking_data %}
+          <tr style="{% if row.is_overdue %}border-left:3px solid #EF4444;background:rgba(254,242,242,.3);{% elif row.po.status == 'PARTIAL_RECEIPT' %}border-left:3px solid #F59E0B;{% else %}border-left:3px solid #E2E8F0;{% endif %}">
+            <td class="ps-3">
+              <a href="{% url 'po_detail' row.po.pk %}" class="fw-bold font-monospace text-decoration-none" style="color:#00A99D;font-size:.83rem;">{{ row.po.po_number }}</a>
+            </td>
+            <td>
+              <div class="fw-semibold" style="color:#0F2744;font-size:.82rem;">{{ row.po.supplier.company_name }}</div>
+              {% if row.po.supplier.contact_person %}<div style="font-size:.7rem;color:#94A3B8;">{{ row.po.supplier.contact_person }}</div>{% endif %}
+            </td>
+            <td class="text-center">
+              {% if row.po.status == 'APPROVED' %}<span class="badge" style="background:#EFF6FF;color:#1D4ED8;border:1px solid #DBEAFE;font-size:.7rem;">APPROVED</span>
+              {% elif row.po.status == 'ORDERED' %}<span class="badge" style="background:#EFF6FF;color:#1E40AF;border:1px solid #BFDBFE;font-size:.7rem;">ORDERED</span>
+              {% elif row.po.status == 'PARTIAL_RECEIPT' %}<span class="badge bg-warning text-dark" style="font-size:.7rem;">PARTIAL</span>
+              {% else %}<span class="badge bg-secondary" style="font-size:.7rem;">{{ row.po.status }}</span>{% endif %}
+            </td>
+            <td class="text-center" style="font-size:.8rem;color:#64748B;font-family:monospace;">{{ row.po.order_date|date:"d M Y"|default:"—" }}</td>
+            <td class="text-center {% if row.is_overdue %}text-danger fw-bold{% else %}text-muted{% endif %}" style="font-size:.8rem;font-family:monospace;">
+              {{ row.po.expected_delivery_date|date:"d M Y"|default:"—" }}
+            </td>
+            <td class="text-center fw-bold" style="color:#0F2744;font-family:monospace;font-size:.88rem;">{{ row.total_ordered }}</td>
+            <td class="text-center fw-bold" style="color:#10B981;font-family:monospace;font-size:.88rem;">{{ row.total_received }}</td>
+            <td class="text-center fw-bold font-monospace" style="font-size:.88rem;color:{% if row.outstanding > 0 %}#D97706{% else %}#10B981{% endif %};">{{ row.outstanding }}</td>
+            <td class="text-center">
+              {% if row.is_overdue %}
+                <span class="badge bg-danger" style="font-size:.7rem;"><i class="fas fa-exclamation-triangle me-1"></i>{{ row.days_overdue }}d LATE</span>
+              {% elif row.po.expected_delivery_date %}
+                <span class="badge" style="background:#D1FAE5;color:#065F46;font-size:.7rem;"><i class="fas fa-check me-1"></i>On Schedule</span>
+              {% else %}
+                <span style="font-size:.75rem;color:#94A3B8;">No date</span>
+              {% endif %}
+            </td>
+            <td class="text-center">
+              {% if row.discrepancy_count > 0 %}
+                <span class="badge bg-warning text-dark" style="font-size:.7rem;"><i class="fas fa-triangle-exclamation me-1"></i>{{ row.discrepancy_count }}</span>
+              {% elif row.grn_count > 0 %}
+                <span class="badge" style="background:#D1FAE5;color:#065F46;font-size:.7rem;"><i class="fas fa-check me-1"></i>Clean</span>
+              {% else %}
+                <span style="font-size:.75rem;color:#94A3B8;">No GRN</span>
+              {% endif %}
+            </td>
+            <td class="pe-3 text-center">
+              {% if row.po.is_receivable %}
+              <a href="{% url 'create_grn' row.po.pk %}" class="btn btn-sm fw-semibold text-white"
+                 style="background:#00A99D;border:none;border-radius:7px;padding:.22rem .6rem;font-size:.76rem;">
+                <i class="fas fa-dolly me-1"></i> Receive
+              </a>
+              {% else %}
+              <span style="font-size:.75rem;color:#94A3B8;">Not receivable</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {% else %}
+  <!-- Empty State -->
+  <div class="bg-white border rounded-3 shadow-sm py-5">
+    <div class="empty-state-compact">
+      <div class="empty-icon-wrap"><i class="fas fa-truck-fast"></i></div>
+      <div class="empty-title">No In-Flight Purchase Orders</div>
+      <div class="empty-desc">All purchase orders are either completed or cancelled. Create a new purchase request to begin restocking.</div>
+      <a href="{% url 'create_purchase_request' %}" class="btn btn-sm" style="background:#00A99D;color:#fff;border:none;border-radius:8px;font-size:.8rem;">
+        <i class="fas fa-plus me-1"></i> New Purchase Request
+      </a>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+</div>
+{% endblock %}

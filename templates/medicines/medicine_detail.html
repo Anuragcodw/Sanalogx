@@ -1,0 +1,750 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ medicine.medicine_name }} — Medicine Detail — MediVault{% endblock %}
+{% block admin_breadcrumb %}Medicine Profile: {{ medicine.medicine_name }}{% endblock %}
+{% block pharmacist_breadcrumb %}Medicine Profile: {{ medicine.medicine_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 px-md-4 py-4 position-relative">
+    <!-- Breadcrumb & Top Action Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
+        <div>
+            <a href="{% url 'medicine_list' %}" class="btn btn-link text-decoration-none text-muted p-0 small mb-1 d-inline-flex align-items-center gap-1">
+                <i class="fas fa-arrow-left"></i> Back to Medicine Master
+            </a>
+            <div class="d-flex align-items-center gap-2 flex-wrap mt-1">
+                <h3 class="fw-bold text-navy mb-0">{{ medicine.medicine_name }}</h3>
+                <span class="badge bg-light text-navy border font-monospace px-2.5 py-1">{{ medicine.medicine_id }}</span>
+                {% if medicine.validation_status == 'VALIDATED' and medicine.is_active %}
+                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1">
+                        <i class="fas fa-circle-check me-1"></i> Active Catalogue
+                    </span>
+                {% elif medicine.validation_status == 'PENDING' %}
+                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2.5 py-1">
+                        <i class="fas fa-clock me-1"></i> Pending Verification
+                    </span>
+                {% elif medicine.validation_status == 'REJECTED' %}
+                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2.5 py-1">
+                        <i class="fas fa-circle-xmark me-1"></i> Rejected
+                    </span>
+                {% else %}
+                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2.5 py-1">
+                        <i class="fas fa-ban me-1"></i> Deactivated
+                    </span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <button type="button" class="btn btn-outline-secondary btn-sm px-3 py-2 fw-semibold" data-bs-toggle="modal" data-bs-target="#qrCodeModal">
+                <i class="fas fa-qrcode me-1 text-teal"></i> View QR Code
+            </button>
+            <a href="{% url 'medicine_edit' medicine.medicine_id %}" class="btn btn-outline-primary btn-sm px-3 py-2 fw-semibold">
+                <i class="fas fa-pen-to-square me-1"></i> Edit Profile
+            </a>
+            {% if user.role == 'ADMIN' and medicine.is_draft %}
+                <a href="{% url 'medicine_draft_review' medicine.id %}" class="btn btn-warning btn-sm px-3 py-2 fw-semibold text-dark shadow-sm">
+                    <i class="fas fa-clipboard-check me-1"></i> Review & Approve
+                </a>
+            {% endif %}
+            {% if user.role == 'ADMIN' and medicine.is_active %}
+                <button type="button" class="btn btn-outline-danger btn-sm px-3 py-2 fw-semibold" data-bs-toggle="modal" data-bs-target="#deactivateModal">
+                    <i class="fas fa-power-off me-1"></i> Deactivate
+                </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- ── 1. Summary Hero Banner Card ────────────────────────────────────── -->
+    <div class="card bg-white border shadow-sm mb-4" style="border-radius: 12px; border-color: #E2E8F0;">
+        <div class="card-body p-4">
+            <div class="row align-items-center g-4">
+                <!-- Medicine Thumbnail / Icon -->
+                <div class="col-auto text-center">
+                    {% if medicine.image %}
+                        <img src="{{ medicine.image.url }}" alt="{{ medicine.medicine_name }}" class="rounded-3 border shadow-sm"
+                             style="width: 110px; height: 110px; object-fit: cover;">
+                    {% else %}
+                        <div class="d-flex align-items-center justify-content-center rounded-3 bg-light text-teal border border-dashed"
+                             style="width: 110px; height: 110px; font-size: 2.25rem;">
+                            <i class="fas fa-pills"></i>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Primary Identity Details -->
+                <div class="col">
+                    <div class="d-flex flex-wrap align-items-center gap-2 mb-1.5">
+                        <span class="badge bg-teal-subtle text-teal border border-teal-subtle px-2.5 py-1 fw-semibold small">
+                            <i class="fas fa-tags me-1"></i> {{ medicine.category.name|default:"General Medicine" }}
+                        </span>
+                        {% if medicine.brand_name %}
+                            <span class="badge bg-light text-secondary border px-2.5 py-1 small">
+                                Brand: {{ medicine.brand_name }}
+                            </span>
+                        {% endif %}
+                        {% if medicine.atc_code %}
+                            <span class="badge bg-light text-navy border font-monospace px-2.5 py-1 small" title="WHO ATC Classification">
+                                ATC: {{ medicine.atc_code }}
+                            </span>
+                        {% endif %}
+                    </div>
+
+                    <h4 class="fw-bold text-navy mb-1">{{ medicine.generic_name }}</h4>
+                    <p class="text-secondary small mb-2">
+                        <i class="fas fa-industry text-muted me-1"></i> Manufacturer:
+                        <strong>{{ medicine.manufacturer|default:"General Pharmaceutical / Unspecified" }}</strong>
+                    </p>
+
+                    <!-- Regulatory & Compliance Flags -->
+                    <div class="d-flex flex-wrap gap-2 align-items-center">
+                        <!-- Prescription Flag -->
+                        {% if medicine.is_prescription_required %}
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2.5 py-1 small fw-semibold">
+                                <i class="fas fa-file-prescription me-1"></i> Prescription Required (Rx)
+                            </span>
+                        {% else %}
+                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 small fw-semibold">
+                                <i class="fas fa-face-smile me-1"></i> OTC / General Sale
+                            </span>
+                        {% endif %}
+
+                        <!-- Regulatory Schedule -->
+                        <span class="badge bg-light text-navy border px-2.5 py-1 small fw-semibold">
+                            <i class="fas fa-shield-halved text-teal me-1"></i> {{ medicine.controlled_category }}
+                        </span>
+
+                        <!-- Controlled Register Flag -->
+                        {% if medicine.is_controlled %}
+                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2.5 py-1 small fw-semibold">
+                                <i class="fas fa-lock me-1"></i> Schedule H1/X Controlled Register
+                            </span>
+                        {% endif %}
+
+                        {% if medicine.storage_condition %}
+                            <span class="badge bg-light text-secondary border px-2.5 py-1 small">
+                                <i class="fas fa-temperature-arrow-down text-blue me-1"></i> {{ medicine.storage_condition }}
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Stock & MRP Summary Panel -->
+                <div class="col-12 col-lg-auto border-lg-start ps-lg-4 text-lg-end">
+                    <span class="text-muted small d-block mb-1">Current Stock Balance</span>
+                    <h2 class="fw-bold text-navy mb-0 {% if medicine.is_low_stock %}text-danger{% endif %}">
+                        {{ medicine.current_stock }}
+                        <span class="fs-6 text-muted font-normal">{{ medicine.unit_of_measure|default:"Units" }}</span>
+                    </h2>
+                    <div class="mt-1">
+                        {% if medicine.is_out_of_stock %}
+                            <span class="badge bg-danger text-white px-2 py-0.5 extra-small fw-bold">OUT OF STOCK</span>
+                        {% elif medicine.is_low_stock %}
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-0.5 extra-small fw-bold">
+                                <i class="fas fa-triangle-exclamation me-0.5"></i> LOW STOCK ALERT
+                            </span>
+                        {% else %}
+                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-0.5 extra-small fw-bold">
+                                <i class="fas fa-check me-0.5"></i> HEALTHY STOCK
+                            </span>
+                        {% endif %}
+                    </div>
+                    <div class="text-muted small mt-2">
+                        Standard Selling Price: <strong class="text-navy">₹{{ medicine.selling_price }}</strong>
+                        {% if medicine.mrp %} | MRP: <strong class="text-navy">₹{{ medicine.mrp }}</strong>{% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── 2. Quick KPI Inventory Metrics Grid ────────────────────────────── -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="card bg-white border shadow-sm p-3 h-100" style="border-radius: 10px;">
+                <span class="text-muted extra-small text-uppercase fw-semibold d-block">Current Stock</span>
+                <h4 class="fw-bold text-navy mt-1 mb-0">{{ medicine.current_stock }}</h4>
+                <span class="text-muted extra-small">{{ medicine.unit_of_measure|default:"Units" }} on hand</span>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="card bg-white border shadow-sm p-3 h-100" style="border-radius: 10px;">
+                <span class="text-muted extra-small text-uppercase fw-semibold d-block">Available Stock</span>
+                <h4 class="fw-bold text-teal mt-1 mb-0">{{ medicine.available_stock }}</h4>
+                <span class="text-muted extra-small">Unreserved units</span>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="card bg-white border shadow-sm p-3 h-100" style="border-radius: 10px;">
+                <span class="text-muted extra-small text-uppercase fw-semibold d-block">Reorder Trigger</span>
+                <h4 class="fw-bold text-warning mt-1 mb-0">{{ medicine.reorder_level }}</h4>
+                <span class="text-muted extra-small">Restock threshold</span>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="card bg-white border shadow-sm p-3 h-100" style="border-radius: 10px;">
+                <span class="text-muted extra-small text-uppercase fw-semibold d-block">Safety Reserve</span>
+                <h4 class="fw-bold text-secondary mt-1 mb-0">{{ medicine.safety_stock }}</h4>
+                <span class="text-muted extra-small">Emergency buffer</span>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="card bg-white border shadow-sm p-3 h-100" style="border-radius: 10px;">
+                <span class="text-muted extra-small text-uppercase fw-semibold d-block">Max Stock Limit</span>
+                <h4 class="fw-bold text-navy mt-1 mb-0">{{ medicine.maximum_stock }}</h4>
+                <span class="text-muted extra-small">Ceiling capacity</span>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="card bg-white border shadow-sm p-3 h-100" style="border-radius: 10px;">
+                <span class="text-muted extra-small text-uppercase fw-semibold d-block">Active Batches</span>
+                <h4 class="fw-bold text-teal mt-1 mb-0">{{ batches.count }}</h4>
+                <span class="text-muted extra-small">FEFO inventory lots</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── 3. Tabbed Sections for Deep Details ───────────────────────────── -->
+    <div class="card bg-white border shadow-sm mb-4" style="border-radius: 12px; border-color: #E2E8F0;">
+        <div class="card-header bg-white border-bottom p-0">
+            <ul class="nav nav-tabs border-0 px-3 pt-2" id="medicineDetailTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active fw-semibold text-navy small py-2.5 px-3 border-0 border-bottom border-3 border-teal"
+                            id="batches-tab" data-bs-toggle="tab" data-bs-target="#batches-pane" type="button" role="tab">
+                        <i class="fas fa-boxes-stacked me-1.5 text-teal"></i> Inventory Batches ({{ batches.count }})
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link fw-semibold text-navy small py-2.5 px-3 border-0"
+                            id="specs-tab" data-bs-toggle="tab" data-bs-target="#specs-pane" type="button" role="tab">
+                        <i class="fas fa-prescription-bottle-alt me-1.5 text-teal"></i> Clinical &amp; Pharmacology
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link fw-semibold text-navy small py-2.5 px-3 border-0"
+                            id="compliance-tab" data-bs-toggle="tab" data-bs-target="#compliance-pane" type="button" role="tab">
+                        <i class="fas fa-shield-halved me-1.5 text-teal"></i> Regulatory &amp; Verification
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link fw-semibold text-navy small py-2.5 px-3 border-0"
+                            id="procurement-tab" data-bs-toggle="tab" data-bs-target="#procurement-pane" type="button" role="tab">
+                        <i class="fas fa-truck-field me-1.5 text-teal"></i> Procurement &amp; Suppliers ({{ supplier_medicines.count }})
+                    </button>
+                </li>
+            </ul>
+        </div>
+
+        <div class="card-body p-4">
+            <div class="tab-content" id="medicineDetailTabsContent">
+
+                <!-- ── TAB 1: INVENTORY BATCHES (FEFO FLOW) ─────────────────── -->
+                <div class="tab-pane fade show active" id="batches-pane" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                        <div>
+                            <h5 class="fw-bold text-navy mb-0">Inventory Batches (FEFO Order)</h5>
+                            <span class="text-muted small">Batches sorted by expiry date to ensure First-Expiry-First-Out dispensing safety.</span>
+                        </div>
+                        <div>
+                            {% if medicine.validation_status == 'VALIDATED' and medicine.is_active %}
+                                <a href="{% url 'batch_add' medicine.medicine_id %}" class="btn btn-teal btn-sm text-white fw-semibold px-3 py-1.5 shadow-sm">
+                                    <i class="fas fa-plus me-1"></i> Add Batch
+                                </a>
+                            {% else %}
+                                <button class="btn btn-light btn-sm border text-muted" disabled title="Medicine must be validated and active to add inventory batches.">
+                                    <i class="fas fa-lock me-1"></i> Add Batch (Restricted)
+                                </button>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {% if batches %}
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0 table-admin-custom" style="min-width: 900px;">
+                                <thead>
+                                    <tr>
+                                        <th style="min-width: 120px;">Batch ID / Lot</th>
+                                        <th style="min-width: 150px;">Dates (Mfg / Exp)</th>
+                                        <th style="min-width: 180px;">Supplier</th>
+                                        <th style="min-width: 110px; text-align: right;">Unit Cost</th>
+                                        <th style="min-width: 110px; text-align: right;">Selling Price</th>
+                                        <th style="min-width: 100px; text-align: right;">MRP</th>
+                                        <th style="min-width: 110px; text-align: center;">Stock Qty</th>
+                                        <th style="min-width: 110px; text-align: center;">Status</th>
+                                        <th style="min-width: 90px; text-align: right;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for b in batches %}
+                                        <tr>
+                                            <!-- Batch Number & Storage Location -->
+                                            <td>
+                                                <div class="d-flex align-items-center gap-1.5">
+                                                    <span class="badge bg-light text-navy border font-monospace px-2 py-0.5 extra-small">
+                                                        {{ b.batch_id }}
+                                                    </span>
+                                                    <strong class="text-navy small">{{ b.batch_number }}</strong>
+                                                </div>
+                                                {% if b.storage_location %}
+                                                    <div class="text-muted extra-small mt-0.5">
+                                                        <i class="fas fa-location-dot me-0.5 text-secondary"></i> {{ b.storage_location }}
+                                                    </div>
+                                                {% endif %}
+                                            </td>
+
+                                            <!-- Dates (Mfg / Expiry & Days Remaining) -->
+                                            <td>
+                                                <div class="text-muted extra-small">Mfg: {{ b.manufacturing_date|date:"Y-m-d"|default:"—" }}</div>
+                                                <div class="text-navy fw-semibold small">Exp: {{ b.expiry_date|date:"Y-m-d" }}</div>
+                                                {% if b.days_until_expiry <= 0 %}
+                                                    <span class="badge bg-danger text-white extra-small px-1.5 py-0.5 mt-0.5">Expired</span>
+                                                {% elif b.days_until_expiry <= 90 %}
+                                                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle extra-small px-1.5 py-0.5 mt-0.5">
+                                                        {{ b.days_until_expiry }}d remaining
+                                                    </span>
+                                                {% else %}
+                                                    <span class="text-muted extra-small">{{ b.days_until_expiry }}d remaining</span>
+                                                {% endif %}
+                                            </td>
+
+                                            <!-- Supplier (Safe Fallback) -->
+                                            <td>
+                                                {% if b.supplier %}
+                                                    <div class="text-navy small fw-semibold">{{ b.supplier.company_name }}</div>
+                                                    <span class="text-muted extra-small">
+                                                        {% if b.supplier.registration_number %}
+                                                            Reg: {{ b.supplier.registration_number }}
+                                                        {% elif b.supplier.id %}
+                                                            ID: SUP-{{ b.supplier.id }}
+                                                        {% endif %}
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge bg-light text-muted border px-2 py-1 extra-small">
+                                                        <i class="fas fa-circle-info text-secondary me-1"></i> Supplier not recorded
+                                                    </span>
+                                                {% endif %}
+                                            </td>
+
+                                            <!-- Costs & Prices -->
+                                            <td style="text-align: right;">
+                                                <span class="text-secondary small fw-semibold">₹{{ b.unit_cost|default:b.purchase_price }}</span>
+                                                {% if b.additional_cost and b.additional_cost > 0 %}
+                                                    <div class="text-muted extra-small">+₹{{ b.additional_cost }} land</div>
+                                                {% endif %}
+                                            </td>
+                                            <td style="text-align: right;">
+                                                <strong class="text-navy small">₹{{ b.selling_price }}</strong>
+                                                {% if b.gross_unit_margin_pct %}
+                                                    <div class="text-success extra-small fw-semibold">{{ b.gross_unit_margin_pct }}% margin</div>
+                                                {% endif %}
+                                            </td>
+                                            <td style="text-align: right;">
+                                                <span class="text-secondary small">₹{{ b.mrp|default:"0.00" }}</span>
+                                            </td>
+
+                                            <!-- Stock Available vs Received -->
+                                            <td style="text-align: center;">
+                                                <h6 class="fw-bold mb-0 text-navy">{{ b.quantity_available }}</h6>
+                                                <span class="text-muted extra-small">rcvd: {{ b.quantity_received }}</span>
+                                            </td>
+
+                                            <!-- Status Badge -->
+                                            <td style="text-align: center;">
+                                                {% if b.status == 'ACTIVE' %}
+                                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 extra-small fw-semibold">
+                                                        <i class="fas fa-circle-check me-0.5"></i> Active
+                                                    </span>
+                                                {% elif b.status == 'NEAR_EXPIRY' %}
+                                                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1 extra-small fw-semibold">
+                                                        <i class="fas fa-triangle-exclamation me-0.5"></i> Near Expiry
+                                                    </span>
+                                                {% elif b.status == 'EXPIRED' %}
+                                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1 extra-small fw-semibold">
+                                                        <i class="fas fa-circle-xmark me-0.5"></i> Expired
+                                                    </span>
+                                                {% elif b.status == 'QUARANTINED' %}
+                                                    <span class="badge bg-danger text-white px-2 py-1 extra-small fw-semibold">
+                                                        Quarantined
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary-subtle text-secondary border px-2 py-1 extra-small">
+                                                        {{ b.status }}
+                                                    </span>
+                                                {% endif %}
+                                            </td>
+
+                                            <!-- Actions -->
+                                            <td style="text-align: right;">
+                                                <a href="{% url 'batch_edit' medicine.medicine_id b.id %}" class="btn btn-outline-secondary btn-sm px-2 py-1" title="Edit Batch Info">
+                                                    <i class="fas fa-pen-to-square"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <!-- Clean Empty State for Batches -->
+                        <div class="text-center py-5 text-muted">
+                            <div class="d-inline-flex align-items-center justify-content-center bg-light text-teal rounded-circle mb-3" style="width: 56px; height: 56px; font-size: 1.5rem;">
+                                <i class="fas fa-boxes-packing"></i>
+                            </div>
+                            <h6 class="fw-bold text-navy mb-1">No Inventory Batches Allocated</h6>
+                            <p class="small text-muted mb-3" style="max-width: 420px; margin: 0 auto;">
+                                This medicine has zero stock batches in the system. Receive physical goods via Purchase Order or create a batch manually.
+                            </p>
+                            {% if medicine.validation_status == 'VALIDATED' and medicine.is_active %}
+                                <a href="{% url 'batch_add' medicine.medicine_id %}" class="btn btn-teal btn-sm text-white px-3 py-1.5 fw-semibold shadow-sm">
+                                    <i class="fas fa-plus me-1"></i> Add First Batch
+                                </a>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- ── TAB 2: CLINICAL & PHARMACOLOGY ───────────────────────── -->
+                <div class="tab-pane fade" id="specs-pane" role="tabpanel">
+                    <h5 class="fw-bold text-navy mb-3 pb-2 border-bottom">Pharmacological &amp; Clinical Specifications</h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-6 col-md-4">
+                            <span class="text-muted extra-small d-block text-uppercase fw-semibold">Generic Name (INN)</span>
+                            <strong class="text-navy small">{{ medicine.generic_name }}</strong>
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <span class="text-muted extra-small d-block text-uppercase fw-semibold">Brand / Proprietary Name</span>
+                            <strong class="text-navy small">{{ medicine.brand_name|default:"Generics-only" }}</strong>
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <span class="text-muted extra-small d-block text-uppercase fw-semibold">Therapeutic Category</span>
+                            <strong class="text-navy small">{{ medicine.category.name|default:"Unclassified" }}</strong>
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <span class="text-muted extra-small d-block text-uppercase fw-semibold">Dosage Form</span>
+                            <strong class="text-navy small">{{ medicine.dosage_form }}</strong>
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <span class="text-muted extra-small d-block text-uppercase fw-semibold">Strength / Potency</span>
+                            <strong class="text-navy small">{{ medicine.strength }}</strong>
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <span class="text-muted extra-small d-block text-uppercase fw-semibold">Unit Packing</span>
+                            <strong class="text-navy small">{{ medicine.unit_of_measure|default:"Unit" }}</strong>
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <span class="text-muted extra-small d-block text-uppercase fw-semibold">ATC Code</span>
+                            <strong class="text-navy font-monospace small">{{ medicine.atc_code|default:"Not Assigned" }}</strong>
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <span class="text-muted extra-small d-block text-uppercase fw-semibold">Applicable Tax / GST</span>
+                            <strong class="text-navy small">{{ medicine.tax_rate|default:"0.00" }}%</strong>
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <span class="text-muted extra-small d-block text-uppercase fw-semibold">Max Allowable Discount</span>
+                            <strong class="text-navy small">{{ medicine.max_discount_pct|default:"0.00" }}%</strong>
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <span class="text-muted extra-small d-block text-uppercase fw-semibold">Storage Condition</span>
+                            <strong class="text-navy small">{{ medicine.storage_condition|default:"Standard ambient storage" }}</strong>
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <span class="text-muted extra-small d-block text-uppercase fw-semibold">Source Reference</span>
+                            <strong class="text-navy small">{{ medicine.source_reference|default:"Hospital Master Catalogue" }}</strong>
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <span class="text-muted extra-small d-block text-uppercase fw-semibold">Barcode Standard</span>
+                            <strong class="text-navy font-monospace small">{{ medicine.barcode_type }} ({{ medicine.barcode|default:"None" }})</strong>
+                        </div>
+                    </div>
+
+                    <!-- Clinical Description -->
+                    <div class="p-3 bg-light rounded-3 border mb-3">
+                        <span class="text-navy fw-semibold small d-block mb-1"><i class="fas fa-stethoscope text-teal me-1"></i> Therapeutic Notes &amp; Indications</span>
+                        <p class="text-secondary small mb-0">{{ medicine.description|default:"No clinical indications or therapeutic notes added to this catalogue entry." }}</p>
+                    </div>
+
+                    <!-- Review Notes -->
+                    <div class="p-3 bg-light rounded-3 border">
+                        <span class="text-navy fw-semibold small d-block mb-1"><i class="fas fa-notes-medical text-teal me-1"></i> Pharmacy Review Criteria &amp; Safety Considerations</span>
+                        <p class="text-secondary small mb-0">{{ medicine.review_note|default:"Standard institutional pharmacy dispensing criteria apply." }}</p>
+                    </div>
+                </div>
+
+                <!-- ── TAB 3: REGULATORY & VERIFICATION WORKFLOW ────────────── -->
+                <div class="tab-pane fade" id="compliance-pane" role="tabpanel">
+                    <h5 class="fw-bold text-navy mb-3 pb-2 border-bottom">Regulatory Compliance &amp; Verification Workflow</h5>
+                    
+                    {% if medicine.validation_status == 'VALIDATED' %}
+                        <div class="alert alert-success border border-success border-opacity-25 d-flex gap-3 align-items-center mb-4">
+                            <i class="fas fa-circle-check text-success fs-3"></i>
+                            <div>
+                                <strong class="text-navy">Verified Institutional Catalogue Entry</strong>
+                                <p class="small text-secondary mb-0">This medicine record has been validated and approved. Purchase order issuance, stock receipt, and clinical prescription dispensing are active.</p>
+                            </div>
+                        </div>
+                    {% elif medicine.validation_status == 'PENDING' %}
+                        <div class="alert alert-warning border border-warning border-opacity-25 d-flex gap-3 align-items-start mb-4">
+                            <i class="fas fa-clock text-warning fs-3 mt-1"></i>
+                            <div>
+                                <strong class="text-navy">Pending Pharmacy Review &amp; Validation</strong>
+                                <p class="small text-secondary mb-0">This record is currently pending pharmacist/admin review. Inventory stock allocation and procurement orders remain restricted until verification is complete.</p>
+                                {% if user.role == 'ADMIN' %}
+                                    <div class="mt-2">
+                                        <a href="{% url 'medicine_draft_review' medicine.id %}" class="btn btn-warning btn-sm fw-semibold text-dark">
+                                            <i class="fas fa-clipboard-check me-1"></i> Open Verification Form
+                                        </a>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% elif medicine.validation_status == 'REJECTED' %}
+                        <div class="alert alert-danger border border-danger border-opacity-25 d-flex gap-3 align-items-center mb-4">
+                            <i class="fas fa-circle-xmark text-danger fs-3"></i>
+                            <div>
+                                <strong class="text-navy">Catalogue Entry Rejected</strong>
+                                <p class="small text-secondary mb-0">This record was rejected during clinical review. Review notes: {{ medicine.review_note|default:"Criteria not satisfied." }}</p>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-secondary border d-flex gap-3 align-items-center mb-4">
+                            <i class="fas fa-ban text-secondary fs-3"></i>
+                            <div>
+                                <strong class="text-navy">Catalogue Entry Deactivated</strong>
+                                <p class="small text-secondary mb-0">This medicine has been deactivated. Historical records and batches remain preserved for audit compliance.</p>
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    <!-- Admin Status Update Form -->
+                    {% if user.role == 'ADMIN' %}
+                        <div class="card bg-light border p-3.5 mb-4" style="border-radius: 10px;">
+                            <h6 class="fw-bold text-navy mb-2"><i class="fas fa-user-shield text-teal me-1"></i> Quick Status Transition (Admin Action)</h6>
+                            <form method="POST" action="{% url 'medicine_validate' medicine.medicine_id %}">
+                                {% csrf_token %}
+                                <div class="row g-2 align-items-center">
+                                    <div class="col-sm-6 col-md-4">
+                                        <label class="form-label text-navy fw-semibold small mb-1">Set Master Status</label>
+                                        {{ validation_form.status }}
+                                    </div>
+                                    <div class="col-sm-6 col-md-4 pt-sm-4">
+                                        <button type="submit" class="btn btn-teal btn-sm text-white px-3 py-2 fw-semibold">
+                                            <i class="fas fa-save me-1"></i> Update Status
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    {% endif %}
+
+                    <!-- Price Audit History -->
+                    <h6 class="fw-bold text-navy mb-2.5"><i class="fas fa-history text-teal me-1"></i> Batch Price Audit Trail</h6>
+                    {% if price_histories %}
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover align-middle mb-0 table-admin-custom">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Batch</th>
+                                        <th class="text-end">Old Purchase</th>
+                                        <th class="text-end">New Purchase</th>
+                                        <th class="text-end">Old Selling</th>
+                                        <th class="text-end">New Selling</th>
+                                        <th>Changed By</th>
+                                        <th>Reason</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for ph in price_histories %}
+                                        <tr>
+                                            <td class="small text-muted">{{ ph.changed_at|date:"Y-m-d H:i" }}</td>
+                                            <td><span class="badge bg-light text-navy border font-monospace">{{ ph.batch.batch_number }}</span></td>
+                                            <td class="text-end text-muted small">₹{{ ph.old_purchase_price }}</td>
+                                            <td class="text-end text-navy fw-semibold small">₹{{ ph.new_purchase_price }}</td>
+                                            <td class="text-end text-muted small">₹{{ ph.old_selling_price }}</td>
+                                            <td class="text-end text-navy fw-semibold small">₹{{ ph.new_selling_price }}</td>
+                                            <td class="small">{{ ph.changed_by.username|default:"System" }}</td>
+                                            <td class="small text-muted">{{ ph.reason|default:"Price update" }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted small mb-0">No historical price changes recorded for this medicine.</p>
+                    {% endif %}
+                </div>
+
+                <!-- ── TAB 4: PROCUREMENT & SUPPLIER HISTORY ─────────────────── -->
+                <div class="tab-pane fade" id="procurement-pane" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                        <div>
+                            <h5 class="fw-bold text-navy mb-0">Supplier Catalogue &amp; Procurement History</h5>
+                            <span class="text-muted small">Registered vendors mapped to this medicine and recent purchase orders.</span>
+                        </div>
+                        {% if user.role == 'ADMIN' %}
+                            <a href="{% url 'supplier_list' %}" class="btn btn-outline-secondary btn-sm px-3 py-1.5 fw-semibold">
+                                <i class="fas fa-truck-field me-1"></i> Supplier Directory
+                            </a>
+                        {% endif %}
+                    </div>
+
+                    <!-- Mapped Suppliers -->
+                    <h6 class="fw-bold text-navy mb-2"><i class="fas fa-handshake text-teal me-1"></i> Mapped Vendors ({{ supplier_medicines.count }})</h6>
+                    {% if supplier_medicines %}
+                        <div class="table-responsive mb-4">
+                            <table class="table table-hover align-middle mb-0 table-admin-custom">
+                                <thead>
+                                    <tr>
+                                        <th>Supplier Company</th>
+                                        <th>Delivery Lead Time</th>
+                                        <th class="text-end">Contract Unit Price</th>
+                                        <th class="text-center">Min Order Qty</th>
+                                        <th class="text-center">Preferred Status</th>
+                                        <th class="text-end">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for sm in supplier_medicines %}
+                                        <tr>
+                                            <td>
+                                                <a href="{% url 'supplier_detail' sm.supplier.id %}" class="fw-bold text-navy text-decoration-none">
+                                                    {{ sm.supplier.company_name }}
+                                                </a>
+                                                <div class="text-muted extra-small">Contact: {{ sm.supplier.contact_person|default:"N/A" }} | {{ sm.supplier.phone|default:"" }}</div>
+                                            </td>
+                                            <td class="small text-navy">{{ sm.delivery_days }} days</td>
+                                            <td class="text-end fw-semibold text-navy small">₹{{ sm.unit_price }}</td>
+                                            <td class="text-center small">{{ sm.minimum_order_quantity }}</td>
+                                            <td class="text-center">
+                                                {% if sm.is_preferred %}
+                                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-0.5 extra-small fw-bold">
+                                                        <i class="fas fa-star me-0.5"></i> Preferred
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge bg-light text-muted border px-2 py-0.5 extra-small">Secondary</span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-end">
+                                                <a href="{% url 'supplier_detail' sm.supplier.id %}" class="btn btn-sm btn-outline-secondary px-2 py-1">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="p-3 bg-light rounded-3 border text-muted small mb-4">
+                            <i class="fas fa-circle-info me-1"></i> No vendor catalogues currently mapped to this medicine. Restock can still be initiated through manual purchase requests.
+                        </div>
+                    {% endif %}
+
+                    <!-- Recent Purchase Order Items -->
+                    <h6 class="fw-bold text-navy mb-2"><i class="fas fa-file-invoice text-teal me-1"></i> Recent Purchase Orders</h6>
+                    {% if po_items %}
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover align-middle mb-0 table-admin-custom">
+                                <thead>
+                                    <tr>
+                                        <th>PO Number</th>
+                                        <th>Supplier</th>
+                                        <th class="text-center">Ordered</th>
+                                        <th class="text-center">Received</th>
+                                        <th class="text-end">Unit Price</th>
+                                        <th class="text-end">Total Price</th>
+                                        <th class="text-center">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in po_items %}
+                                        <tr>
+                                            <td>
+                                                <strong class="font-monospace text-navy small">{{ item.purchase_order.po_number }}</strong>
+                                            </td>
+                                            <td class="small">{{ item.purchase_order.supplier.company_name }}</td>
+                                            <td class="text-center small">{{ item.quantity_ordered }}</td>
+                                            <td class="text-center small">{{ item.quantity_received }}</td>
+                                            <td class="text-end small">₹{{ item.unit_price }}</td>
+                                            <td class="text-end fw-semibold text-navy small">₹{{ item.total_price }}</td>
+                                            <td class="text-center">
+                                                <span class="badge bg-light text-navy border extra-small">{{ item.purchase_order.get_status_display }}</span>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted small mb-0">No purchase orders raised for this medicine yet.</p>
+                    {% endif %}
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── QR CODE MODAL ──────────────────────────────────────────────────────── -->
+<div class="modal fade" id="qrCodeModal" tabindex="-1" aria-labelledby="qrCodeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <div class="modal-header bg-navy text-white py-2.5 px-3">
+                <h6 class="modal-title fw-bold" id="qrCodeModalLabel">
+                    <i class="fas fa-qrcode text-teal me-1.5"></i> Medicine QR Code
+                </h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center p-4">
+                <div class="p-2 border rounded bg-light d-inline-block shadow-sm mb-3">
+                    <img src="{% url 'medicine_qr' medicine.medicine_id %}" alt="{{ medicine.medicine_name }} QR" style="width: 170px; height: 170px;">
+                </div>
+                <h6 class="fw-bold text-navy mb-0">{{ medicine.medicine_name }}</h6>
+                <span class="font-monospace text-muted small">{{ medicine.medicine_id }}</span>
+                {% if medicine.barcode %}
+                    <div class="text-muted extra-small mt-1"><i class="fas fa-barcode me-1"></i>{{ medicine.barcode }}</div>
+                {% endif %}
+            </div>
+            <div class="modal-footer bg-light py-2 px-3 justify-content-center">
+                <a href="{% url 'medicine_qr' medicine.medicine_id %}" download="QR_{{ medicine.medicine_id }}.png" class="btn btn-teal btn-sm text-white px-3 fw-semibold">
+                    <i class="fas fa-download me-1"></i> Download PNG
+                </a>
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── DEACTIVATION CONFIRMATION MODAL ────────────────────────────────────── -->
+<div class="modal fade" id="deactivateModal" tabindex="-1" aria-labelledby="deactivateModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-navy text-white">
+                <h5 class="modal-title fw-bold" id="deactivateModalLabel">
+                    <i class="fas fa-triangle-exclamation text-warning me-2"></i> Deactivate Medicine Master
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{% url 'medicine_deactivate' medicine.medicine_id %}">
+                {% csrf_token %}
+                <div class="modal-body text-start">
+                    <p class="text-navy">Are you sure you want to deactivate <strong>{{ medicine.medicine_name }}</strong>?</p>
+                    <p class="text-muted small">Historical stock batch registries, procurement logs, sales billing records, and audit history will remain intact. Deactivating will prevent new stock entries or sales allocations.</p>
+                    
+                    <div class="p-3 bg-light rounded-3 border mt-3">
+                        <div class="form-check">
+                            {{ deactivate_form.confirm }}
+                            <label class="form-check-label text-navy fw-semibold small" for="id_confirm">I confirm I want to deactivate this medicine.</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-power-off me-1"></i> Deactivate Record</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

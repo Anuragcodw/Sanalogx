@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Registration Rejected — Sanalogx{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="container py-5 text-center">
+        <div class="max-width-600 mx-auto auth-card p-5 bg-white shadow-lg border-top border-5 border-danger">
+            <div class="card-icon-wrapper mx-auto mb-4" style="width: 72px; height: 72px; font-size: 2.2rem; background: #FEE2E2; color: #DC2626;">
+                <i class="fas fa-user-xmark"></i>
+            </div>
+
+            <span class="badge badge-soft-danger fs-6 mb-3 px-3 py-2">
+                <i class="fas fa-circle-xmark me-1"></i> STATUS: REGISTRATION REJECTED
+            </span>
+
+            <h2 class="fw-bold text-navy mb-3">Registration Not Approved</h2>
+            
+            <p class="text-secondary fs-6 mb-4">
+                Your pharmacist registration request was reviewed and rejected by the Hospital Administrator.
+            </p>
+
+            {% if rejection_reason %}
+                <div class="p-4 bg-rose-50 text-start mb-4 border border-danger-subtle rounded-3" style="background-color: #FFF1F2; border-color: #FECDD3 !important;">
+                    <h6 class="fw-bold text-danger mb-2"><i class="fas fa-comment-dots me-2"></i> Reason Provided by Admin:</h6>
+                    <p class="small text-navy mb-0 font-monospace" style="white-space: pre-wrap;">{{ rejection_reason }}</p>
+                </div>
+            {% else %}
+                <div class="p-3 bg-light rounded-3 text-start mb-4 border">
+                    <h6 class="fw-bold text-navy mb-2"><i class="fas fa-circle-info text-danger me-2"></i> Possible Reasons</h6>
+                    <ul class="small text-muted mb-0 ps-3">
+                        <li>Unverifiable or invalid pharmacy license registration number.</li>
+                        <li>Incomplete professional credentials or qualification mismatch.</li>
+                        <li>Duplicate account submission.</li>
+                    </ul>
+                </div>
+            {% endif %}
+
+            <p class="small text-muted mb-4">If you believe this decision is in error, please review your registration credentials and re-submit, or contact your administrator.</p>
+
+            <div class="d-flex justify-content-center gap-3">
+                <a href="{% url 'pharmacist_register' %}" class="btn btn-medivault-primary px-4">
+                    <i class="fas fa-user-plus me-2"></i> Re-Apply
+                </a>
+                <a href="{% url 'home' %}" class="btn btn-medivault-secondary px-4">
+                    <i class="fas fa-house me-2"></i> Return Home
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,196 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}AI Intelligence & Stock Optimization — Sanalogx{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 px-lg-4">
+    <!-- Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1 small text-muted">
+                    <li class="breadcrumb-item"><a href="{% url 'inventory_dashboard' %}" class="text-decoration-none text-teal"><i class="fas fa-boxes-stacked me-1"></i> Inventory</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">AI Intelligence</li>
+                </ol>
+            </nav>
+            <h3 class="fw-bold text-navy mb-0"><i class="fas fa-brain text-teal me-2"></i> MediVault AI Intelligence & Stock Optimization</h3>
+            <p class="text-muted small mb-0">ML 30-day demand forecasting, explainable reorder recommendations, expiry risk, dead stock, and price intelligence.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'purchase_request_list' %}" class="btn btn-teal text-white py-2 px-3 fw-bold">
+                <i class="fas fa-file-invoice me-1"></i> Purchase Requests Queue
+            </a>
+            <a href="{% url 'sales_analytics' %}" class="btn btn-navy text-white py-2 px-3 fw-bold">
+                <i class="fas fa-chart-line me-1"></i> Sales Analytics
+            </a>
+        </div>
+    </div>
+
+    <!-- Top KPI Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card card-medivault p-3 bg-white shadow-sm border-start border-4 border-warning">
+                <span class="text-muted extra-small font-uppercase fw-bold d-block mb-1">AI Reorders Needed</span>
+                <h3 class="fw-bold text-amber mb-0">{{ summary.total_reorders }}</h3>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card card-medivault p-3 bg-white shadow-sm border-start border-4 border-danger">
+                <span class="text-muted extra-small font-uppercase fw-bold d-block mb-1">Expiry Risks (90 Days)</span>
+                <h3 class="fw-bold text-danger mb-0">{{ summary.expiry_risk_count }}</h3>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card card-medivault p-3 bg-white shadow-sm border-start border-4 border-secondary">
+                <span class="text-muted extra-small font-uppercase fw-bold d-block mb-1">Dead Stock (90+ Days)</span>
+                <h3 class="fw-bold text-navy mb-0">{{ summary.dead_stock_count }}</h3>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card card-medivault p-3 bg-white shadow-sm border-start border-4 border-info">
+                <span class="text-muted extra-small font-uppercase fw-bold d-block mb-1">Overstock Items</span>
+                <h3 class="fw-bold text-teal mb-0">{{ summary.overstock_count }}</h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- Explainable AI Reorder Recommendations Table -->
+    <div class="card card-medivault bg-white shadow-sm border-0 mb-4">
+        <div class="card-header bg-navy text-white fw-bold py-3 d-flex justify-content-between align-items-center">
+            <span><i class="fas fa-robot text-teal me-2"></i> Explainable AI Reorder Recommendations</span>
+            <span class="badge bg-teal">{{ reorder_list|length }} Recommendations</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 small">
+                <thead class="bg-light text-navy fw-bold">
+                    <tr>
+                        <th class="ps-3 py-3">MEDICINE</th>
+                        <th class="py-3 text-center">CURRENT STOCK</th>
+                        <th class="py-3 text-center">REORDER LEVEL</th>
+                        <th class="py-3 text-center">30D FORECAST</th>
+                        <th class="py-3 text-center">REC ORDER QTY</th>
+                        <th class="py-3 text-center">PRIORITY</th>
+                        <th class="py-3">RECOMMENDED VENDOR</th>
+                        <th class="pe-3 py-3 text-end">ACTION</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rec in reorder_list %}
+                    <tr>
+                        <td class="ps-3 fw-bold text-navy">
+                            {{ rec.medicine.medicine_name }}
+                            <span class="text-muted extra-small d-block">{{ rec.explanation }}</span>
+                        </td>
+                        <td class="text-center font-monospace fw-bold fs-6">{{ rec.current_stock }}</td>
+                        <td class="text-center font-monospace text-amber">{{ rec.reorder_level }}</td>
+                        <td class="text-center font-monospace text-teal fw-bold">{{ rec.forecast_30d }}</td>
+                        <td class="text-center font-monospace fw-bold text-navy fs-6">{{ rec.recommended_qty }}</td>
+                        <td class="text-center">
+                            {% if rec.priority == 'CRITICAL' %}
+                                <span class="badge bg-danger">CRITICAL</span>
+                            {% elif rec.priority == 'HIGH' %}
+                                <span class="badge bg-warning text-dark">HIGH</span>
+                            {% else %}
+                                <span class="badge bg-info text-dark">MEDIUM</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ rec.recommended_supplier.company_name|default:"Best Available Supplier" }}</td>
+                        <td class="pe-3 text-end">
+                            <a href="{% url 'create_purchase_request' %}?alert_id={{ rec.medicine.id }}" class="btn btn-teal text-white btn-sm py-1 px-2 fw-bold">
+                                <i class="fas fa-paper-plane me-1"></i> Create PR
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-5 text-muted">
+                            <i class="fas fa-check-circle text-success fs-1 mb-2 d-block"></i>
+                            All inventory stock levels are currently optimal. No reorders needed.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Two-Column Section: Expiry Risk & Dead Stock -->
+    <div class="row g-4 mb-4">
+        <!-- Expiry Risk Table -->
+        <div class="col-lg-6">
+            <div class="card card-medivault bg-white shadow-sm border-0 h-100">
+                <div class="card-header bg-navy text-white fw-bold py-3">
+                    <i class="fas fa-hourglass-half text-warning me-2"></i> Expiry Risk Warning (Unconsumed Batches)
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0 small">
+                        <thead class="bg-light text-navy fw-bold">
+                            <tr>
+                                <th class="ps-3 py-3">MEDICINE & BATCH</th>
+                                <th class="py-3 text-center">STOCK</th>
+                                <th class="py-3 text-center">EXPIRY</th>
+                                <th class="pe-3 py-3 text-end">RISK LEVEL</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for r in expiry_risk_list %}
+                            <tr>
+                                <td class="ps-3 fw-bold text-navy">
+                                    {{ r.medicine.medicine_name }}
+                                    <span class="text-muted extra-small d-block">Batch {{ r.batch.batch_number }}</span>
+                                </td>
+                                <td class="text-center font-monospace fw-bold">{{ r.current_stock }}</td>
+                                <td class="text-center font-monospace text-teal fw-bold">{{ r.expiry_date|date:"d M Y" }}</td>
+                                <td class="pe-3 text-end">
+                                    {% if r.risk_level == 'CRITICAL' %}
+                                        <span class="badge bg-danger">{{ r.days_remaining }} Days (CRITICAL)</span>
+                                    {% else %}
+                                        <span class="badge bg-warning text-dark">{{ r.days_remaining }} Days (HIGH)</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="4" class="text-center py-4 text-muted">No expiry risks detected.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dead Stock Table -->
+        <div class="col-lg-6">
+            <div class="card card-medivault bg-white shadow-sm border-0 h-100">
+                <div class="card-header bg-navy text-white fw-bold py-3">
+                    <i class="fas fa-boxes-packing text-danger me-2"></i> Dead Stock Detection (90+ Days Silent)
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0 small">
+                        <thead class="bg-light text-navy fw-bold">
+                            <tr>
+                                <th class="ps-3 py-3">MEDICINE</th>
+                                <th class="py-3 text-center">STOCK SITTING</th>
+                                <th class="py-3 text-center">DAYS SILENT</th>
+                                <th class="pe-3 py-3 text-end">EST. INVENTORY VALUE</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for d in dead_stock_list %}
+                            <tr>
+                                <td class="ps-3 fw-bold text-navy">{{ d.medicine.medicine_name }}</td>
+                                <td class="text-center font-monospace fw-bold">{{ d.current_stock }}</td>
+                                <td class="text-center font-monospace text-danger fw-bold">{{ d.days_inactive }} Days</td>
+                                <td class="pe-3 text-end font-monospace text-teal fw-bold">₹{{ d.inventory_value }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="4" class="text-center py-4 text-muted">No dead stock detected.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

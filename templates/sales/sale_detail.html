@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Sale Detail — {{ sale.sale_number }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1 small text-muted">
+                    <li class="breadcrumb-item"><a href="{% url 'sales_history' %}" class="text-decoration-none text-teal"><i class="fas fa-history me-1"></i> Sales History</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">{{ sale.sale_number }}</li>
+                </ol>
+            </nav>
+            <h3 class="fw-bold text-navy mb-0"><i class="fas fa-receipt text-teal me-2"></i> Sale Receipt: {{ sale.sale_number }}</h3>
+            <p class="text-muted small mb-0">Invoice: <strong>{{ sale.invoice_number }}</strong> | Customer: <strong>{{ sale.patient_name }}</strong> | Date: {{ sale.sale_date|date:"d M Y, H:i" }}</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'sale_invoice' sale.pk %}" class="btn btn-navy text-white py-2 px-3 fw-bold">
+                <i class="fas fa-print me-1"></i> Print Printable Invoice
+            </a>
+            {% if sale.status != 'RETURNED' %}
+                <a href="{% url 'sale_return' sale.pk %}" class="btn btn-outline-danger py-2 px-3 fw-bold">
+                    <i class="fas fa-undo me-1"></i> Process Sale Return
+                </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Sale Details & Financial Breakdown -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-8">
+            <div class="card card-medivault bg-white shadow-sm border-0">
+                <div class="card-header bg-navy text-white fw-bold py-3">Sold Medicines & FEFO Batch Allocations</div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0 small">
+                        <thead class="bg-light text-navy fw-bold">
+                            <tr>
+                                <th class="ps-3 py-3">MEDICINE & BATCH</th>
+                                <th class="py-3 text-center">QTY</th>
+                                <th class="py-3 text-end">SELLING PRICE</th>
+                                <th class="py-3 text-end">COST BASIS</th>
+                                <th class="pe-3 py-3 text-end">LINE TOTAL</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in items %}
+                            <tr>
+                                <td class="ps-3 fw-bold text-navy">
+                                    {{ item.medicine.medicine_name }}
+                                    <span class="text-muted extra-small d-block">Batch {{ item.batch.batch_number }} (Exp: {{ item.batch.expiry_date|date:"d M Y" }})</span>
+                                </td>
+                                <td class="text-center font-monospace fw-bold fs-6">{{ item.quantity }}</td>
+                                <td class="text-end font-monospace">₹{{ item.unit_price }}</td>
+                                <td class="text-end font-monospace text-muted">₹{{ item.purchase_unit_price }}</td>
+                                <td class="pe-3 text-end font-monospace fw-bold text-teal">₹{{ item.total_price }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card card-medivault bg-white shadow-sm p-4 mb-3">
+                <h6 class="fw-bold text-navy mb-3">Financial Summary</h6>
+                <div class="d-flex justify-content-between mb-2 small">
+                    <span class="text-muted">Subtotal:</span>
+                    <strong class="font-monospace">₹{{ sale.subtotal }}</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-2 small">
+                    <span class="text-muted">GST Tax (5%):</span>
+                    <strong class="font-monospace">₹{{ sale.tax_amount }}</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-2 small">
+                    <span class="text-muted">Discount Applied:</span>
+                    <strong class="font-monospace text-danger">- ₹{{ sale.discount_amount }}</strong>
+                </div>
+                <hr class="my-2">
+                <div class="d-flex justify-content-between mb-3 fs-5 fw-bold text-navy">
+                    <span>Grand Total Paid:</span>
+                    <span class="text-teal font-monospace">₹{{ sale.total_amount }}</span>
+                </div>
+
+                <div class="bg-light p-3 rounded-3 small">
+                    <div class="mb-1"><span class="text-muted">Payment Method:</span> <strong>{{ sale.get_payment_method_display }}</strong></div>
+                    <div class="mb-1"><span class="text-muted">Pharmacist:</span> <strong>{{ sale.sold_by.username|default:"System" }}</strong></div>
+                    <div><span class="text-muted">Status:</span> <strong>{{ sale.get_status_display }}</strong></div>
+                </div>
+            </div>
+
+            {% if user.role == 'ADMIN' %}
+            <div class="card bg-teal-subtle border-teal p-3">
+                <span class="extra-small font-uppercase fw-bold text-teal d-block mb-1">Gross Profit Analysis (Admin Only)</span>
+                <div class="d-flex justify-content-between small mb-1">
+                    <span>Historical Cost:</span>
+                    <strong class="font-monospace">₹{{ total_cost }}</strong>
+                </div>
+                <div class="d-flex justify-content-between small">
+                    <span>Net Gross Profit:</span>
+                    <strong class="font-monospace text-success fs-6">₹{{ total_profit }}</strong>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Process Sale Return — {{ sale.sale_number }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-9">
+            <div class="card card-medivault bg-white shadow-lg p-4 p-md-5">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h4 class="fw-bold text-navy mb-0"><i class="fas fa-undo text-danger me-2"></i> Process Sale Return & Refund</h4>
+                        <p class="text-muted small mb-0">Return medicines against <strong>{{ sale.sale_number }}</strong> and safely restore batch stock.</p>
+                    </div>
+                    <a href="{% url 'sale_detail' sale.pk %}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i> Back to Receipt</a>
+                </div>
+
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="mb-4">
+                        <label class="form-label small fw-semibold text-muted">Reason for Return <span class="text-danger">*</span></label>
+                        <select name="reason" class="form-select" required>
+                            <option value="Customer Return — Unused">Customer Return — Unused Packaging</option>
+                            <option value="Wrong Medicine Issue">Wrong Medicine Issued</option>
+                            <option value="Damaged Outer Packaging">Damaged Outer Packaging</option>
+                            <option value="Authorized Physician Cancellation">Authorized Physician Cancellation</option>
+                        </select>
+                    </div>
+
+                    <h6 class="fw-bold text-navy mb-3">Select Medicine Return Quantities</h6>
+                    <div class="table-responsive mb-4">
+                        <table class="table table-bordered align-middle small">
+                            <thead class="bg-light text-navy fw-bold">
+                                <tr>
+                                    <th>MEDICINE & BATCH</th>
+                                    <th class="text-center">SOLD QTY</th>
+                                    <th class="text-center">PREV RETURNED</th>
+                                    <th style="width: 140px;" class="text-center">RETURN QTY</th>
+                                    <th class="text-end">UNIT PRICE</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in items %}
+                                <tr>
+                                    <td class="fw-bold text-navy">
+                                        {{ item.medicine.medicine_name }}
+                                        <span class="text-muted extra-small d-block">Batch {{ item.batch.batch_number }}</span>
+                                    </td>
+                                    <td class="text-center font-monospace fw-bold fs-6">{{ item.quantity }}</td>
+                                    <td class="text-center font-monospace text-muted">{{ item.quantity_returned }}</td>
+                                    <td>
+                                        <input type="number" name="return_qty_{{ item.id }}" min="0" max="{{ item.quantity }}" value="0" class="form-control form-control-sm font-monospace text-center fw-bold">
+                                    </td>
+                                    <td class="text-end font-monospace">₹{{ item.unit_price }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label small fw-semibold text-muted">Return Remarks / Notes</label>
+                        <textarea name="notes" class="form-control" rows="2" placeholder="e.g. Returned by customer in sealed condition. Restocked to active batch."></textarea>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{% url 'sale_detail' sale.pk %}" class="btn btn-outline-secondary py-2 px-3">Cancel</a>
+                        <button type="submit" onclick="return confirm('Confirm medicine return? Selected stock will be restored to batch.');" class="btn btn-danger text-white py-2 px-4 fw-bold">
+                            <i class="fas fa-check-circle me-1"></i> Process Return & Restore Stock
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

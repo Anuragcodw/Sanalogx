@@ -1,0 +1,299 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Process Request {{ req_obj.request_id }} — Sanalogx{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 px-lg-4">
+    <!-- Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1 small text-muted">
+                    <li class="breadcrumb-item"><a href="{% url 'live_requests_queue' %}" class="text-decoration-none text-teal"><i class="fas fa-list-check me-1"></i> Request Queue</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">{{ req_obj.request_id }}</li>
+                </ol>
+            </nav>
+            <h3 class="fw-bold text-navy mb-0"><i class="fas fa-prescription-bottle-medical text-teal me-2"></i> Medicine Request Processing</h3>
+            <p class="text-muted small mb-0">Barcode scanning, FEFO batch verification, atomic dispensing & invoice generation.</p>
+        </div>
+        <div class="d-flex gap-2">
+            {% if invoice %}
+                <a href="{% url 'view_invoice' req_obj.request_id %}" class="btn btn-success py-2 px-3">
+                    <i class="fas fa-file-invoice-dollar me-1"></i> View Invoice ({{ invoice.invoice_number }})
+                </a>
+            {% else %}
+                <a href="{% url 'view_invoice' req_obj.request_id %}" class="btn btn-medivault-primary py-2 px-3">
+                    <i class="fas fa-receipt me-1"></i> Generate Combined Invoice
+                </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Messages -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show small mb-4" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="row g-4">
+        <!-- Left: Patient Details Card -->
+        <div class="col-lg-4">
+            <div class="card card-medivault bg-white shadow-sm p-4 mb-4">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="card-icon-wrapper mb-0" style="width: 52px; height: 52px; font-size: 1.5rem;">
+                        <i class="fas fa-user-injured"></i>
+                    </div>
+                    <div>
+                        <span class="badge badge-soft-teal mb-1">REQUEST ID: {{ req_obj.request_id }}</span>
+                        <h4 class="fw-bold text-navy mb-0">{{ req_obj.patient_name }}</h4>
+                    </div>
+                </div>
+
+                <hr class="my-3 text-muted">
+
+                <div class="small d-flex flex-column gap-2">
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Patient ID / UHID:</span>
+                        <strong class="text-navy">{{ req_obj.patient_id }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Mobile Number:</span>
+                        <strong class="text-navy">{{ req_obj.mobile_number }}</strong>
+                    </div>
+                    {% if req_obj.email %}
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Email:</span>
+                        <strong class="text-navy">{{ req_obj.email }}</strong>
+                    </div>
+                    {% endif %}
+                    {% if req_obj.department %}
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Ward / Department:</span>
+                        <strong class="text-navy">{{ req_obj.department }}</strong>
+                    </div>
+                    {% endif %}
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Submitted Time:</span>
+                        <strong class="text-navy">{{ req_obj.created_at|date:"d M Y, H:i" }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Overall Request Status:</span>
+                        <strong class="text-teal">{{ req_obj.get_request_status_display }}</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card card-medivault bg-white shadow-sm p-4">
+                <h6 class="fw-bold text-navy mb-3"><i class="fas fa-barcode text-teal me-2"></i> Quick Barcode Scanner</h6>
+                <p class="text-muted extra-small mb-3">Scan or type batch barcode to automatically validate medicine, expiry, and FEFO allocation.</p>
+                
+                <div class="input-group mb-2">
+                    <span class="input-group-text bg-light"><i class="fas fa-scanner"></i></span>
+                    <input type="text" id="globalBarcodeScanInput" class="form-control form-control-sm" placeholder="Scan Barcode / Batch No...">
+                </div>
+                <span class="text-muted extra-small d-block">Press Enter after scanning to validate.</span>
+            </div>
+        </div>
+
+        <!-- Right: Requested Items List & Dispensing Actions -->
+        <div class="col-lg-8">
+            <div class="card card-medivault bg-white shadow-sm p-4">
+                <h5 class="fw-bold text-navy mb-3"><i class="fas fa-pills text-teal me-2"></i> Requested Medicines ({{ req_obj.total_items }} Items)</h5>
+
+                <div class="d-flex flex-column gap-4">
+                    {% for item_info in items_data %}
+                        {% with item=item_info.item inv=item_info.inventory fefo=item_info.fefo_batch %}
+                        <div class="p-3 bg-light rounded-3 border position-relative" id="itemRow{{ item.id }}">
+                            <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 mb-3">
+                                <div>
+                                    <span class="badge bg-secondary mb-1">Item #{{ forloop.counter }}</span>
+                                    <h5 class="fw-bold text-navy mb-0">{{ item.medicine.medicine_name }}</h5>
+                                    <span class="text-muted small">
+                                        {{ item.medicine.generic_name|default:'' }} | Dosage: {{ item.medicine.dosage_form|default:'N/A' }} {{ item.medicine.strength|default:'' }}
+                                    </span>
+                                </div>
+                                <div class="text-md-end">
+                                    <span class="badge {% if item.item_status == 'DISPENSED' %}bg-success{% elif item.item_status == 'PARTIALLY_AVAILABLE' %}bg-warning text-dark{% elif item.item_status == 'NOT_AVAILABLE' %}bg-danger{% else %}bg-amber text-dark{% endif %} px-3 py-2 fs-6">
+                                        Status: {{ item.get_item_status_display }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="row g-2 mb-3 small">
+                                <div class="col-md-3 col-6">
+                                    <div class="p-2 bg-white rounded border">
+                                        <span class="text-muted d-block extra-small">Requested Qty:</span>
+                                        <strong class="text-navy fs-6">{{ item.requested_quantity }}</strong>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-6">
+                                    <div class="p-2 bg-white rounded border">
+                                        <span class="text-muted d-block extra-small">Dispensed Qty:</span>
+                                        <strong class="text-teal fs-6">{{ item.dispensed_quantity }}</strong>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-6">
+                                    <div class="p-2 bg-white rounded border">
+                                        <span class="text-muted d-block extra-small">Available Stock:</span>
+                                        <strong class="{% if inv.current_stock > 0 %}text-success{% else %}text-danger{% endif %} fs-6">{{ inv.current_stock }}</strong>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-6">
+                                    <div class="p-2 bg-white rounded border">
+                                        <span class="text-muted d-block extra-small">FEFO Batch Rec:</span>
+                                        <strong class="text-navy fs-6">{% if fefo %}{{ fefo.batch_number }}{% else %}No Active Batch{% endif %}</strong>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {% if item.item_status != 'DISPENSED' %}
+                            <!-- Barcode & Batch Selection Form -->
+                            <div class="p-3 bg-white rounded-3 border mb-2">
+                                <h6 class="fw-bold text-navy mb-2 small"><i class="fas fa-barcode text-teal me-1"></i> Barcode Scan & Batch Dispense</h6>
+                                <div class="row g-2 align-items-center">
+                                    <div class="col-md-5">
+                                        <input type="text" id="barcodeInput{{ item.id }}" class="form-control form-control-sm" placeholder="Scan/Enter Barcode..." onchange="scanItemBarcode({{ item.id }})">
+                                    </div>
+                                    <div class="col-md-5">
+                                        <select id="batchSelect{{ item.id }}" class="form-select form-select-sm">
+                                            {% for b in item_info.active_batches %}
+                                                <option value="{{ b.id }}" data-qty="{{ b.quantity_available }}" data-expiry="{{ b.expiry_date|date:'d M Y' }}">
+                                                    Batch: {{ b.batch_number }} (Avail: {{ b.quantity_available }} | Exp: {{ b.expiry_date|date:'d M Y' }})
+                                                </option>
+                                            {% empty %}
+                                                <option value="">No Active Stock Batches Available</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <input type="number" id="dispenseQtyInput{{ item.id }}" class="form-control form-control-sm" value="{{ item.requested_quantity }}" min="1" max="{{ inv.current_stock }}">
+                                    </div>
+                                </div>
+
+                                <!-- Validation Alert Output Box -->
+                                <div id="scanResultBox{{ item.id }}" class="mt-2 d-none"></div>
+
+                                <div class="d-flex justify-content-end gap-2 mt-3">
+                                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="markItemUnavailable({{ item.id }})">
+                                        <i class="fas fa-ban me-1"></i> Mark Not Available
+                                    </button>
+                                    <button type="button" class="btn btn-teal btn-sm text-white" onclick="executeDispense({{ item.id }})">
+                                        <i class="fas fa-check-circle me-1"></i> Confirm & Dispense Stock
+                                    </button>
+                                </div>
+                            </div>
+                            {% else %}
+                            <div class="p-3 bg-success bg-opacity-10 text-success rounded-3 border border-success small">
+                                <i class="fas fa-circle-check me-1"></i> Successfully dispensed {{ item.dispensed_quantity }} units from Batch <strong>{{ item.dispensed_batch.batch_number|default:'Confirmed' }}</strong>.
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endwith %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function getCsrfToken() {
+    return '{{ csrf_token }}';
+}
+
+function scanItemBarcode(itemId) {
+    let barcode = document.getElementById('barcodeInput' + itemId).value.trim();
+    if (!barcode) return;
+
+    fetch('{% url "api_barcode_scan" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken()
+        },
+        body: JSON.stringify({ item_id: itemId, barcode: barcode })
+    })
+    .then(res => res.json())
+    .then(data => {
+        let box = document.getElementById('scanResultBox' + itemId);
+        box.classList.remove('d-none', 'alert-danger', 'alert-success', 'alert-warning');
+        
+        if (!data.valid) {
+            box.className = 'mt-2 alert alert-danger small mb-0 py-2';
+            box.innerHTML = `<i class="fas fa-circle-xmark me-1"></i> Barcode Error: ${data.error}`;
+        } else {
+            let warnHtml = data.fefo_warning ? `<div class="mt-1 text-warning"><i class="fas fa-triangle-exclamation me-1"></i> ${data.fefo_warning}</div>` : '';
+            box.className = 'mt-2 alert alert-success small mb-0 py-2';
+            box.innerHTML = `<i class="fas fa-circle-check me-1"></i> Validated Batch ${data.batch_number} (Available Stock: ${data.available_quantity}). ${warnHtml}`;
+            
+            // Auto-select batch in dropdown
+            let select = document.getElementById('batchSelect' + itemId);
+            if (select) select.value = data.batch_id;
+        }
+    })
+    .catch(err => {
+        alert("Scan Error: " + err);
+    });
+}
+
+function executeDispense(itemId) {
+    let batchId = document.getElementById('batchSelect' + itemId).value;
+    let qty = document.getElementById('dispenseQtyInput' + itemId).value;
+
+    if (!batchId) {
+        alert("Please select a valid medicine batch.");
+        return;
+    }
+
+    if (!confirm(`Confirm dispensing ${qty} units from selected batch? This action will safely reduce inventory stock.`)) {
+        return;
+    }
+
+    fetch('{% url "api_dispense_item" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken()
+        },
+        body: JSON.stringify({ item_id: itemId, batch_id: batchId, quantity: qty })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            window.location.reload();
+        } else {
+            alert("Dispensing Error: " + data.error);
+        }
+    })
+    .catch(err => alert("Server Error: " + err));
+}
+
+function markItemUnavailable(itemId) {
+    let reason = prompt("Enter reason for marking medicine unavailable:", "Stock currently unavailable in pharmacy.");
+    if (reason === null) return;
+
+    fetch('{% url "api_reject_item" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken()
+        },
+        body: JSON.stringify({ item_id: itemId, reason: reason })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            window.location.reload();
+        } else {
+            alert("Error: " + data.error);
+        }
+    });
+}
+</script>
+{% endblock %}

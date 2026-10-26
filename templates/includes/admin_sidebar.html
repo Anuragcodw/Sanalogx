@@ -1,0 +1,146 @@
+{% load static %}
+<!-- Sanalogx Left Sidebar Navigation -->
+<aside class="admin-app-sidebar" id="adminAppSidebar" aria-label="Administrator Navigation">
+    <!-- Brand Header -->
+    <div class="admin-sidebar-brand">
+        <a href="{% url 'admin_approvals' %}">
+            <div class="admin-brand-icon">
+                <i class="fas fa-prescription-bottle-alt"></i>
+            </div>
+            <div class="admin-brand-text">
+                <span class="admin-brand-name">Sanalog<span>x</span></span>
+                <span class="admin-brand-subtitle">Admin Governance</span>
+            </div>
+        </a>
+    </div>
+
+    <!-- Navigation List -->
+    <nav class="admin-sidebar-nav">
+        <!-- Section: Overview -->
+        <div class="admin-nav-section-title">Overview</div>
+        <div class="admin-nav-item">
+            <a href="{% url 'admin_approvals' %}" class="admin-nav-link {% if request.resolver_match.url_name == 'admin_approvals' or request.resolver_match.url_name == 'admin_dashboard' %}active{% endif %}">
+                <i class="fas fa-chart-pie nav-icon"></i>
+                <span>Admin Dashboard</span>
+            </a>
+        </div>
+
+        <!-- Section: Pharmacy Operations -->
+        <div class="admin-nav-section-title">Pharmacy Operations</div>
+        
+        <div class="admin-nav-item">
+            <a href="{% url 'medicine_list' %}" class="admin-nav-link {% if 'medicines' in request.path and request.resolver_match.url_name != 'category_list' %}active{% endif %}">
+                <i class="fas fa-pills nav-icon"></i>
+                <span>Medicine Master</span>
+            </a>
+        </div>
+
+        <div class="admin-nav-item">
+            <a href="{% url 'inventory_dashboard' %}" class="admin-nav-link {% if 'inventory' in request.path %}active{% endif %}">
+                <i class="fas fa-boxes-stacked nav-icon"></i>
+                <span>Inventory Control</span>
+            </a>
+        </div>
+
+        <div class="admin-nav-item">
+            <a href="{% url 'controlled_register' %}" class="admin-nav-link {% if request.resolver_match.url_name == 'controlled_register' %}active{% endif %}">
+                <i class="fas fa-book-medical nav-icon"></i>
+                <span>Controlled Register</span>
+            </a>
+        </div>
+
+        <div class="admin-nav-item">
+            <a href="{% url 'discrepancy_list' %}" class="admin-nav-link {% if request.resolver_match.url_name == 'discrepancy_list' or request.resolver_match.url_name == 'stock_reconciliation' %}active{% endif %}">
+                <i class="fas fa-triangle-exclamation nav-icon"></i>
+                <span>Discrepancies & Audit</span>
+            </a>
+        </div>
+
+        <div class="admin-nav-item">
+            <a href="{% url 'sales_history' %}" class="admin-nav-link {% if 'sales' in request.path %}active{% endif %}">
+                <i class="fas fa-cash-register nav-icon"></i>
+                <span>Sales & Billing</span>
+            </a>
+        </div>
+
+        <div class="admin-nav-item">
+            <a href="{% url 'purchase_orders_list' %}" class="admin-nav-link {% if 'purchases' in request.path or 'suppliers' in request.path %}active{% endif %}">
+                <i class="fas fa-truck-field nav-icon"></i>
+                <span>Procurement</span>
+            </a>
+        </div>
+
+        <!-- Section: Intelligence -->
+        <div class="admin-nav-section-title">Intelligence</div>
+
+        <div class="admin-nav-item">
+            <a href="{% url 'ai_dashboard' %}" class="admin-nav-link {% if 'ai' in request.path %}active{% endif %}">
+                <i class="fas fa-brain nav-icon"></i>
+                <span>AI Intelligence</span>
+            </a>
+        </div>
+
+        <div class="admin-nav-item">
+            <a href="{% url 'reports_center' %}" class="admin-nav-link {% if 'reports' in request.path %}active{% endif %}">
+                <i class="fas fa-file-invoice nav-icon"></i>
+                <span>Reports & Analytics</span>
+            </a>
+        </div>
+
+        <div class="admin-nav-item">
+            <a href="{% url 'notification_list' %}" class="admin-nav-link {% if 'notifications' in request.path %}active{% endif %}">
+                <i class="fas fa-bell nav-icon"></i>
+                <span>Notifications</span>
+            </a>
+        </div>
+
+        <!-- Section: Administration -->
+        <div class="admin-nav-section-title">Administration</div>
+
+        <div class="admin-nav-item">
+            <a href="{% url 'admin_approvals' %}" class="admin-nav-link {% if request.resolver_match.url_name == 'admin_approvals' %}active{% endif %}">
+                <i class="fas fa-user-shield nav-icon"></i>
+                <span>Pharmacist Review</span>
+                {% if pending_pharmacists and pending_pharmacists.count > 0 %}
+                    <span class="badge bg-warning text-dark ms-auto font-monospace">{{ pending_pharmacists.count }}</span>
+                {% endif %}
+            </a>
+        </div>
+
+        <div class="admin-nav-item">
+            <a href="{% url 'integration_dashboard' %}" class="admin-nav-link {% if 'integrations' in request.path %}active{% endif %}">
+                <i class="fas fa-network-wired nav-icon"></i>
+                <span>Hospital Integration</span>
+            </a>
+        </div>
+
+        <div class="admin-nav-item">
+            <a href="{% url 'category_list' %}" class="admin-nav-link {% if request.resolver_match.url_name == 'category_list' %}active{% endif %}">
+                <i class="fas fa-tags nav-icon"></i>
+                <span>Categories</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- Sidebar Footer -->
+    <div class="admin-sidebar-footer">
+        <div class="admin-user-info">
+            <div class="admin-user-avatar">
+                {{ request.user.username|slice:":1"|upper }}
+            </div>
+            <div class="admin-user-details">
+                <span class="admin-user-name">{{ request.user.get_full_name|default:request.user.username }}</span>
+                <span class="admin-user-role">Administrator</span>
+            </div>
+        </div>
+        <form method="POST" action="{% url 'logout' %}" class="d-inline m-0 p-0">
+            {% csrf_token %}
+            <button type="submit" class="admin-sidebar-logout-btn" title="Sign Out" style="background: none; border: none; cursor: pointer;">
+                <i class="fas fa-sign-out-alt"></i>
+            </button>
+        </form>
+    </div>
+</aside>
+
+<!-- Mobile Overlay Backdrop -->
+<div class="admin-sidebar-backdrop" id="adminSidebarBackdrop" aria-hidden="true"></div>

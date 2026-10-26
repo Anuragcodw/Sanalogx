@@ -1,0 +1,41 @@
+{
+  "model_name": "SanalogxChatIntentClassifier",
+  "algorithm": "LogisticRegression (Multinomial)",
+  "vectorizer": "TfidfVectorizer (unigram + bigram, sublinear_tf)",
+  "version": "1.0.0",
+  "trained_at": "2026-10-21T18:12:48.718420",
+  "dataset_file": "pharmacy_chat_intents.csv",
+  "total_samples": 265,
+  "train_samples": 212,
+  "test_samples": 53,
+  "num_classes": 21,
+  "classes": [
+    "CHECK_BATCHES",
+    "CHECK_EXPIRY_RISK",
+    "CHECK_LOW_STOCK",
+    "CHECK_MEDICINE_STOCK",
+    "CHECK_OUT_OF_STOCK",
+    "CONSUMPTION_ANALYTICS",
+    "CONTROLLED_REGISTER",
+    "DISPENSING_HISTORY",
+    "GREETING",
+    "HELP",
+    "INVENTORY_OVERVIEW",
+    "MEDICINE_INFO",
+    "PROFIT_SUMMARY",
+    "PURCHASE_ORDERS",
+    "RECOMMEND_REORDER",
+    "SALES_MONTH",
+    "SALES_TODAY",
+    "SALES_WEEK",
+    "STOCK_DISCREPANCY",
+    "TOP_SELLING_MEDICINES",
+    "UNKNOWN_OUT_OF_SCOPE"
+  ],
+  "metrics": {
+    "accuracy": 0.6981,
+    "precision_weighted": 0.7051,
+    "recall_weighted": 0.6981,
+    "f1_weighted": 0.6702
+  }
+}

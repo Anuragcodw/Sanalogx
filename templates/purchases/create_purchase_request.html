@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Create Purchase Request — Sanalogx Procurement{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card card-medivault bg-white shadow-lg p-4 p-md-5">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h4 class="fw-bold text-navy mb-0"><i class="fas fa-cart-plus text-teal me-2"></i> Create Purchase Request</h4>
+                    <a href="{% url 'purchase_request_list' %}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i> Back to Requests</a>
+                </div>
+                <p class="text-muted small mb-4">Raise a restocking request with automated AI reorder calculation and supplier recommendations.</p>
+
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-muted">Select Medicine <span class="text-danger">*</span></label>
+                        <select name="medicine" id="medicineSelect" class="form-select" required>
+                            <option value="">-- Choose Medicine --</option>
+                            {% for med in medicines %}
+                                <option value="{{ med.id }}" {% if initial_med and initial_med.id == med.id %}selected{% endif %}>
+                                    {{ med.medicine_name }} ({{ med.strength }}) — Reorder Lvl: {{ med.reorder_level }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-muted">Requested Quantity <span class="text-danger">*</span></label>
+                            <input type="number" name="requested_qty" min="1" value="{% if initial_ai_rec %}{{ initial_ai_rec.recommended_qty }}{% else %}100{% endif %}" class="form-control font-monospace fw-bold" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-muted">Priority</label>
+                            <select name="priority" class="form-select">
+                                <option value="NORMAL">Normal</option>
+                                <option value="URGENT">Urgent</option>
+                                <option value="CRITICAL">Critical</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-muted">Target Supplier (Optional)</label>
+                        <select name="supplier" class="form-select">
+                            <option value="">-- Auto-select Best Recommended Supplier --</option>
+                            {% for sup in suppliers %}
+                                <option value="{{ sup.id }}" {% if initial_best_supplier and initial_best_supplier.id == sup.id %}selected{% endif %}>
+                                    {{ sup.company_name }} (Rating: {{ sup.rating }}/5, Lead: {{ sup.average_delivery_days }}d)
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label small fw-semibold text-muted">Reason / Justification</label>
+                        <textarea name="reason" class="form-control" rows="2" placeholder="e.g. Stock dropped below reorder level (40 units remaining)."></textarea>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{% url 'purchase_request_list' %}" class="btn btn-outline-secondary py-2 px-3">Cancel</a>
+                        <button type="submit" class="btn btn-teal text-white py-2 px-4 fw-bold">
+                            <i class="fas fa-paper-plane me-1"></i> Submit Purchase Request
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

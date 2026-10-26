@@ -1,0 +1,106 @@
+﻿{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}GRN Detail & Verification — {{ grn.grn_number }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="card card-medivault bg-white shadow-lg p-4 p-md-5 mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h4 class="fw-bold text-navy mb-0"><i class="fas fa-clipboard-check text-teal me-2"></i> Physical Verification: {{ grn.grn_number }}</h4>
+                <p class="text-muted small mb-0">Supplier: <strong>{{ grn.supplier.company_name }}</strong> | PO: <strong>{{ grn.purchase_order.po_number }}</strong> | Invoice: {{ grn.invoice_number }}</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{% url 'grn_list' %}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i> Queue</a>
+            </div>
+        </div>
+
+        <div class="alert {% if grn.status == 'VERIFIED' %}alert-success{% else %}alert-warning{% endif %} d-flex align-items-center justify-content-between mb-4">
+            <div>
+                <strong>Status: {{ grn.get_status_display }}</strong>
+                {% if grn.status == 'VERIFIED' %}
+                    <span class="d-block extra-small text-muted">Verified by {{ grn.verified_by.username }} on {{ grn.verified_at|date:"d M Y, H:i" }}. Batches created and inventory stock increased.</span>
+                {% else %}
+                    <span class="d-block extra-small text-muted">Stock will NOT increase until Pharmacist completes visual and batch verification below. Adjust accepted quantities and set rejection categories where applicable.</span>
+                {% endif %}
+            </div>
+            {% if grn.status == 'VERIFIED' %}
+                <span class="badge bg-success fs-6"><i class="fas fa-check-double me-1"></i> ATOMICALLY VERIFIED</span>
+            {% endif %}
+        </div>
+
+        <form method="POST" action="{% url 'verify_grn' grn.pk %}">
+            {% csrf_token %}
+            <h6 class="fw-bold text-navy mb-3">Shipment Item Physical Verification</h6>
+            <div class="table-responsive mb-4">
+                <table class="table table-bordered align-middle small">
+                    <thead class="bg-light text-navy fw-bold">
+                        <tr>
+                            <th>MEDICINE</th>
+                            <th class="text-center">REC QTY</th>
+                            <th style="width: 130px;" class="text-center">ACCEPTED QTY</th>
+                            <th>BATCH NUMBER</th>
+                            <th>EXPIRY DATE</th>
+                            <th style="width: 180px;">REJECTION REASON</th>
+                            <th>STATUS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in items %}
+                        <tr>
+                            <td class="fw-bold text-navy">{{ item.medicine.medicine_name }} ({{ item.medicine.strength }})</td>
+                            <td class="text-center font-monospace fw-bold fs-6">{{ item.quantity_received }}</td>
+                            <td>
+                                {% if grn.status == 'PENDING_VERIFICATION' %}
+                                    <input type="number" name="accepted_{{ item.id }}" min="0" max="{{ item.quantity_received }}" value="{{ item.quantity_received }}" class="form-control form-control-sm font-monospace fw-bold text-center">
+                                {% else %}
+                                    <span class="font-monospace fw-bold text-success d-block text-center fs-6">{{ item.quantity_accepted }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="font-monospace fw-bold">{{ item.batch_number }}</td>
+                            <td class="font-monospace text-teal fw-bold">{{ item.expiry_date|date:"d M Y" }}</td>
+                            <td>
+                                {% if grn.status == 'PENDING_VERIFICATION' %}
+                                    <select name="reason_{{ item.id }}" class="form-select form-select-sm">
+                                        <option value="">— No Rejection —</option>
+                                        <option value="DAMAGED_PACKAGING" {% if item.rejection_reason == 'DAMAGED_PACKAGING' %}selected{% endif %}>Damaged Packaging</option>
+                                        <option value="EXPIRED_AT_ARRIVAL" {% if item.rejection_reason == 'EXPIRED_AT_ARRIVAL' %}selected{% endif %}>Expired at Arrival</option>
+                                        <option value="BROKEN_COLD_CHAIN" {% if item.rejection_reason == 'BROKEN_COLD_CHAIN' %}selected{% endif %}>Broken Cold Chain</option>
+                                        <option value="SHORT_DELIVERY" {% if item.rejection_reason == 'SHORT_DELIVERY' %}selected{% endif %}>Short Delivery</option>
+                                        <option value="WRONG_ITEM" {% if item.rejection_reason == 'WRONG_ITEM' %}selected{% endif %}>Wrong Item</option>
+                                        <option value="OTHER" {% if item.rejection_reason == 'OTHER' %}selected{% endif %}>Other</option>
+                                    </select>
+                                {% else %}
+                                    {% if item.rejection_reason %}
+                                        <span class="badge bg-danger small">{{ item.rejection_reason|default:"—" }}</span>
+                                        <span class="extra-small text-muted d-block">Rejected: {{ item.quantity_rejected }}</span>
+                                    {% else %}
+                                        <span class="text-muted extra-small">—</span>
+                                    {% endif %}
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if item.medicine_batch %}
+                                    <span class="badge bg-success"><i class="fas fa-check me-1"></i> BATCH CREATED</span>
+                                {% else %}
+                                    <span class="badge bg-warning text-dark">PENDING VERIFICATION</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if grn.status == 'PENDING_VERIFICATION' %}
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="submit" onclick="return confirm('Confirm physical verification? This will immediately create batches, increase stock for ACCEPTED quantities only, and record audit transactions. Rejected quantities will NOT enter stock.');" class="btn btn-teal text-white py-2 px-4 fw-bold fs-6">
+                        <i class="fas fa-check-double me-1"></i> CONFIRM &amp; INCREASE INVENTORY STOCK
+                    </button>
+                </div>
+            {% endif %}
+        </form>
+    </div>
+</div>
+{% endblock %}

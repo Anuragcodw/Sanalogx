@@ -1,0 +1,265 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Discrepancy Detection Queue — Sanalogx{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-lg-5 py-4">
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div>
+            <h2 class="fw-bold text-navy mb-1">
+                <i class="fas fa-triangle-exclamation text-warning me-2"></i> Stock Discrepancy Detection Queue
+            </h2>
+            <p class="text-muted small mb-0">
+                Automated inventory-vs-batch mismatch detection, expired batch alerts, and controlled drug variance monitoring.
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'stock_reconciliation' %}" class="btn btn-teal btn-sm">
+                <i class="fas fa-scale-balanced me-1"></i> Physical Reconciliation
+            </a>
+            {% if user.role == 'PHARMACIST' %}
+            <a href="{% url 'secure_dispensing_workspace' %}" class="btn btn-outline-navy btn-sm">
+                <i class="fas fa-shield-virus me-1"></i> Dispensing Workspace
+            </a>
+            {% else %}
+            <a href="{% url 'dispensing_history' %}" class="btn btn-outline-navy btn-sm">
+                <i class="fas fa-clock-rotate-left me-1"></i> Dispensing History
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- KPI Summary Row -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card card-medivault bg-white shadow-sm p-3 border-start border-4 border-danger">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small fw-semibold">Open Discrepancies</div>
+                        <h3 class="fw-bold text-danger mb-0 mt-1">{{ open_count }}</h3>
+                    </div>
+                    <div class="bg-danger-subtle text-danger p-3 rounded-circle fs-4">
+                        <i class="fas fa-circle-exclamation"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card card-medivault bg-white shadow-sm p-3 border-start border-4 border-warning">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small fw-semibold">Under Investigation</div>
+                        <h3 class="fw-bold text-warning mb-0 mt-1">{{ investigating_count }}</h3>
+                    </div>
+                    <div class="bg-warning-subtle text-warning p-3 rounded-circle fs-4">
+                        <i class="fas fa-magnifying-glass"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card card-medivault bg-white shadow-sm p-3 border-start border-4 border-success">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small fw-semibold">Resolved</div>
+                        <h3 class="fw-bold text-success mb-0 mt-1">{{ resolved_count }}</h3>
+                    </div>
+                    <div class="bg-success-subtle text-success p-3 rounded-circle fs-4">
+                        <i class="fas fa-circle-check"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Filter Tabs -->
+    <div class="mb-3 d-flex gap-2">
+        <a href="?status=OPEN" class="btn btn-sm {% if status_filter == 'OPEN' %}btn-danger text-white fw-bold shadow-sm{% else %}btn-outline-danger{% endif %}">
+            <i class="fas fa-circle-exclamation me-1"></i> Open ({{ open_count }})
+        </a>
+        <a href="?status=INVESTIGATING" class="btn btn-sm {% if status_filter == 'INVESTIGATING' or status_filter == 'UNDER_REVIEW' %}btn-warning text-dark fw-bold shadow-sm{% else %}btn-outline-warning text-dark{% endif %}">
+            <i class="fas fa-magnifying-glass me-1"></i> Investigating ({{ investigating_count }})
+        </a>
+        <a href="?status=RESOLVED" class="btn btn-sm {% if status_filter == 'RESOLVED' %}btn-success text-white fw-bold shadow-sm{% else %}btn-outline-success{% endif %}">
+            <i class="fas fa-check-circle me-1"></i> Resolved ({{ resolved_count }})
+        </a>
+        <a href="?status=ALL" class="btn btn-sm {% if status_filter == 'ALL' %}btn-secondary text-white fw-bold shadow-sm{% else %}btn-outline-secondary{% endif %}">
+            All Records
+        </a>
+    </div>
+
+    <!-- Discrepancy Table -->
+    <div class="card card-medivault bg-white shadow-sm p-4">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" style="min-width: 1050px;">
+                <thead class="table-light small">
+                    <tr>
+                        <th>Discrepancy ID</th>
+                        <th>Detected At</th>
+                        <th>Medicine</th>
+                        <th>Batch</th>
+                        <th>Type</th>
+                        <th>Severity</th>
+                        <th class="text-center">Expected Qty</th>
+                        <th class="text-center">Actual Qty</th>
+                        <th class="text-center">Variance</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody class="small">
+                    {% for disc in page_obj %}
+                    <tr>
+                        <td class="fw-bold text-warning font-monospace">{{ disc.discrepancy_id }}</td>
+                        <td>
+                            <div>{{ disc.detected_at|date:"d M Y" }}</div>
+                            <span class="text-muted" style="font-size: 0.72rem;">{{ disc.detected_at|date:"H:i" }}</span>
+                        </td>
+                        <td>
+                            <div class="fw-semibold text-navy">{{ disc.medicine.medicine_name }}</div>
+                            <span class="text-muted" style="font-size: 0.72rem;">{{ disc.medicine.strength }}</span>
+                        </td>
+                        <td>
+                            {% if disc.batch %}
+                            <span class="badge bg-light text-navy border font-monospace">{{ disc.batch.batch_number }}</span>
+                            {% else %}
+                            <span class="text-muted small">All Batches</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                                {{ disc.get_discrepancy_type_display }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if disc.severity == 'CRITICAL' %}
+                            <span class="badge bg-danger fw-bold">CRITICAL</span>
+                            {% elif disc.severity == 'HIGH' %}
+                            <span class="badge bg-warning text-dark fw-semibold">HIGH</span>
+                            {% elif disc.severity == 'MEDIUM' %}
+                            <span class="badge bg-info text-dark">MEDIUM</span>
+                            {% else %}
+                            <span class="badge bg-secondary">LOW</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center fw-semibold">{{ disc.expected_quantity }}</td>
+                        <td class="text-center fw-semibold">{{ disc.actual_quantity }}</td>
+                        <td class="text-center fw-bold">
+                            {% if disc.variance > 0 %}
+                            <span class="text-success">+{{ disc.variance }}</span>
+                            {% elif disc.variance < 0 %}
+                            <span class="text-danger">{{ disc.variance }}</span>
+                            {% else %}
+                            <span class="text-muted">0</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if disc.status == 'OPEN' %}
+                            <span class="badge bg-danger-subtle text-danger border"><i class="fas fa-circle me-1"></i>Open</span>
+                            {% elif disc.status == 'INVESTIGATING' or disc.status == 'UNDER_REVIEW' %}
+                            <span class="badge bg-warning-subtle text-dark border"><i class="fas fa-spinner me-1"></i>Investigating</span>
+                            {% elif disc.status == 'RESOLVED' %}
+                            <span class="badge bg-success-subtle text-success border"><i class="fas fa-check-circle me-1"></i>Resolved</span>
+                            {% else %}
+                            <span class="badge bg-light text-dark">{{ disc.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if disc.status != 'RESOLVED' %}
+                            <button class="btn btn-sm btn-outline-success py-1 px-2"
+                                onclick="openResolveModal('{{ disc.discrepancy_id }}', '{{ disc.medicine.medicine_name }}', '{{ disc.variance }}')"
+                                title="Resolve This Discrepancy">
+                                <i class="fas fa-check me-1"></i> Resolve
+                            </button>
+                            {% else %}
+                            <span class="text-muted small">
+                                Resolved by {{ disc.resolved_by.username|default:"N/A" }}
+                                {% if disc.resolved_at %}<br>{{ disc.resolved_at|date:"d M Y H:i" }}{% endif %}
+                            </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="11" class="text-center py-5 text-muted">
+                            <i class="fas fa-circle-check fs-1 mb-2 d-block text-success opacity-50"></i>
+                            <strong class="text-success">No discrepancies found!</strong><br>
+                            <span class="small">Inventory is consistent. Auto-scanner runs on every page load.</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+        <nav class="mt-4">
+            <ul class="pagination pagination-sm justify-content-center mb-0">
+                {% if page_obj.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&status={{ status_filter }}">Previous</a></li>
+                {% endif %}
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                    <li class="page-item active"><span class="page-link bg-warning border-warning text-dark">{{ num }}</span></li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <li class="page-item"><a class="page-link" href="?page={{ num }}&status={{ status_filter }}">{{ num }}</a></li>
+                    {% endif %}
+                {% endfor %}
+                {% if page_obj.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&status={{ status_filter }}">Next</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Resolve Discrepancy Modal -->
+<div class="modal fade" id="resolveModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+            <div class="modal-header bg-success text-white" style="border-top-left-radius: 16px; border-top-right-radius: 16px;">
+                <h5 class="modal-title fw-bold"><i class="fas fa-check-circle me-2"></i> Resolve Discrepancy</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="resolveForm" method="POST" action="">
+                {% csrf_token %}
+                <div class="modal-body p-4">
+                    <p class="small text-muted mb-3">
+                        Resolving discrepancy for <strong id="resolveDiscMedicine"></strong>. Variance: <strong id="resolveVariance"></strong>
+                    </p>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Action Taken <span class="text-danger">*</span></label>
+                        <input type="text" name="action_taken" class="form-control form-control-sm" placeholder="e.g. Physical count confirmed, adjusted system entry..." required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Detailed Notes</label>
+                        <textarea name="notes" class="form-control form-control-sm" rows="3" placeholder="Additional notes on investigation and resolution..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success btn-sm px-3">
+                        <i class="fas fa-check-circle me-1"></i> Mark Resolved
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openResolveModal(discId, medicineName, variance) {
+    document.getElementById('resolveDiscMedicine').innerText = medicineName;
+    document.getElementById('resolveVariance').innerText = variance + ' units';
+    document.getElementById('resolveForm').action = '/dispensing/discrepancies/' + discId + '/resolve/';
+    const modal = new bootstrap.Modal(document.getElementById('resolveModal'));
+    modal.show();
+}
+</script>
+{% endblock %}

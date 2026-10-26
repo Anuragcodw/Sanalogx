@@ -1,0 +1,18 @@
+Sanalogx | Registration Decision
+=================================
+
+Dear {{ user.full_name|default:user.username }},
+
+Following thorough review by hospital administration, we regret to inform you that your request for pharmacist authorization on the Sanalogx platform could not be approved at this time.
+
+Decision Summary:
+{% if user.registration_id %}- Registration ID: {{ user.registration_id }}{% endif %}
+- Status: Application Not Approved
+- Reason / Notes: {{ rejection_reason|default:"Documentation or credential verification requirements were not met." }}
+
+Next Steps & Inquiries:
+If you believe this determination was made in error or if you wish to provide supplementary professional documentation, please reach out to the hospital pharmacy administration.
+
+---
+Sanalogx Pharmacy Operations & Intelligence System
+Automated Notification — Please do not reply directly.

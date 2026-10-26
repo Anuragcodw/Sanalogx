@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Reorder Recommendations — Sanalogx{% endblock %}
+
+{% block admin_breadcrumb %}Reorder Recommendations{% endblock %}
+{% block pharmacist_breadcrumb %}Reorder Recommendations{% endblock %}
+
+{% block extra_css %}
+<style>
+  .risk-badge-critical { background:#fee2e2; color:#991b1b; font-weight:700; border:1px solid #fca5a5; }
+  .risk-badge-high     { background:#fef3c7; color:#92400e; font-weight:600; border:1px solid #fcd34d; }
+  .risk-badge-medium   { background:#dbeafe; color:#1e40af; border:1px solid #93c5fd; }
+  .risk-badge-low      { background:#d1fae5; color:#065f46; border:1px solid #6ee7b7; }
+  .risk-badge-no_data  { background:#f1f5f9; color:#64748b; border:1px solid #e2e8f0; }
+  .kpi-strip { border-radius:12px; border:1px solid rgba(0,0,0,.06); background:#fff; box-shadow:0 2px 6px rgba(0,0,0,.04); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 px-4">
+
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+      <h1 class="fw-bold text-navy mb-1" style="font-size:1.75rem;">
+        <i class="fas fa-wand-magic-sparkles text-purple me-2"></i>AI Reorder Recommendations
+      </h1>
+      <p class="text-muted small mb-0">
+        Open PO–aware recommendations · Safety stock buffer · Supplier lead-time gap analysis
+      </p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{% url 'inventory_consumption_analytics' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-chart-line me-1"></i>Consumption Analytics
+      </a>
+      {% if request.user.role == 'ADMIN' %}
+      <a href="{% url 'create_po' %}" class="btn btn-success btn-sm">
+        <i class="fas fa-plus me-1"></i>Create Purchase Order
+      </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- KPI Strip -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="kpi-strip p-3 text-center">
+        <div class="text-muted small">Total Recommendations</div>
+        <div class="fw-bold fs-3">{{ total_recommendations }}</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="kpi-strip p-3 text-center">
+        <div class="text-muted small">Critical Stockout Risk</div>
+        <div class="fw-bold fs-3 text-danger">{{ critical_count }}</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="kpi-strip p-3 text-center">
+        <div class="text-muted small">High Risk</div>
+        <div class="fw-bold fs-3 text-warning">{{ high_count }}</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="kpi-strip p-3 text-center">
+        <div class="text-muted small">This Page</div>
+        <div class="fw-bold fs-3 text-teal">{{ page_obj|length }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="card border-0 shadow-sm rounded-4 mb-4">
+    <div class="card-body py-3">
+      <form method="get" class="d-flex gap-2 align-items-center flex-wrap">
+        <input type="text" name="search" class="form-control form-control-sm" placeholder="Search medicine..." value="{{ search_q }}" style="max-width:200px;">
+        <select name="category" class="form-select form-select-sm" style="max-width:160px;">
+          <option value="">All Categories</option>
+          {% for cat in categories %}
+          <option value="{{ cat.id }}" {% if category_filter == cat.id|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
+          {% endfor %}
+        </select>
+        <select name="risk" class="form-select form-select-sm" style="max-width:160px;">
+          <option value="">All Risk Levels</option>
+          <option value="CRITICAL" {% if risk_filter == 'CRITICAL' %}selected{% endif %}>🔴 Critical</option>
+          <option value="HIGH" {% if risk_filter == 'HIGH' %}selected{% endif %}>🟡 High</option>
+          <option value="MEDIUM" {% if risk_filter == 'MEDIUM' %}selected{% endif %}>🔵 Medium</option>
+          <option value="LOW" {% if risk_filter == 'LOW' %}selected{% endif %}>🟢 Low</option>
+        </select>
+        <button type="submit" class="btn btn-sm btn-primary"><i class="fas fa-filter me-1"></i>Filter</button>
+        {% if search_q or category_filter or risk_filter %}
+        <a href="{% url 'inventory_reorder_recommendations' %}" class="btn btn-sm btn-outline-secondary">Reset</a>
+        {% endif %}
+      </form>
+    </div>
+  </div>
+
+  <!-- Recommendations Table -->
+  <div class="card border-0 shadow-sm rounded-4">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 small">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-3">Medicine</th>
+              <th class="text-end">Current Stock</th>
+              <th class="text-end">Open PO</th>
+              <th class="text-end">Daily Rate</th>
+              <th class="text-end">30D Forecast</th>
+              <th class="text-end">Recommended Qty</th>
+              <th class="text-center">Stockout Risk</th>
+              <th class="text-center">Days Until Stockout</th>
+              <th class="text-center">VED</th>
+              {% if request.user.role == 'ADMIN' %}
+              <th class="text-center pe-3">Action</th>
+              {% endif %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for rec in page_obj %}
+            <tr>
+              <td class="ps-3">
+                <div class="fw-bold text-navy">
+                  {% if rec.medicine %}
+                  <a href="{% url 'medicine_inventory_detail' rec.medicine.id %}" class="text-decoration-none text-navy">
+                    {{ rec.medicine.medicine_name }}
+                  </a>
+                  {% else %}
+                  {{ rec.medicine_name|default:"Unknown" }}
+                  {% endif %}
+                </div>
+                <div class="text-muted" style="font-size:.72rem;">{{ rec.category|default:"" }}</div>
+                {% if rec.stockout_risk_factors %}
+                <div class="text-danger" style="font-size:.68rem;">
+                  <i class="fas fa-circle-dot me-1"></i>{{ rec.stockout_risk_factors|first }}
+                </div>
+                {% endif %}
+              </td>
+              <td class="text-end">
+                <span class="fw-bold {% if rec.current_stock == 0 %}text-danger{% elif rec.current_stock < rec.reorder_level %}text-warning{% else %}text-navy{% endif %}">
+                  {{ rec.current_stock }}
+                </span>
+                <div class="text-muted" style="font-size:.7rem;">reorder: {{ rec.reorder_level }}</div>
+              </td>
+              <td class="text-end">
+                {% if rec.open_po_qty > 0 %}
+                <span class="badge bg-info-subtle text-info border">{{ rec.open_po_qty }} incoming</span>
+                {% else %}
+                <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+              <td class="text-end text-muted">
+                {{ rec.daily_rate|floatformat:1 }}/day
+              </td>
+              <td class="text-end fw-semibold">{{ rec.forecast_30d }}</td>
+              <td class="text-end">
+                <span class="fw-bold text-primary fs-6">{{ rec.recommended_qty }}</span>
+                <div class="text-muted" style="font-size:.7rem;">units</div>
+              </td>
+              <td class="text-center">
+                {% if rec.stockout_risk == 'CRITICAL' %}
+                <span class="badge risk-badge-critical px-2 py-1 rounded-2">🔴 Critical</span>
+                {% elif rec.stockout_risk == 'HIGH' %}
+                <span class="badge risk-badge-high px-2 py-1 rounded-2">🟡 High</span>
+                {% elif rec.stockout_risk == 'MEDIUM' %}
+                <span class="badge risk-badge-medium px-2 py-1 rounded-2">🔵 Medium</span>
+                {% elif rec.stockout_risk == 'LOW' %}
+                <span class="badge risk-badge-low px-2 py-1 rounded-2">🟢 Low</span>
+                {% else %}
+                <span class="badge risk-badge-no_data px-2 py-1 rounded-2">No Data</span>
+                {% endif %}
+              </td>
+              <td class="text-center">
+                {% if rec.days_until_stockout is not None %}
+                <span class="fw-bold {% if rec.days_until_stockout <= 7 %}text-danger{% elif rec.days_until_stockout <= 14 %}text-warning{% else %}text-navy{% endif %}">
+                  {{ rec.days_until_stockout }}d
+                </span>
+                {% if rec.estimated_stockout_date %}
+                <div class="text-muted" style="font-size:.7rem;">{{ rec.estimated_stockout_date|date:"d M Y" }}</div>
+                {% endif %}
+                {% else %}
+                <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+              <td class="text-center">
+                <span class="badge {% if rec.ved == 'V' %}bg-danger{% elif rec.ved == 'E' %}bg-warning text-dark{% else %}bg-light text-dark border{% endif %} px-2">
+                  {{ rec.ved|default:"D" }}
+                </span>
+              </td>
+              {% if request.user.role == 'ADMIN' %}
+              <td class="text-center pe-3">
+                <a href="{% url 'create_po' %}?medicine={{ rec.medicine.id }}&qty={{ rec.recommended_qty }}"
+                   class="btn btn-sm btn-primary py-0 px-2" title="Create PO for this medicine">
+                  <i class="fas fa-cart-plus me-1"></i>Create PO
+                </a>
+              </td>
+              {% endif %}
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="10" class="text-center text-muted py-5">
+                <i class="fas fa-check-circle fa-2x text-success mb-2 d-block"></i>
+                No reorder recommendations at this time — all stock levels are adequate.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    {% if page_obj.has_other_pages %}
+    <div class="card-footer bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+      <span class="text-muted small">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+      <nav>
+        <ul class="pagination pagination-sm mb-0">
+          {% if page_obj.has_previous %}
+          <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&risk={{ risk_filter }}&category={{ category_filter }}&search={{ search_q }}">Previous</a></li>
+          {% endif %}
+          <li class="page-item active"><span class="page-link">{{ page_obj.number }}</span></li>
+          {% if page_obj.has_next %}
+          <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&risk={{ risk_filter }}&category={{ category_filter }}&search={{ search_q }}">Next</a></li>
+          {% endif %}
+        </ul>
+      </nav>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Explanation Box -->
+  <div class="alert bg-light border text-muted small mt-4 rounded-4">
+    <strong><i class="fas fa-brain me-1"></i>How this works:</strong>
+    Recommended quantity = max(0, forecast_30d + safety_stock − current_stock − open_po_qty).
+    Open POs are already counted as incoming stock to prevent duplicate ordering.
+    CRITICAL = stockout before supplier can deliver. Approval by Admin required before any PO is created.
+    VED: V = Vital (life-saving/narcotic), E = Essential (prescription), D = Desirable (OTC).
+  </div>
+
+</div>
+{% endblock %}

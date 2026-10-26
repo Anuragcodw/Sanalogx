@@ -1,0 +1,351 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Edit Medicine — Sanalogx{% endblock %}
+
+{% block content %}
+<div class="container py-4 bg-healthcare-accent">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <!-- Back link -->
+            <a href="{% url 'medicine_detail' medicine.medicine_id %}" class="btn btn-link text-decoration-none text-muted mb-3 p-0">
+                <i class="fas fa-arrow-left me-1"></i> Back to Medicine Details
+            </a>
+
+            <!-- Heading -->
+            <div class="mb-4">
+                <h3 class="fw-bold text-navy mb-1">Edit Medicine: {{ medicine.medicine_name }}</h3>
+                <p class="text-muted small">Update medicine parameters. Modifying these details will reset the validation status to **Pending Review** to ensure drug registry auditing accuracy.</p>
+            </div>
+
+            {% if form.errors %}
+                <div class="alert alert-danger alert-dismissible fade show small mb-4" role="alert">
+                    <i class="fas fa-exclamation-triangle me-2"></i> Please correct the highlighted errors before saving.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endif %}
+
+            <!-- Tabbed Form Card -->
+            <div class="card card-medivault bg-white shadow-md border overflow-hidden">
+                <!-- Tabs navigation headers -->
+                <div class="bg-light border-bottom">
+                    <ul class="nav nav-tabs nav-justified border-0" id="medicineFormTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active py-3 border-0 fw-semibold text-navy rounded-0" id="basic-tab" data-bs-toggle="tab" data-bs-target="#basic-pane" type="button" role="tab"><i class="fas fa-info-circle me-1"></i> 1. Basic Info</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link py-3 border-0 fw-semibold text-navy rounded-0" id="classification-tab" data-bs-toggle="tab" data-bs-target="#classification-pane" type="button" role="tab"><i class="fas fa-tags me-1"></i> 2. Classification</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link py-3 border-0 fw-semibold text-navy rounded-0" id="identification-tab" data-bs-toggle="tab" data-bs-target="#identification-pane" type="button" role="tab"><i class="fas fa-barcode me-1"></i> 3. Identification</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link py-3 border-0 fw-semibold text-navy rounded-0" id="pharmacy-tab" data-bs-toggle="tab" data-bs-target="#pharmacy-pane" type="button" role="tab"><i class="fas fa-prescription me-1"></i> 4. Pharmacy & Storage</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link py-3 border-0 fw-semibold text-navy rounded-0" id="description-tab" data-bs-toggle="tab" data-bs-target="#description-pane" type="button" role="tab"><i class="fas fa-file-lines me-1"></i> 5. Description</button>
+                        </li>
+                    </ul>
+                </div>
+
+                <form method="POST" action="{% url 'medicine_edit' medicine.medicine_id %}" enctype="multipart/form-data" id="medicineEditForm" class="p-4 p-lg-5">
+                    {% csrf_token %}
+
+                    <div class="tab-content" id="medicineFormTabContent">
+                        
+                        <!-- TAB 1: BASIC INFO -->
+                        <div class="tab-pane fade show active" id="basic-pane" role="tabpanel">
+                            <h5 class="fw-bold text-navy mb-4 pb-2 border-bottom"><i class="fas fa-info-circle text-teal me-1"></i> Basic Medicine Information</h5>
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <label class="form-label text-navy fw-semibold small">Medicine Name <span class="text-danger">*</span></label>
+                                    {{ form.medicine_name }}
+                                    <div class="form-text small">e.g. Paracetamol 500 mg Tablet</div>
+                                    {{ form.medicine_name.errors }}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label text-navy fw-semibold small">Generic Name (INN) <span class="text-danger">*</span></label>
+                                    {{ form.generic_name }}
+                                    {{ form.generic_name.errors }}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label text-navy fw-semibold small">Brand Name</label>
+                                    {{ form.brand_name }}
+                                    {{ form.brand_name.errors }}
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label text-navy fw-semibold small">Manufacturer / Pharmaceutical Lab</label>
+                                    {{ form.manufacturer }}
+                                    {{ form.manufacturer.errors }}
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-end mt-4">
+                                <button type="button" class="btn btn-medivault-primary next-tab-btn" data-next="classification-tab">Continue <i class="fas fa-arrow-right ms-1"></i></button>
+                            </div>
+                        </div>
+
+                        <!-- TAB 2: CLASSIFICATION -->
+                        <div class="tab-pane fade" id="classification-pane" role="tabpanel">
+                            <h5 class="fw-bold text-navy mb-4 pb-2 border-bottom"><i class="fas fa-tags text-teal me-1"></i> Drug Classification</h5>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label text-navy fw-semibold small">Category <span class="text-danger">*</span></label>
+                                    {{ form.category }}
+                                    {{ form.category.errors }}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label text-navy fw-semibold small">Dosage Form <span class="text-danger">*</span></label>
+                                    {{ form.dosage_form }}
+                                    {{ form.dosage_form.errors }}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label text-navy fw-semibold small">Strength <span class="text-danger">*</span></label>
+                                    {{ form.strength }}
+                                    {{ form.strength.errors }}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label text-navy fw-semibold small">Unit of Measure <span class="text-danger">*</span></label>
+                                    {{ form.unit }}
+                                    {{ form.unit.errors }}
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-between mt-4">
+                                <button type="button" class="btn btn-outline-secondary prev-tab-btn" data-prev="basic-tab"><i class="fas fa-arrow-left me-1"></i> Back</button>
+                                <button type="button" class="btn btn-medivault-primary next-tab-btn" data-next="identification-tab">Continue <i class="fas fa-arrow-right ms-1"></i></button>
+                            </div>
+                        </div>
+
+                        <!-- TAB 3: IDENTIFICATION -->
+                        <div class="tab-pane fade" id="identification-pane" role="tabpanel">
+                            <h5 class="fw-bold text-navy mb-4 pb-2 border-bottom"><i class="fas fa-barcode text-teal me-1"></i> Barcode & Package Visual</h5>
+                            <div class="row g-4">
+                                <!-- Image upload -->
+                                <div class="col-md-5">
+                                    <label class="form-label text-navy fw-semibold small">Medicine Image</label>
+                                    <div class="p-3 bg-light rounded-3 text-center border d-flex flex-column align-items-center justify-content-center" style="min-height: 200px;">
+                                        <div id="imagePreviewContainer" class="mb-2 {% if not medicine.medicine_image %}d-none{% endif %}">
+                                            <img id="imagePreview" src="{% if medicine.medicine_image %}{{ medicine.medicine_image.url }}{% endif %}" alt="Preview" class="img-fluid rounded border shadow-sm" style="max-height: 140px;">
+                                        </div>
+                                        <div id="imagePlaceholder" class="{% if medicine.medicine_image %}d-none{% endif %}">
+                                            <i class="fas fa-image fs-1 text-muted mb-2"></i>
+                                            <p class="text-muted small mb-0">No image selected</p>
+                                        </div>
+                                        <div class="mt-3">
+                                            {{ form.medicine_image }}
+                                        </div>
+                                    </div>
+                                    {{ form.medicine_image.errors }}
+                                </div>
+
+                                <!-- Barcode -->
+                                <div class="col-md-7 d-flex flex-column justify-content-center">
+                                    <div class="mb-3">
+                                        <label class="form-label text-navy fw-semibold small">Barcode Number</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="fas fa-barcode"></i></span>
+                                            {{ form.barcode }}
+                                        </div>
+                                        {{ form.barcode.errors }}
+                                    </div>
+                                    <div>
+                                        <label class="form-label text-navy fw-semibold small">Barcode Type</label>
+                                        {{ form.barcode_type }}
+                                        {{ form.barcode_type.errors }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-between mt-4">
+                                <button type="button" class="btn btn-outline-secondary prev-tab-btn" data-prev="classification-tab"><i class="fas fa-arrow-left me-1"></i> Back</button>
+                                <button type="button" class="btn btn-medivault-primary next-tab-btn" data-next="pharmacy-tab">Continue <i class="fas fa-arrow-right ms-1"></i></button>
+                            </div>
+                        </div>
+
+                        <!-- TAB 4: PHARMACY & STORAGE -->
+                        <div class="tab-pane fade" id="pharmacy-pane" role="tabpanel">
+                            <h5 class="fw-bold text-navy mb-3 pb-2 border-bottom"><i class="fas fa-prescription text-teal me-1"></i> Regulatory & Storage Information</h5>
+                            
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6">
+                                    <div class="p-3 bg-light rounded-3 border">
+                                        <div class="form-check form-switch">
+                                            {{ form.requires_prescription }}
+                                            <label class="form-check-label text-navy fw-semibold" for="id_requires_prescription">Requires Prescription (Rx Only)</label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <div class="p-3 bg-light rounded-3 border">
+                                        <div class="form-check form-switch">
+                                            {{ form.is_controlled_substance }}
+                                            <label class="form-check-label text-navy fw-semibold" for="id_is_controlled_substance">Controlled Substance / Narcotic</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Controlled Substance Details Panel (Conditionally Shown) -->
+                            <div class="p-4 bg-teal-light rounded-3 border border-teal mb-4 d-none" id="controlledDetailsPanel">
+                                <h6 class="fw-bold text-navy mb-3"><i class="fas fa-shield-halved text-teal me-1"></i> Controlled Drugs Register Details</h6>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label text-navy fw-semibold small">Controlled Drug Schedule Category</label>
+                                        {{ form.controlled_category }}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label text-navy fw-semibold small">Special Controlled Storage Notes</label>
+                                        {{ form.special_storage }}
+                                    </div>
+                                    <div class="col-12 mt-2">
+                                        <div class="form-check">
+                                            {{ form.controlled_register_required }}
+                                            <label class="form-check-label text-navy fw-semibold small" for="id_controlled_register_required">Controlled Substance Register log entry required</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Storage requirements -->
+                            <h6 class="fw-bold text-navy mb-3 mt-4"><i class="fas fa-temperature-arrow-down text-blue me-1"></i> Temperature & Cold Chain Requirement</h6>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label text-navy fw-semibold small">Storage Condition</label>
+                                    {{ form.storage_condition }}
+                                </div>
+                                <div class="col-md-4" id="minTempGroup">
+                                    <label class="form-label text-navy fw-semibold small">Minimum Temperature (°C)</label>
+                                    {{ form.min_temp }}
+                                </div>
+                                <div class="col-md-4" id="maxTempGroup">
+                                    <label class="form-label text-navy fw-semibold small">Maximum Temperature (°C)</label>
+                                    {{ form.max_temp }}
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-between mt-4">
+                                <button type="button" class="btn btn-outline-secondary prev-tab-btn" data-prev="identification-tab"><i class="fas fa-arrow-left me-1"></i> Back</button>
+                                <button type="button" class="btn btn-medivault-primary next-tab-btn" data-next="description-tab">Continue <i class="fas fa-arrow-right ms-1"></i></button>
+                            </div>
+                        </div>
+
+                        <!-- TAB 5: DESCRIPTION & SAVE -->
+                        <div class="tab-pane fade" id="description-pane" role="tabpanel">
+                            <h5 class="fw-bold text-navy mb-4 pb-2 border-bottom"><i class="fas fa-file-lines text-teal me-1"></i> Final Details & Pricing</h5>
+                            
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6">
+                                    <label class="form-label text-navy fw-semibold small">Default Selling Price (₹)</label>
+                                    {{ form.selling_price }}
+                                    {{ form.selling_price.errors }}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label text-navy fw-semibold small">Reorder Level Alert Threshold</label>
+                                    {{ form.reorder_level }}
+                                    {{ form.reorder_level.errors }}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label text-navy fw-semibold small">Safety Stock Buffer</label>
+                                    {{ form.safety_stock }}
+                                    {{ form.safety_stock.errors }}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label text-navy fw-semibold small">Maximum Stock Level</label>
+                                    {{ form.max_stock_level }}
+                                    {{ form.max_stock_level.errors }}
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label text-navy fw-semibold small">Additional Description / Therapeutic Notes</label>
+                                    {{ form.description }}
+                                    {{ form.description.errors }}
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-between mt-4 pt-3 border-top">
+                                <button type="button" class="btn btn-outline-secondary prev-tab-btn" data-prev="pharmacy-tab"><i class="fas fa-arrow-left me-1"></i> Back</button>
+                                <button type="submit" class="btn btn-medivault-primary px-5 py-2 fw-bold" id="submitMedicineBtn">
+                                    <i class="fas fa-save me-2"></i> Update & Re-submit Medicine
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Tab switching controls
+    document.querySelectorAll('.next-tab-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var nextTabId = btn.getAttribute('data-next');
+            var nextTabElement = document.getElementById(nextTabId);
+            var tab = new bootstrap.Tab(nextTabElement);
+            tab.show();
+            window.scrollTo({top: 0, behavior: 'smooth'});
+        });
+    });
+
+    document.querySelectorAll('.prev-tab-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var prevTabId = btn.getAttribute('data-prev');
+            var prevTabElement = document.getElementById(prevTabId);
+            var tab = new bootstrap.Tab(prevTabElement);
+            tab.show();
+            window.scrollTo({top: 0, behavior: 'smooth'});
+        });
+    });
+
+    // Image preview handler
+    var imgInput = document.getElementById('id_medicine_image');
+    imgInput.addEventListener('change', function() {
+        var file = imgInput.files[0];
+        if (file) {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('imagePreview').src = e.target.result;
+                document.getElementById('imagePreviewContainer').classList.remove('d-none');
+                document.getElementById('imagePlaceholder').classList.add('d-none');
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // Controlled Substance conditional inputs
+    var controlledSwitch = document.getElementById('id_is_controlled_substance');
+    var controlledPanel = document.getElementById('controlledDetailsPanel');
+
+    function toggleControlledSubstance() {
+        if (controlledSwitch.checked) {
+            controlledPanel.classList.remove('d-none');
+        } else {
+            controlledPanel.classList.add('d-none');
+        }
+    }
+    controlledSwitch.addEventListener('change', toggleControlledSubstance);
+    toggleControlledSubstance(); // Initial run
+
+    // Temperature controls based on Storage Conditions
+    var storageSelect = document.getElementById('id_storage_condition');
+    var minTempGroup = document.getElementById('minTempGroup');
+    var maxTempGroup = document.getElementById('maxTempGroup');
+
+    function toggleTemperatureControls() {
+        var value = storageSelect.value;
+        if (value === 'REFRIGERATED' || value === 'FROZEN') {
+            minTempGroup.classList.remove('d-none');
+            maxTempGroup.classList.remove('d-none');
+        } else {
+            minTempGroup.classList.add('d-none');
+            maxTempGroup.classList.add('d-none');
+            document.getElementById('id_min_temp').value = '';
+            document.getElementById('id_max_temp').value = '';
+        }
+    }
+    storageSelect.addEventListener('change', toggleTemperatureControls);
+    toggleTemperatureControls(); // Initial run
+</script>
+{% endblock %}

@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Email Verification — Sanalogx{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="container py-5 text-center">
+        <div class="max-width-600 mx-auto auth-card p-5 bg-white shadow-lg border-top border-5 {% if success %}border-success{% else %}border-danger{% endif %}">
+            
+            {% if success %}
+                <div class="card-icon-wrapper mx-auto mb-4" style="width: 72px; height: 72px; font-size: 2.2rem; background: #D1FAE5; color: #059669;">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                
+                <span class="badge badge-soft-success fs-6 mb-3 px-3 py-2">
+                    <i class="fas fa-circle-check me-1"></i> EMAIL VERIFIED
+                </span>
+
+                <h2 class="fw-bold text-navy mb-3">Email Verified Successfully!</h2>
+                
+                <p class="text-secondary fs-6 mb-4">
+                    {{ message }}
+                </p>
+
+                <div class="p-3 bg-light rounded-3 text-start mb-4 border">
+                    <h6 class="fw-bold text-navy mb-2"><i class="fas fa-clipboard-check text-teal me-2"></i> Application Status</h6>
+                    <p class="small text-muted mb-0">
+                        Your email has been confirmed. Your pharmacist profile is now in <strong>PENDING APPROVAL</strong> status. 
+                        The Hospital Administrator will verify your pharmacy license number and qualification credentials. 
+                        You will receive an email notification when your account status is updated.
+                    </p>
+                </div>
+
+                <div class="d-flex justify-content-center gap-3">
+                    <a href="{% url 'pharmacist_login' %}" class="btn btn-medivault-primary px-4">
+                        <i class="fas fa-right-to-bracket me-2"></i> Go to Login
+                    </a>
+                </div>
+            {% else %}
+                <div class="card-icon-wrapper mx-auto mb-4" style="width: 72px; height: 72px; font-size: 2.2rem; background: #FEE2E2; color: #DC2626;">
+                    <i class="fas fa-exclamation-circle"></i>
+                </div>
+                
+                <span class="badge badge-soft-danger fs-6 mb-3 px-3 py-2">
+                    <i class="fas fa-circle-xmark me-1"></i> VERIFICATION FAILED
+                </span>
+
+                <h2 class="fw-bold text-navy mb-3">Verification Link Invalid</h2>
+                
+                <p class="text-secondary fs-6 mb-4">
+                    {{ message }}
+                </p>
+
+                {% if error == 'expired_token' and user %}
+                    <div class="p-4 bg-light rounded-3 text-start mb-4 border">
+                        <h6 class="fw-bold text-navy mb-3 text-center"><i class="fas fa-paper-plane text-teal me-2"></i> Resend Verification Email</h6>
+                        <form method="POST" action="{% url 'resend_verification' %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="email" value="{{ user.email }}">
+                            <button type="submit" class="btn btn-medivault-primary w-100 justify-content-center">
+                                <i class="fas fa-rotate me-2"></i> Send New Verification Link
+                            </button>
+                        </form>
+                    </div>
+                {% endif %}
+
+                <div class="d-flex justify-content-center gap-3">
+                    <a href="{% url 'home' %}" class="btn btn-medivault-secondary px-4">
+                        <i class="fas fa-house me-2"></i> Return to Home
+                    </a>
+                </div>
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+{% endblock %}

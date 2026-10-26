@@ -1,0 +1,13 @@
+Hello {{ user.full_name|default:user.username }},
+
+Please verify your {{ site_name }} email address to complete your registration.
+
+VERIFY YOUR EMAIL:
+{{ verification_url }}
+
+This link expires in 24 hours.
+
+If you did not register on {{ site_name }}, please ignore this email.
+
+--
+{{ site_name }} Team

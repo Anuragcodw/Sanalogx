@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}403 Unauthorized Access — Sanalogx{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="container py-5 text-center">
+        <div class="max-width-600 mx-auto auth-card p-5 bg-white shadow-lg border-top border-5 border-danger">
+            <div class="card-icon-wrapper mx-auto mb-4" style="width: 72px; height: 72px; font-size: 2.2rem; background: #FEE2E2; color: #DC2626;">
+                <i class="fas fa-lock-keyhole"></i>
+            </div>
+
+            <h1 class="display-5 fw-extrabold text-navy mb-2">403</h1>
+            <h4 class="fw-bold text-navy mb-3">Access Denied / Unauthorized</h4>
+            
+            <p class="text-secondary mb-4">
+                You do not have permission to view this resource. This portal section is strictly restricted to authorized administrators.
+            </p>
+
+            <div class="d-flex justify-content-center gap-3">
+                <a href="{% url 'home' %}" class="btn btn-medivault-primary px-4">
+                    <i class="fas fa-house me-2"></i> Return Home
+                </a>
+                <a href="{% url 'admin_login' %}" class="btn btn-medivault-secondary px-4">
+                    <i class="fas fa-user-shield me-2"></i> Admin Login
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

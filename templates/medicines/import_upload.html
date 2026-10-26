@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Import Medicines & Categories — Sanalogx{% endblock %}
+{% block admin_breadcrumb %}Import Medicines{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 px-md-4 py-4">
+
+  <!-- Header -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
+    <div class="d-flex align-items-center gap-3">
+      <div class="page-header-glow-badge flex-shrink-0"><i class="fas fa-file-import"></i></div>
+      <div>
+        <h2 class="fw-bold text-navy mb-0 fs-3">Medicine & Category Import</h2>
+        <p class="text-muted small mb-0">Upload the MediVault workbook (XLSX) or individual CSV sheets.</p>
+      </div>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{% url 'medicine_import_log' %}" class="btn btn-outline-secondary btn-sm fw-semibold">
+        <i class="fas fa-history me-1"></i> Import Logs
+      </a>
+      <a href="{% url 'medicine_draft_list' %}" class="btn btn-outline-warning btn-sm fw-semibold">
+        <i class="fas fa-clock me-1"></i> Pending Review
+      </a>
+    </div>
+  </div>
+
+  {% if messages %}
+    {% for msg in messages %}
+      <div class="alert alert-{{ msg.tags|default:'info' }} alert-dismissible fade show" role="alert">
+        {{ msg }} <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <div class="row g-4">
+    <!-- Upload Card -->
+    <div class="col-lg-7">
+      <div class="card shadow-sm border-0" style="border-radius:14px;">
+        <div class="card-body p-4">
+          <h5 class="fw-bold text-navy mb-1"><i class="fas fa-upload text-teal me-2"></i>Upload Workbook</h5>
+          <p class="text-muted small mb-3">
+            Supported: <strong>.xlsx</strong> (multi-sheet workbook) or individual <strong>.csv</strong> files.<br>
+            Sheet names must match: <code>Category_Master</code>, <code>Medicine_Import</code>, or <code>Starter_Examples</code>.
+          </p>
+
+          <form method="post" enctype="multipart/form-data" id="importUploadForm">
+            {% csrf_token %}
+            <div class="mb-3">
+              <label for="import_file" class="form-label fw-semibold text-navy">Select File</label>
+              <input type="file" name="import_file" id="import_file"
+                     class="form-control" accept=".csv,.xlsx,.xls" required>
+              <div class="form-text text-muted">Max 10 MB. No passwords, patient data or stock quantities accepted.</div>
+            </div>
+            <button type="submit" class="btn btn-teal fw-semibold text-white px-4">
+              <i class="fas fa-arrow-right me-2"></i> Upload & Preview
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rules Card -->
+    <div class="col-lg-5">
+      <div class="card border-0 shadow-sm h-100" style="border-radius:14px; background:#F8FAFC;">
+        <div class="card-body p-4">
+          <h6 class="fw-bold text-navy mb-3"><i class="fas fa-shield-alt text-teal me-2"></i>Import Rules</h6>
+          <ul class="list-unstyled small text-muted mb-0">
+            <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i><strong>Category_Master</strong> — creates or maps categories. Existing categories are never overwritten.</li>
+            <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i><strong>Medicine_Import</strong> — creates new medicine master records (PENDING_REVIEW until approved).</li>
+            <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i><strong>Starter_Examples</strong> — created as draft records only. Require pharmacy review before activation.</li>
+            <li class="mb-2"><i class="fas fa-times-circle text-danger me-2"></i>Does <strong>not</strong> create batches, stock, invoices or transactions.</li>
+            <li class="mb-2"><i class="fas fa-times-circle text-danger me-2"></i>Never invents barcodes, prices, batch numbers or expiry dates.</li>
+            <li class="mb-2"><i class="fas fa-times-circle text-danger me-2"></i>Exact duplicates (generic + strength + dosage form) are detected and skipped — existing records are preserved.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Logs -->
+  {% if recent_logs %}
+  <div class="card shadow-sm border-0 mt-4" style="border-radius:14px;">
+    <div class="card-header bg-white border-bottom py-3">
+      <h6 class="fw-bold text-navy mb-0"><i class="fas fa-history text-teal me-2"></i>Recent Imports</h6>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover table-sm mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>File</th><th>Type</th><th>Created</th><th>Updated</th><th>Errors</th><th>Status</th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for log in recent_logs %}
+          <tr>
+            <td class="small">{{ log.filename }}</td>
+            <td><span class="badge bg-secondary">{{ log.get_import_type_display }}</span></td>
+            <td class="small text-success">{{ log.created_count }}</td>
+            <td class="small text-info">{{ log.updated_count }}</td>
+            <td class="small {% if log.error_count > 0 %}text-danger fw-semibold{% endif %}">{{ log.error_count }}</td>
+            <td>
+              {% if log.status == 'SUCCESS' %}<span class="badge bg-success">Success</span>
+              {% elif log.status == 'PARTIAL' %}<span class="badge bg-warning text-dark">Partial</span>
+              {% else %}<span class="badge bg-danger">Failed</span>{% endif %}
+            </td>
+            <td>
+              <a href="{% url 'medicine_import_log_detail' log.id %}" class="btn btn-outline-secondary btn-xs py-0 px-2 small">View</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

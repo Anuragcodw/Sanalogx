@@ -1,0 +1,181 @@
+﻿{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Receive Goods (GRN) — {{ po.po_number }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="card card-medivault bg-white shadow-lg p-4 p-md-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h4 class="fw-bold text-navy mb-0"><i class="fas fa-dolly text-teal me-2"></i> Receive Shipment Goods (GRN)</h4>
+                <p class="text-muted small mb-0">Record physical goods received against <strong>{{ po.po_number }}</strong> from {{ po.supplier.company_name }}.</p>
+            </div>
+            <a href="{% url 'po_detail' po.pk %}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i> Back to PO</a>
+        </div>
+
+        <!-- Barcode / Medicine Scanner (identification only — no stock deduction) -->
+        <div class="card border-0 bg-light rounded-3 p-3 mb-4">
+            <h6 class="fw-bold text-navy mb-2"><i class="fas fa-barcode text-teal me-2"></i> Barcode / Medicine Lookup <span class="badge bg-secondary ms-1 small">Identification Only</span></h6>
+            <div class="row g-2 align-items-end">
+                <div class="col-md-6">
+                    <label class="form-label small fw-semibold text-muted">Scan Barcode or Enter Medicine Name</label>
+                    <input type="text" id="barcodeInput" class="form-control font-monospace" placeholder="Scan barcode or type medicine name…" autocomplete="off">
+                </div>
+                <div class="col-md-3">
+                    <button type="button" class="btn btn-outline-teal w-100" onclick="lookupMedicine()">
+                        <i class="fas fa-search me-1"></i> Lookup
+                    </button>
+                </div>
+                <div class="col-md-3">
+                    <button type="button" class="btn btn-outline-secondary w-100" onclick="clearLookup()">
+                        <i class="fas fa-times me-1"></i> Clear
+                    </button>
+                </div>
+            </div>
+            <div id="barcodeResult" class="mt-3 d-none">
+                <div class="alert alert-info border-0 rounded-3 mb-0 p-3" id="barcodeResultBox"></div>
+            </div>
+        </div>
+
+        <form method="POST">
+            {% csrf_token %}
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                    <label class="form-label small fw-semibold text-muted">Supplier Invoice Number</label>
+                    <input type="text" name="invoice_number" class="form-control" placeholder="e.g. INV-2026-HC-994" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small fw-semibold text-muted">Invoice Amount (Rs.)</label>
+                    <input type="number" step="0.01" name="invoice_amount" value="{{ po.total_amount }}" class="form-control font-monospace fw-bold" required>
+                </div>
+            </div>
+
+            <h6 class="fw-bold text-navy mb-3"><i class="fas fa-boxes-packing text-teal me-2"></i> Received Line Items &amp; Batch Information</h6>
+
+            <div class="table-responsive mb-4">
+                <table class="table table-bordered align-middle small" id="grnLineTable">
+                    <thead class="bg-light text-navy fw-bold">
+                        <tr>
+                            <th>MEDICINE</th>
+                            <th style="width: 100px;">PENDING QTY</th>
+                            <th style="width: 120px;">RECEIVED QTY</th>
+                            <th style="width: 150px;">BATCH NUMBER *</th>
+                            <th style="width: 150px;">MFG DATE</th>
+                            <th style="width: 150px;">EXPIRY DATE *</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in items %}
+                        <tr data-medicine-name="{{ item.medicine.medicine_name|lower }}" data-item-id="{{ item.id }}">
+                            <td class="fw-bold text-navy" id="med-cell-{{ item.id }}">
+                                {{ item.medicine.medicine_name }} ({{ item.medicine.strength }})
+                            </td>
+                            <td class="text-center font-monospace fw-bold text-amber">{{ item.quantity_pending }}</td>
+                            <td>
+                                <input type="number" name="qty_{{ item.id }}" min="0" max="{{ item.quantity_pending }}" value="{{ item.quantity_pending }}" class="form-control form-control-sm font-monospace fw-bold" required>
+                            </td>
+                            <td>
+                                <input type="text" name="batch_{{ item.id }}" placeholder="e.g. BATCH-2026-X" class="form-control form-control-sm font-monospace" required>
+                            </td>
+                            <td>
+                                <input type="date" name="mfg_{{ item.id }}" class="form-control form-control-sm">
+                            </td>
+                            <td>
+                                <input type="date" name="exp_{{ item.id }}" class="form-control form-control-sm" required>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label small fw-semibold text-muted">Receiving Notes / Packaging Remarks</label>
+                <textarea name="notes" class="form-control" rows="2" placeholder="e.g. Packaging intact, cold-chain temperature verified."></textarea>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2">
+                <a href="{% url 'po_detail' po.pk %}" class="btn btn-outline-secondary py-2 px-3">Cancel</a>
+                <button type="submit" class="btn btn-teal text-white py-2 px-4 fw-bold">
+                    <i class="fas fa-check-circle me-1"></i> Save GRN &amp; Proceed to Physical Verification
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Barcode lookup — IDENTIFICATION ONLY, no stock deduction
+function lookupMedicine() {
+    const input = document.getElementById('barcodeInput').value.trim();
+    if (!input) return;
+
+    const resultBox = document.getElementById('barcodeResult');
+    const resultContent = document.getElementById('barcodeResultBox');
+    resultBox.classList.remove('d-none');
+    resultContent.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Looking up…';
+
+    // Determine if input looks like a barcode (alphanumeric, no spaces) or a name
+    const isBarcode = /^[A-Za-z0-9\-]+$/.test(input) && input.length > 4 && !input.includes(' ');
+    const param = isBarcode
+        ? `barcode=${encodeURIComponent(input)}`
+        : `medicine_name=${encodeURIComponent(input)}`;
+
+    fetch(`{% url 'grn_barcode_lookup' %}?${param}`, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.error) {
+            resultContent.className = 'alert alert-warning border-0 rounded-3 mb-0 p-3';
+            resultContent.innerHTML = `<i class="fas fa-exclamation-triangle me-1"></i> ${data.error}`;
+            return;
+        }
+        resultContent.className = 'alert alert-success border-0 rounded-3 mb-0 p-3';
+        resultContent.innerHTML = `
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <strong class="text-navy">${data.medicine_name}</strong>
+                    <span class="text-muted small ms-2">${data.strength} | ${data.dosage_form}</span><br>
+                    <span class="extra-small text-muted">Generic: ${data.generic_name} | Mfr: ${data.manufacturer || '—'}</span>
+                </div>
+                <div class="text-end">
+                    <span class="badge bg-light text-dark border small">Stock: ${data.current_stock}</span>
+                    <span class="badge bg-light text-dark border small ms-1">Reorder: ${data.reorder_level}</span>
+                </div>
+            </div>
+        `;
+        // Highlight matching line if any
+        highlightMatchingLine(data.medicine_name);
+    })
+    .catch(err => {
+        resultContent.className = 'alert alert-danger border-0 rounded-3 mb-0 p-3';
+        resultContent.innerHTML = `<i class="fas fa-times-circle me-1"></i> Lookup failed: ${err}`;
+    });
+}
+
+function highlightMatchingLine(medicineName) {
+    const rows = document.querySelectorAll('#grnLineTable tbody tr');
+    rows.forEach(row => {
+        row.classList.remove('table-info');
+        const rowName = row.getAttribute('data-medicine-name') || '';
+        if (rowName.includes(medicineName.toLowerCase())) {
+            row.classList.add('table-info');
+            row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    });
+}
+
+function clearLookup() {
+    document.getElementById('barcodeInput').value = '';
+    document.getElementById('barcodeResult').classList.add('d-none');
+    document.querySelectorAll('#grnLineTable tbody tr').forEach(row => row.classList.remove('table-info'));
+}
+
+// Allow pressing Enter in barcode field to trigger lookup
+document.getElementById('barcodeInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') { e.preventDefault(); lookupMedicine(); }
+});
+</script>
+{% endblock %}
