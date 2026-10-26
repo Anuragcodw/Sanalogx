@@ -20,6 +20,7 @@ db.sqlite3
 *.sql
 *.dump
 backups/
+*.pem
 
 # Static & Media Assets
 media/

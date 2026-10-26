@@ -89,17 +89,30 @@ WSGI_APPLICATION = 'config.wsgi.application'
 AUTH_USER_MODEL = 'accounts.User'
 
 # Database Configuration
+db_options = {
+    'charset': 'utf8mb4',
+}
+
+# SSL Configuration for Cloud MySQL (e.g., Aiven, Azure, AWS RDS)
+db_ssl_ca = os.getenv('DB_SSL_CA')
+if db_ssl_ca:
+    ca_path = Path(db_ssl_ca)
+    if not ca_path.is_absolute():
+        ca_path = BASE_DIR / ca_path
+    if ca_path.exists():
+        db_options['ssl'] = {'ca': str(ca_path)}
+elif os.getenv('DB_SSL_REQUIRE', 'False').lower() in ('true', '1', 't'):
+    db_options['ssl'] = {}
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.getenv('DB_NAME'),
-        'USER': os.getenv('DB_USER'),
-        'PASSWORD': os.getenv('DB_PASSWORD'),
+        'NAME': os.getenv('DB_NAME', 'medivault'),
+        'USER': os.getenv('DB_USER', 'root'),
+        'PASSWORD': os.getenv('DB_PASSWORD', ''),
         'HOST': os.getenv('DB_HOST', '127.0.0.1'),
         'PORT': os.getenv('DB_PORT', '3306'),
-        'OPTIONS': {
-            'charset': 'utf8mb4',
-        },
+        'OPTIONS': db_options,
     }
 }
 

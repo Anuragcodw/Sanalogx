@@ -21,6 +21,7 @@ backups/
 scratch/
 server_err.txt
 server_out.txt
+*.pem
 media/
 staticfiles/
 
