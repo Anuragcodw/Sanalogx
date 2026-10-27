@@ -193,3 +193,91 @@ function showAlert(title, text, icon = 'info') {
         alert(`${title}: ${text}`);
     }
 }
+
+// ── Pharmacist Page Horizontal Scroll Slider Controller ────────────────────────
+(function() {
+    function initPharmacistHorizontalScroller() {
+        const wrapper = document.querySelector('.pharmacist-page-scroll-wrapper');
+        if (!wrapper) return;
+
+        // Shift + Wheel and horizontal wheel smooth scroll
+        wrapper.addEventListener('wheel', function(e) {
+            if (e.shiftKey || Math.abs(e.deltaX) > 0) {
+                // native horizontal wheel or shift+wheel
+                if (e.shiftKey && e.deltaY !== 0) {
+                    wrapper.scrollLeft += e.deltaY;
+                }
+            }
+        }, { passive: true });
+
+        // Create or find floating scrollbar
+        let floatingBar = document.querySelector('.pharmacist-floating-scroll-bar');
+        if (!floatingBar) {
+            floatingBar = document.createElement('div');
+            floatingBar.className = 'pharmacist-floating-scroll-bar';
+            floatingBar.innerHTML = `
+                <div class="pharmacist-floating-scroll-label" title="Drag to slide page horizontally">
+                    <i class="fas fa-arrows-left-right"></i>
+                    <span>Horizontal Slider</span>
+                </div>
+                <button type="button" class="pharmacist-floating-scroll-btn btn-left" title="Scroll Left" aria-label="Scroll Left">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <input type="range" min="0" max="100" value="0" step="0.5" class="pharmacist-floating-scroll-slider" aria-label="Horizontal Position Slider">
+                <button type="button" class="pharmacist-floating-scroll-btn btn-right" title="Scroll Right" aria-label="Scroll Right">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            `;
+            document.body.appendChild(floatingBar);
+        }
+
+        const slider = floatingBar.querySelector('.pharmacist-floating-scroll-slider');
+        const btnLeft = floatingBar.querySelector('.btn-left');
+        const btnRight = floatingBar.querySelector('.btn-right');
+
+        function updateSliderVisibility() {
+            const maxScroll = wrapper.scrollWidth - wrapper.clientWidth;
+            if (maxScroll > 10) {
+                floatingBar.style.display = 'flex';
+                const pct = (wrapper.scrollLeft / maxScroll) * 100;
+                slider.value = Math.min(100, Math.max(0, pct));
+            } else {
+                floatingBar.style.display = 'none';
+            }
+        }
+
+        slider.addEventListener('input', function() {
+            const maxScroll = wrapper.scrollWidth - wrapper.clientWidth;
+            if (maxScroll > 0) {
+                wrapper.scrollLeft = (slider.value / 100) * maxScroll;
+            }
+        });
+
+        btnLeft.addEventListener('click', function() {
+            wrapper.scrollBy({ left: -200, behavior: 'smooth' });
+        });
+
+        btnRight.addEventListener('click', function() {
+            wrapper.scrollBy({ left: 200, behavior: 'smooth' });
+        });
+
+        wrapper.addEventListener('scroll', function() {
+            const maxScroll = wrapper.scrollWidth - wrapper.clientWidth;
+            if (maxScroll > 0) {
+                slider.value = (wrapper.scrollLeft / maxScroll) * 100;
+            }
+        }, { passive: true });
+
+        window.addEventListener('resize', updateSliderVisibility);
+        // Initial check and delayed check after layout rendering
+        updateSliderVisibility();
+        setTimeout(updateSliderVisibility, 300);
+        setTimeout(updateSliderVisibility, 1000);
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initPharmacistHorizontalScroller);
+    } else {
+        initPharmacistHorizontalScroller();
+    }
+})();

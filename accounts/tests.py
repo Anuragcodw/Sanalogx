@@ -1610,4 +1610,179 @@ class PharmacistWorkspaceSetupAndRoleLoginTests(TestCase):
         self.client.logout()
 
 
+# =============================================================================
+# Demo Registration Mode Tests
+# =============================================================================
+class DemoRegistrationModeTests(TestCase):
+    """
+    Tests for DEMO_REGISTRATION_MODE = True  (demo environment)
+    and DEMO_REGISTRATION_MODE = False (production environment).
 
+    Validates that:
+    - Demo mode ON:  PH-NNNN accepted, non-demo formats rejected.
+    - Demo mode OFF: PH-NNNN rejected with clear error, official formats accepted.
+    - Both modes: duplicate license prevention and PENDING status enforced.
+    - Demo registration never auto-approves accounts.
+    """
+
+    def setUp(self):
+        self.client = Client()
+        self.register_url = reverse('pharmacist_register')
+        self.admin = User.objects.create_superuser(
+            username='admin_demo_tests',
+            email='admin_demo_tests@hospital.org',
+            password='AdminPassword123!',
+            full_name='Demo Test Admin'
+        )
+        self._base = {
+            'full_name': 'Dr. Demo Tester',
+            'phone': '+919876543210',
+            'qualification': 'Pharm.D',
+            'password': 'SecurePass123!',
+            'confirm_password': 'SecurePass123!',
+        }
+
+    def _post(self, license_number, email_suffix, username_suffix):
+        data = self._base.copy()
+        data['license_number'] = license_number
+        data['email'] = f'demotest_{email_suffix}@hospital.org'
+        data['username'] = f'demotest_{username_suffix}'
+        return self.client.post(self.register_url, data)
+
+    # ── Demo mode ON ──────────────────────────────────────────────────────────
+
+    @patch('django.conf.settings.DEMO_REGISTRATION_MODE', True)
+    def test_demo_mode_on_accepts_ph_1234(self):
+        """Demo mode ON: PH-1234 is accepted and account is PENDING (not auto-approved)."""
+        resp = self._post('PH-1234', 'ph1234', 'ph1234_user')
+        self.assertEqual(resp.status_code, 302,
+                         "Expected redirect after successful registration with PH-1234")
+        user = User.objects.get(email='demotest_ph1234@hospital.org')
+        self.assertEqual(user.status, User.Status.PENDING,
+                         "Demo registration must remain PENDING — never auto-approved")
+        self.assertFalse(user.is_active, "Demo account must start inactive")
+        self.assertEqual(user.license_number, 'PH-1234')
+        self.assertTrue(user.is_demo,
+                        "Account registered with PH-NNNN in demo mode must have is_demo=True")
+        self.assertEqual(user.license_verification_status, 'DEMO_UNVERIFIED')
+
+    @patch('django.conf.settings.DEMO_REGISTRATION_MODE', True)
+    def test_demo_mode_on_accepts_all_valid_formats(self):
+        """Demo mode ON: all PH-NNNN (0000-9999) formats accepted."""
+        for lic, suffix in [('PH-0000', 'p0000'), ('PH-0001', 'p0001'),
+                            ('PH-9999', 'p9999'), ('PH-5678', 'p5678')]:
+            resp = self._post(lic, suffix, suffix)
+            self.assertEqual(resp.status_code, 302,
+                             f"Expected 302 for valid demo license: {lic}")
+            self.assertTrue(
+                User.objects.filter(email=f'demotest_{suffix}@hospital.org').exists(),
+                f"User must be created for license: {lic}"
+            )
+
+    @patch('django.conf.settings.DEMO_REGISTRATION_MODE', True)
+    def test_demo_mode_on_rejects_invalid_formats(self):
+        """Demo mode ON: non-PH-NNNN formats are rejected (3-digit, 5-digit, alpha, etc.)."""
+        invalid_cases = [
+            ('PH-123',     'inv_short'),
+            ('PH-12345',   'inv_long'),
+            ('PH-ABCD',    'inv_alpha'),
+            ('PH2827',     'inv_nohyphen'),
+            ('PH-12A4',    'inv_mixed'),
+            ('MH-2024-001', 'inv_official'),
+        ]
+        for lic, suffix in invalid_cases:
+            resp = self._post(lic, suffix, suffix)
+            self.assertEqual(resp.status_code, 200,
+                             f"Expected validation error (200) for invalid demo format: {lic}")
+            self.assertContains(resp, "Pharmacy License Number must follow demo format",
+                                msg_prefix=f"Error message wrong for: {lic}")
+            self.assertFalse(
+                User.objects.filter(email=f'demotest_{suffix}@hospital.org').exists(),
+                f"User must NOT be created for invalid license: {lic}"
+            )
+
+    @patch('django.conf.settings.DEMO_REGISTRATION_MODE', True)
+    def test_demo_mode_on_prevents_duplicate_license(self):
+        """Demo mode ON: duplicate PH-NNNN is rejected with clear duplicate error."""
+        resp1 = self._post('PH-7777', 'dup1', 'dup1_user')
+        self.assertEqual(resp1.status_code, 302)
+
+        resp2 = self._post('PH-7777', 'dup2', 'dup2_user')
+        self.assertEqual(resp2.status_code, 200)
+        self.assertContains(resp2, "This pharmacy license number is already registered.")
+        self.assertFalse(User.objects.filter(email='demotest_dup2@hospital.org').exists())
+
+    @patch('django.conf.settings.DEMO_REGISTRATION_MODE', True)
+    def test_demo_mode_on_admin_approval_still_required(self):
+        """Demo mode ON: admin must explicitly approve; demo registration alone never activates account."""
+        resp = self._post('PH-3344', 'approve_test', 'approve_test_user')
+        self.assertEqual(resp.status_code, 302)
+        user = User.objects.get(email='demotest_approve_test@hospital.org')
+
+        # Confirm still PENDING before admin action
+        self.assertEqual(user.status, User.Status.PENDING)
+        self.assertFalse(user.is_active)
+
+        # Admin approves
+        self.client.force_login(self.admin)
+        resp_approve = self.client.post(
+            reverse('approve_pharmacist', kwargs={'user_id': user.id})
+        )
+        self.assertEqual(resp_approve.status_code, 302)
+        user.refresh_from_db()
+        self.assertEqual(user.status, User.Status.APPROVED)
+        self.assertTrue(user.is_active)
+
+    # ── Demo mode OFF (production) ────────────────────────────────────────────
+
+    @patch('django.conf.settings.DEMO_REGISTRATION_MODE', False)
+    def test_demo_mode_off_rejects_ph_1234(self):
+        """Demo mode OFF: PH-1234 is rejected with the production error message."""
+        resp = self._post('PH-1234', 'prod_ph1234', 'prod_ph1234_user')
+        self.assertEqual(resp.status_code, 200,
+                         "Expected validation error (200) — PH-1234 blocked in production")
+        self.assertContains(resp, "Demo license references are disabled in production.")
+        self.assertFalse(
+            User.objects.filter(email='demotest_prod_ph1234@hospital.org').exists()
+        )
+
+    @patch('django.conf.settings.DEMO_REGISTRATION_MODE', False)
+    def test_demo_mode_off_rejects_all_ph_nnnn(self):
+        """Demo mode OFF: all PH-NNNN variants are blocked in production."""
+        for lic, suffix in [('PH-0000', 'prod_p0000'), ('PH-9999', 'prod_p9999'),
+                            ('PH-0001', 'prod_p0001')]:
+            resp = self._post(lic, suffix, suffix)
+            self.assertEqual(resp.status_code, 200,
+                             f"PH-NNNN must be blocked in production: {lic}")
+            self.assertContains(
+                resp, "Demo license references are disabled in production.",
+                msg_prefix=f"Wrong error for: {lic}"
+            )
+
+    @patch('django.conf.settings.DEMO_REGISTRATION_MODE', False)
+    def test_demo_mode_off_accepts_official_license(self):
+        """Demo mode OFF: official State Pharmacy Council license format is accepted."""
+        data = self._base.copy()
+        data['license_number'] = 'MH-2024-001'
+        data['email'] = 'demotest_official@hospital.org'
+        data['username'] = 'demotest_official_user'
+        resp = self.client.post(self.register_url, data)
+        self.assertEqual(resp.status_code, 302,
+                         "Official license must be accepted in production mode")
+        user = User.objects.get(email='demotest_official@hospital.org')
+        self.assertEqual(user.status, User.Status.PENDING)
+        self.assertFalse(user.is_demo,
+                         "Official license must NOT set is_demo=True")
+        self.assertEqual(user.license_verification_status, 'UNVERIFIED')
+
+    @patch('django.conf.settings.DEMO_REGISTRATION_MODE', False)
+    def test_demo_mode_off_rejects_too_short_official_license(self):
+        """Demo mode OFF: short strings that do not match official format are rejected."""
+        for lic, suffix in [('AB', 'tooshort'), ('AB-CD', 'tooshort2')]:
+            resp = self._post(lic, suffix, suffix)
+            self.assertEqual(resp.status_code, 200,
+                             f"Too-short license must be rejected in production: {lic}")
+            self.assertContains(
+                resp, "Please enter a valid State Pharmacy Council license number.",
+                msg_prefix=f"Wrong error for: {lic}"
+            )

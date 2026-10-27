@@ -6,7 +6,9 @@
 {% block pharmacist_breadcrumb %}Medicine Search{% endblock %}
 
 {% block content %}
-<div class="container-fluid px-3 px-md-4 py-4 position-relative">
+<div class="pharmacist-page-scroll-wrapper">
+  <div class="pharmacist-page-scroll-content" style="width: 100%; max-width: 100%; min-width: 0;">
+    <div class="container-fluid px-3 px-md-4 py-4 position-relative" style="max-width: 100%; min-width: 0;">
     <!-- Ambient Animated Background Flow -->
     <div class="admin-ambient-flow-layer" aria-hidden="true">
         <div class="flow-orb flow-orb-1"></div>
@@ -133,7 +135,7 @@
 
                 <div class="row g-2.5 align-items-end">
                     <!-- Search Input -->
-                    <div class="col-12 col-md-6 col-lg-3">
+                    <div class="col-12 col-md-6 col-xl-3">
                         <label class="med-filter-label" for="filterSearch">Search Medicines</label>
                         <div class="med-filter-search-wrap">
                             <i class="fas fa-search med-filter-search-icon"></i>
@@ -143,7 +145,7 @@
                     </div>
 
                     <!-- Category Filter -->
-                    <div class="col-6 col-md-6 col-lg-2">
+                    <div class="col-6 col-md-6 col-xl-2">
                         <label class="med-filter-label" for="filterCategory">Category</label>
                         <select class="form-select med-filter-control med-filter-select" id="filterCategory" name="category">
                             <option value="">All Categories</option>
@@ -154,7 +156,7 @@
                     </div>
 
                     <!-- Dosage Form Filter -->
-                    <div class="col-6 col-md-4 col-lg-2">
+                    <div class="col-6 col-md-4 col-xl-2">
                         <label class="med-filter-label" for="filterDosage">Dosage Form</label>
                         <select class="form-select med-filter-control med-filter-select" id="filterDosage" name="dosage_form">
                             <option value="">All Forms</option>
@@ -165,7 +167,7 @@
                     </div>
 
                     <!-- Regulatory Schedule Filter -->
-                    <div class="col-6 col-md-4 col-lg-2">
+                    <div class="col-6 col-md-4 col-xl-2">
                         <label class="med-filter-label" for="filterRegulatory">Schedule</label>
                         <select class="form-select med-filter-control med-filter-select" id="filterRegulatory" name="regulatory_category">
                             <option value="">All Schedules</option>
@@ -176,7 +178,7 @@
                     </div>
 
                     <!-- Sort By -->
-                    <div class="col-6 col-md-4 col-lg-3">
+                    <div class="col-12 col-md-4 col-xl-3">
                         <label class="med-filter-label" for="filterSort">Sort Order</label>
                         <select class="form-select med-filter-control med-filter-select" id="filterSort" name="sort">
                             <option value="name_asc" {% if selected_filters.sort == 'name_asc' or not selected_filters.sort %}selected{% endif %}>Name (A → Z)</option>
@@ -262,8 +264,8 @@
     <!-- ── 5. Medicine Results Table ────────────────────────────────────────── -->
     <div class="card bg-white border shadow-sm overflow-hidden" style="border-radius: 12px; border-color: #E2E8F0; z-index: 1;">
         {% if page_obj.object_list %}
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0 table-admin-custom" style="min-width: 1040px;">
+            <div class="table-responsive" style="width: 100%; max-width: 100%; min-width: 0; overflow-x: auto; -webkit-overflow-scrolling: touch;">
+                <table class="table table-hover align-middle mb-0 table-admin-custom" style="min-width: 1040px; width: 100%;">
                     <thead>
                         <tr>
                             <th style="min-width: 95px; width: 10%;">Code</th>
@@ -480,25 +482,27 @@
         {% endif %}
     </div>
 </div>
+  </div><!-- /.pharmacist-page-scroll-content -->
+</div><!-- /.pharmacist-page-scroll-wrapper -->
 
 <style>
 /* ── Medicine Master Specific Responsive Grid ────────────────────────────── */
 .med-metrics-grid {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 1rem;
 }
-@media (max-width: 1199px) {
+@media (max-width: 1400px) {
     .med-metrics-grid {
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 }
-@media (max-width: 767px) {
+@media (max-width: 1100px) {
     .med-metrics-grid {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
-@media (max-width: 480px) {
+@media (max-width: 576px) {
     .med-metrics-grid {
         grid-template-columns: 1fr;
     }
@@ -512,6 +516,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    min-width: 0;
     transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }

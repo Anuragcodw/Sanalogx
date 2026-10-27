@@ -283,7 +283,7 @@ def pharmacist_register_view(request):
             phone_raw = phone_legacy
             phone_dc = ''
 
-        license_number = request.POST.get('license_number', '').strip()
+        license_number = request.POST.get('license_number', '').strip().upper()
         qualification = request.POST.get('qualification', '').strip()
         username = request.POST.get('username', '').strip()
         password = request.POST.get('password', '')
@@ -328,7 +328,7 @@ def pharmacist_register_view(request):
 
             if is_demo_mode:
                 if not re.match(demo_pattern, license_number):
-                    errors.append("Pharmacy License Number must follow demo format: PH- followed by 4 digits (e.g. PH-2827).")
+                    errors.append("Pharmacy License Number must follow demo format: PH- followed by 4 digits (e.g. PH-1234).")
             else:
                 if re.match(demo_pattern, license_number):
                     errors.append("Demo license references are disabled in production. Please provide an official State Pharmacy Council registration number.")
@@ -369,7 +369,13 @@ def pharmacist_register_view(request):
         if errors:
             for err in errors:
                 messages.error(request, err)
-            return render(request, 'auth/register.html', {'form_data': form_data})
+            from django.conf import settings
+            is_demo_mode = getattr(settings, 'DEMO_REGISTRATION_MODE', settings.DEBUG)
+            return render(request, 'auth/register.html', {
+                'form_data': form_data,
+                'demo_mode': is_demo_mode,
+                'is_demo_mode': is_demo_mode,
+            })
 
         # --- Create Pharmacist Account ---
         from django.conf import settings
@@ -434,7 +440,13 @@ def pharmacist_register_view(request):
             )
         return redirect(f'/auth/registration-success/?email={user.email}')
 
-    return render(request, 'auth/register.html')
+    from django.conf import settings
+    is_demo_mode = getattr(settings, 'DEMO_REGISTRATION_MODE', settings.DEBUG)
+    return render(request, 'auth/register.html', {
+        'demo_mode': is_demo_mode,
+        'is_demo_mode': is_demo_mode,
+    })
+
 
 
 def verify_email_view(request, uidb64, token):

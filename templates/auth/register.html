@@ -139,8 +139,9 @@
                             {% endfor %}
                         {% endif %}
 
-                        <form method="POST" action="{% url 'pharmacist_register' %}" id="pharmacistRegisterForm" novalidate>
+                        <form method="POST" action="{% url 'pharmacist_register' %}" id="pharmacistRegisterForm" data-demo-mode="{% if demo_mode %}true{% else %}false{% endif %}" novalidate>
                             {% csrf_token %}
+
 
                             <div class="row g-3">
                                 <!-- Full Name -->
@@ -198,13 +199,17 @@
                                         <i class="fas fa-file-medical text-muted position-absolute start-0 top-50 translate-middle-y ms-3"></i>
                                         <input type="text" class="form-control ps-5 py-2 rounded-3 border-secondary-subtle" id="license_number" name="license_number"
                                                value="{{ form_data.license_number|default:'' }}"
-                                               placeholder="PH-2827"
-                                               maxlength="7"
+                                               placeholder="{% if demo_mode %}PH-1234{% else %}e.g. 28472/2021 or MH-PH-12345{% endif %}"
+                                               maxlength="{% if demo_mode %}7{% else %}30{% endif %}"
                                                autocomplete="off"
                                                required>
                                     </div>
                                     <div class="form-text small text-muted mt-1" id="license_help_text">
-                                        <i class="fas fa-info-circle me-1" style="color: #00A896;"></i>Demo format: PH- followed by 4 digits
+                                        {% if demo_mode %}
+                                        <i class="fas fa-info-circle me-1" style="color: #00A896;"></i>Demo format: PH- followed by 4 digits (e.g. PH-1234)
+                                        {% else %}
+                                        <i class="fas fa-info-circle me-1" style="color: #00A896;"></i>Official State Pharmacy Council registration number (6–30 characters)
+                                        {% endif %}
                                     </div>
                                     <div id="license-error" class="text-danger small mt-1 d-none" role="alert"></div>
                                 </div>
@@ -381,9 +386,12 @@
     }
 
     // ── 4. Pharmacy License Number validation & auto-prefix ───────────────────
-    var licenseInput   = document.getElementById('license_number');
-    var licenseError   = document.getElementById('license-error');
-    var licensePattern = /^PH-[0-9]{4}$/;
+    var formEl          = document.getElementById('pharmacistRegisterForm');
+    var isDemoMode      = formEl && formEl.getAttribute('data-demo-mode') === 'true';
+    var licenseInput    = document.getElementById('license_number');
+    var licenseError    = document.getElementById('license-error');
+    var demoPattern     = /^PH-[0-9]{4}$/i;
+    var officialPattern = /^[A-Za-z0-9\-\/]{6,30}$/;
 
     function showLicenseError(msg) {
         if (!licenseError || !licenseInput) return;
@@ -406,68 +414,103 @@
         var val = licenseInput.value.trim();
         if (!val) {
             if (blocking) {
-                showLicenseError('Pharmacy License Number is required.');
+                showLicenseError(isDemoMode ? 'Pharmacy License Number is required.' : 'Pharmacy License / Registration Number is required.');
                 return false;
             }
             clearLicenseError();
             return true;
         }
 
-        if (!licensePattern.test(val)) {
-            showLicenseError('Invalid demo license format. Must be PH- followed by 4 digits (e.g. PH-2827).');
-            return false;
+        if (isDemoMode) {
+            if (!demoPattern.test(val)) {
+                showLicenseError('Invalid demo license format. Must be PH- followed by 4 digits (e.g. PH-1234).');
+                return false;
+            }
+        } else {
+            if (demoPattern.test(val)) {
+                showLicenseError('Demo license references are disabled in production. Please provide an official State Pharmacy Council registration number.');
+                return false;
+            }
+            if (!officialPattern.test(val)) {
+                showLicenseError('Please enter a valid State Pharmacy Council license number (6–30 characters, alphanumeric with hyphens or slashes).');
+                return false;
+            }
         }
         clearLicenseError();
         return true;
     }
 
     if (licenseInput) {
-        // Auto-insert 'PH-' on focus if empty (without preventing backspace/editing)
-        licenseInput.addEventListener('focus', function () {
-            if (!this.value.trim()) {
-                this.value = 'PH-';
-            }
-        });
+        if (isDemoMode) {
+            // Auto-insert 'PH-' on focus if empty (without preventing backspace/editing)
+            licenseInput.addEventListener('focus', function () {
+                if (!this.value.trim()) {
+                    this.value = 'PH-';
+                }
+            });
 
-        // Typing handler: auto-prepend PH- if user types digits directly, uppercase prefix
-        licenseInput.addEventListener('input', function () {
-            var val = this.value;
-            if (!val) {
-                clearLicenseError();
-                return;
-            }
+            // Typing handler: auto-prepend PH- if user types digits directly, uppercase prefix
+            licenseInput.addEventListener('input', function () {
+                var val = this.value;
+                if (!val) {
+                    clearLicenseError();
+                    return;
+                }
 
-            // If user types raw digits (e.g. '2827'), auto-prepend 'PH-'
-            if (/^[0-9]/.test(val)) {
-                this.value = 'PH-' + val;
-            }
-            // If user typed lowercase 'ph-', normalize to 'PH-'
-            if (this.value.toLowerCase().startsWith('ph-')) {
-                this.value = 'PH-' + this.value.substring(3);
-            }
+                // If user types raw digits (e.g. '1234'), auto-prepend 'PH-'
+                if (/^[0-9]/.test(val)) {
+                    this.value = 'PH-' + val;
+                }
+                // If user typed lowercase 'ph-', normalize to 'PH-'
+                if (this.value.toLowerCase().startsWith('ph-')) {
+                    this.value = 'PH-' + this.value.substring(3);
+                }
 
-            // Real-time validation feedback
-            var trimmed = this.value.trim();
-            if (trimmed.length >= 7) {
-                validateLicense(false);
-            } else if (trimmed === 'PH-') {
-                clearLicenseError();
-            } else if (trimmed.length > 3 && !/^PH-[0-9]*$/.test(trimmed)) {
-                showLicenseError('Demo format requires digits only after PH- (e.g. PH-2827).');
-            } else {
-                clearLicenseError();
-            }
-        });
+                // Real-time validation feedback
+                var trimmed = this.value.trim();
+                if (trimmed.length >= 7) {
+                    validateLicense(false);
+                } else if (trimmed.toUpperCase() === 'PH-') {
+                    clearLicenseError();
+                } else if (trimmed.length > 3 && !/^PH-[0-9]*$/i.test(trimmed)) {
+                    showLicenseError('Demo format requires digits only after PH- (e.g. PH-1234).');
+                } else {
+                    clearLicenseError();
+                }
+            });
 
-        licenseInput.addEventListener('blur', function () {
-            // Clear standalone prefix if user left without typing numbers
-            if (this.value.trim() === 'PH-') {
-                this.value = '';
-                clearLicenseError();
-            } else if (this.value.trim()) {
-                validateLicense(false);
-            }
-        });
+            licenseInput.addEventListener('blur', function () {
+                // Clear standalone prefix if user left without typing numbers
+                if (this.value.trim().toUpperCase() === 'PH-') {
+                    this.value = '';
+                    clearLicenseError();
+                } else if (this.value.trim()) {
+                    validateLicense(false);
+                }
+            });
+        } else {
+            // Production Mode (Demo registrations disabled): validate official format
+            licenseInput.addEventListener('input', function () {
+                var val = this.value.trim();
+                if (!val) {
+                    clearLicenseError();
+                    return;
+                }
+                if (demoPattern.test(val)) {
+                    showLicenseError('Demo license references are disabled in production. Please provide an official State Pharmacy Council registration number.');
+                } else if (val.length >= 6) {
+                    validateLicense(false);
+                } else {
+                    clearLicenseError();
+                }
+            });
+
+            licenseInput.addEventListener('blur', function () {
+                if (this.value.trim()) {
+                    validateLicense(false);
+                }
+            });
+        }
     }
 
     // ── 5. Form submit: validate & populate hidden inputs ─────────────────────
