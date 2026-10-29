@@ -132,7 +132,7 @@
             <form method="POST">
               {% csrf_token %}
               <div class="mb-3">
-                <label class="form-label fw-semibold text-navy">Map to MediVault Medicine</label>
+                <label class="form-label fw-semibold text-navy">Map to Sanalogx Medicine</label>
                 <select name="medicine_id" class="form-select rounded-3" required>
                   <option value="">— Select Sanalogx Master Medicine —</option>
                   {% for med in active_medicines %}

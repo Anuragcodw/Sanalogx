@@ -31,7 +31,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         dry_run = options.get('dry_run', False)
         self.stdout.write(self.style.WARNING(
-            f"\n{'[DRY RUN] ' if dry_run else ''}MediVault Scheduled Notifications — {timezone.now().strftime('%d %b %Y %H:%M')}"
+            f"\n{'[DRY RUN] ' if dry_run else ''}Sanalogx Scheduled Notifications — {timezone.now().strftime('%d %b %Y %H:%M')}"
         ))
 
         from notifications import service

@@ -268,9 +268,9 @@ if _env_from:
 elif EMAIL_HOST_USER:
     DEFAULT_FROM_EMAIL = f"{SANALOGX_SITE_NAME} | Hospital Pharmacy Intelligence <{EMAIL_HOST_USER}>"
 else:
-    DEFAULT_FROM_EMAIL = f"{SANALOGX_SITE_NAME} | Hospital Pharmacy Intelligence <noreply@medivault.com>"
+    DEFAULT_FROM_EMAIL = f"{SANALOGX_SITE_NAME} | Hospital Pharmacy Intelligence <noreply@sanalogx.com>"
 
-SERVER_EMAIL = os.getenv('SERVER_EMAIL', EMAIL_HOST_USER or 'noreply@medivault.com').strip()
+SERVER_EMAIL = os.getenv('SERVER_EMAIL', EMAIL_HOST_USER or 'noreply@sanalogx.com').strip()
 EMAIL_TIMEOUT = int(os.getenv('EMAIL_TIMEOUT', '10'))  # seconds
 
 # Select backend: use explicit env backend if provided; otherwise fallback to console in dev if no credentials

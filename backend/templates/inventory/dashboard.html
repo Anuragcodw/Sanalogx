@@ -30,13 +30,12 @@
 /* ── KPI Grid ────────────────────────────────────────────────────────────── */
 .inv-kpi-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: .875rem;
   margin-bottom: 1.5rem;
 }
-@media (max-width: 1100px) { .inv-kpi-grid { grid-template-columns: repeat(4, 1fr); } }
-@media (max-width: 850px)  { .inv-kpi-grid { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 480px)  { .inv-kpi-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 1300px) { .inv-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 576px)  { .inv-kpi-grid { grid-template-columns: 1fr; } }
 
 .inv-kpi-card {
   background: #fff;
@@ -114,11 +113,11 @@
 
 /* ── Intelligence Strip ──────────────────────────────────────────────────── */
 .inv-intel-grid {
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: .75rem; margin-bottom: .5rem;
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; margin-bottom: .5rem;
 }
-@media (max-width: 860px)  { .inv-intel-grid { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 480px)  { .inv-intel-grid { grid-template-columns: 1fr 1fr; } }
-.inv-intel-cell { background: #F8FAFC; border: 1px solid #E8EFF6; border-radius: 10px; padding: .7rem .85rem; }
+@media (max-width: 1200px) { .inv-intel-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 576px)  { .inv-intel-grid { grid-template-columns: 1fr; } }
+.inv-intel-cell { background: #F8FAFC; border: 1px solid #E8EFF6; border-radius: 10px; padding: .7rem .85rem; min-width: 0; }
 .inv-intel-cell .lbl { font-size: .7rem; color: #64748B; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
 .inv-intel-cell .val { font-size: 1.2rem; font-weight: 700; color: #0F2744; line-height: 1.2; margin-top: 2px; }
 .inv-intel-cell .val.text-teal   { color: #00A896; }
@@ -126,24 +125,31 @@
 .inv-intel-cell .val.text-warn   { color: #D97706; }
 
 /* ── Optimization Flow ───────────────────────────────────────────────────── */
-.opt-flow-grid {
+.opt-flow-grid,
+.opt-flow-row {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 0;
   position: relative;
 }
-@media (max-width: 1100px) { .opt-flow-grid { grid-template-columns: repeat(6, 1fr); } }
-@media (max-width: 900px)  { .opt-flow-grid { grid-template-columns: repeat(4, 1fr); } }
-@media (max-width: 600px)  { .opt-flow-grid { grid-template-columns: repeat(3, 1fr); } }
-@media (max-width: 400px)  { .opt-flow-grid { grid-template-columns: repeat(2, 1fr); } }
-
-.opt-flow-row {
-  display: grid; grid-template-columns: repeat(6, 1fr); gap: 0;
-  margin-bottom: .25rem;
+@media (max-width: 1300px) {
+  .opt-flow-grid,
+  .opt-flow-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
-@media (max-width: 900px) { .opt-flow-row { grid-template-columns: repeat(4, 1fr); } }
-@media (max-width: 600px) { .opt-flow-row { grid-template-columns: repeat(3, 1fr); } }
-@media (max-width: 400px) { .opt-flow-row { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 768px) {
+  .opt-flow-grid,
+  .opt-flow-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 480px) {
+  .opt-flow-grid,
+  .opt-flow-row {
+    grid-template-columns: 1fr;
+  }
+}
 
 .opt-step {
   display: flex; flex-direction: column; align-items: center; text-align: center;
@@ -209,8 +215,32 @@
 }
 
 /* ── Inventory Table ─────────────────────────────────────────────────────── */
-.inv-table-wrap { overflow-x: auto; }
-.inv-table { width: 100%; border-collapse: collapse; }
+.inv-table-wrap {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.inv-table-wrap::-webkit-scrollbar {
+  height: 7px;
+}
+.inv-table-wrap::-webkit-scrollbar-track {
+  background: #F1F5F9;
+  border-radius: 4px;
+}
+.inv-table-wrap::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 4px;
+}
+.inv-table-wrap::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+.inv-table {
+  width: 100%;
+  min-width: 960px;
+  border-collapse: collapse;
+}
 .inv-table th {
   font-size: .72rem; text-transform: uppercase; letter-spacing: .05em;
   color: #64748B; background: #F8FAFC; border-bottom: 1.5px solid #E2E8F0;
@@ -303,8 +333,10 @@
 {% endblock %}
 
 {% block content %}
-<div class="ambient-healthcare-bg" style="min-height:100vh;">
-<div class="container-fluid py-4 px-3 px-md-4" style="position:relative;z-index:1;">
+<div class="pharmacist-page-scroll-wrapper">
+  <div class="pharmacist-page-scroll-content" style="width: 100%; max-width: 100%; min-width: 0;">
+    <div class="ambient-healthcare-bg" style="min-height:100vh;">
+      <div class="container-fluid py-4 px-3 px-md-4" style="position:relative;z-index:1;max-width:100%;min-width:0;">
 
   {# ── Page Header ──────────────────────────────────────────────────────── #}
   <div class="inv-page-header">
@@ -419,7 +451,7 @@
   <div class="row g-3 mb-4">
 
     {# Stock Distribution #}
-    <div class="col-lg-5">
+    <div class="col-12 col-xl-5">
       <div class="inv-card h-100">
         <div class="inv-card-header">
           <span class="inv-card-title">
@@ -451,7 +483,7 @@
     </div>
 
     {# Active Stock Alerts #}
-    <div class="col-lg-7">
+    <div class="col-12 col-xl-7">
       <div class="inv-card h-100">
         <div class="inv-card-header">
           <span class="inv-card-title">
@@ -773,6 +805,8 @@
 
 </div>
 </div>
+  </div><!-- /.pharmacist-page-scroll-content -->
+</div><!-- /.pharmacist-page-scroll-wrapper -->
 {% endblock %}
 
 {% block extra_js %}

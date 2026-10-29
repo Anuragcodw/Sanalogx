@@ -405,7 +405,7 @@ class Command(BaseCommand):
             return
 
         self.stdout.write(self.style.HTTP_INFO('=' * 70))
-        self.stdout.write(self.style.HTTP_INFO('  MediVault Professional Excel Medicine Importer & Deduplication'))
+        self.stdout.write(self.style.HTTP_INFO('  Sanalogx Professional Excel Medicine Importer & Deduplication'))
         self.stdout.write(self.style.HTTP_INFO(f'  Mode: {"DRY RUN (no DB writes)" if dry_run else "COMMIT (writing to DB)"}'))
         self.stdout.write(self.style.HTTP_INFO('=' * 70))
         self.stdout.write('')
@@ -665,7 +665,7 @@ class Command(BaseCommand):
 
         # ── Step 8: Execution Summary Report ─────────────────────────────
         self.stdout.write('\n' + '=' * 70)
-        self.stdout.write(self.style.SUCCESS('  FINAL COMMIT REPORT — MediVault Pharmacy Master Catalogue Updated'))
+        self.stdout.write(self.style.SUCCESS('  FINAL COMMIT REPORT — Sanalogx Pharmacy Master Catalogue Updated'))
         self.stdout.write('=' * 70)
         self.stdout.write(f'  Total source rows evaluated:               {total_raw}')
         self.stdout.write(f'  In-file duplicates removed:                {infile_dups}')

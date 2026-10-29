@@ -224,7 +224,7 @@ def ai_chat_api(request):
             'status': 'ready',
             'assistant_name': 'Sanalogx AI Assistant',
             'branding': 'Sanalogx AI Assistant',
-            'system': 'MediVault',
+            'system': 'Sanalogx',
             'capabilities': [
                 'Inventory Overview',
                 'Low Stock Medicines',

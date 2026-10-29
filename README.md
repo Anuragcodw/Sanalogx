@@ -1,4 +1,4 @@
-# MediVault — Hospital Pharmacy Stock Optimization
+# Sanalogx — Hospital Pharmacy Stock Optimization
 
 > **Tagline:** "Smarter Pharmacy. Optimized Stock. Better Care."  
 > **Secondary Tagline:** "Intelligent Hospital Pharmacy Stock Optimization Platform"
@@ -6,7 +6,7 @@
 ---
 
 ## Project Overview
-**MediVault** is a real-world healthcare SaaS & pharmacy inventory intelligence platform designed to eliminate stock shortages, prevent overstocking, automate expiry tracking, and analyze supplier price trends.
+**Sanalogx** is a real-world healthcare SaaS & pharmacy inventory intelligence platform designed to eliminate stock shortages, prevent overstocking, automate expiry tracking, and analyze supplier price trends.
 
 ---
 
@@ -22,7 +22,7 @@
 ---
 
 ## Application Roles & Access Control
-MediVault strictly enforces **two application roles**:
+Sanalogx strictly enforces **two application roles**:
 
 1. **Admin**
    - Governance role created via Django superuser mechanism.
@@ -39,7 +39,7 @@ MediVault strictly enforces **two application roles**:
 
 ## Initial Project Structure
 ```
-MediVault/
+Sanalogx/
 ├── backend/
 │   ├── venv/
 │   ├── config/
@@ -74,7 +74,7 @@ MediVault/
 
 ### 1. Activate Environment & Dependencies
 ```bash
-cd MediVault/backend
+cd Sanalogx/backend
 .\venv\Scripts\activate
 pip install -r requirements.txt
 ```

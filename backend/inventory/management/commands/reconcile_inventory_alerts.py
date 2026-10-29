@@ -73,7 +73,7 @@ class Command(BaseCommand):
 
         if not quiet:
             self.stdout.write(self.style.MIGRATE_HEADING(
-                f"MediVault Background Reconciliation Engine Initialized "
+                f"Sanalogx Background Reconciliation Engine Initialized "
                 f"[Loop={loop_mode}, Interval={interval}s, DryRun={dry_run}]"
             ))
 

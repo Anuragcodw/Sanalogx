@@ -413,7 +413,7 @@ def process_ai_chat_query(user_text, user, session=None):
     if intent == 'HELP':
         help_text = (
             f"### Sanalogx AI Assistant — Capabilities & Commands\n\n"
-            f"I am connected to live MediVault database records. Here are common questions you can ask:\n\n"
+            f"I am connected to live Sanalogx database records. Here are common questions you can ask:\n\n"
             f"1. **Inventory:** *\"Show total stock units\"*, *\"Which medicines have low stock?\"*, *\"Show stock for Paracetamol\"*\n"
             f"2. **Medicine Information:** *\"What is Paracetamol?\"*, *\"Uses and side effects of Amoxicillin\"*, *\"Storage for Insulin\"*\n"
             f"3. **Sales & Billing:** *\"Show today's sales\"*, *\"Weekly sales summary\"*, *\"Monthly sales\"*, *\"Top selling medicines\"*\n"
@@ -664,7 +664,7 @@ def process_ai_chat_query(user_text, user, session=None):
                 f"**Common Adverse Effects:**\n{knowledge.get('side_effects')}\n\n"
                 f"**Recommended Storage:**\n{knowledge.get('storage_requirements')}\n\n"
                 f"---\n"
-                f"**Live MediVault Inventory Status:**\n"
+                f"**Live Sanalogx Inventory Status:**\n"
                 f"Available: **{avail} units** (Total physical: {total} units) | Nearest Expiry: {exp_info}\n\n"
                 f"> **Clinical Advisory:** *This reference information is for pharmacist and clinical staff guidance only. "
                 f"Not intended for direct patient self-medication, individual dosing, or diagnosis. Escalate clinical inquiries to a licensed physician or clinical pharmacist.*"
@@ -863,7 +863,7 @@ def process_ai_chat_query(user_text, user, session=None):
             .order_by('-total_qty')[:5]
         )
         if not top_meds:
-            answer = "No completed sales records recorded yet in MediVault."
+            answer = "No completed sales records recorded yet in Sanalogx."
         else:
             lines = [f"{idx+1}. **{m['medicine__medicine_name']}**: **{m['total_qty']} units** sold (₹{m['total_rev']:,.2f})" for idx, m in enumerate(top_meds)]
             answer = "### Top Selling Medicines (by Volume)\n\n" + "\n".join(lines)
@@ -1278,7 +1278,7 @@ def process_ai_chat_query(user_text, user, session=None):
 
     answer = (
         f"I am the **Sanalogx AI Assistant**. I couldn't match your query to a specific command, but I can help you with live pharmacy data.\n\n"
-        f"Currently, MediVault tracks **{total_meds} active medicines** ({low_stk} low in stock).\n\n"
+        f"Currently, Sanalogx tracks **{total_meds} active medicines** ({low_stk} low in stock).\n\n"
         f"**Here are questions you can try:**\n"
         f"- *\"What is Paracetamol?\"*\n"
         f"- *\"Show low stock medicines\"*\n"

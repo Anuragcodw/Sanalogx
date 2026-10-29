@@ -2,10 +2,131 @@
 {% load static %}
 
 {% block title %}Controlled Medicine Register — Sanalogx{% endblock %}
+{% block admin_breadcrumb %}Controlled Register{% endblock %}
+{% block pharmacist_breadcrumb %}Controlled Register{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* Scoped layout containment & table responsiveness for Controlled Register */
+  .controlled-register-page-container {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+  .controlled-register-card {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .controlled-register-table-wrapper {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .controlled-register-table-wrapper::-webkit-scrollbar {
+    height: 7px;
+  }
+  .controlled-register-table-wrapper::-webkit-scrollbar-track {
+    background: #F1F5F9;
+    border-radius: 4px;
+  }
+  .controlled-register-table-wrapper::-webkit-scrollbar-thumb {
+    background: #CBD5E1;
+    border-radius: 4px;
+  }
+  .controlled-register-table-wrapper::-webkit-scrollbar-thumb:hover {
+    background: #94A3B8;
+  }
+  .controlled-register-table {
+    width: 100%;
+    min-width: 1520px;
+    table-layout: auto;
+  }
+  .controlled-register-table th,
+  .controlled-register-table td {
+    vertical-align: middle;
+  }
+  .col-reg-id {
+    min-width: 135px;
+    white-space: nowrap;
+  }
+  .col-reg-time {
+    min-width: 105px;
+    white-space: nowrap;
+  }
+  .col-reg-type {
+    min-width: 95px;
+    white-space: nowrap;
+  }
+  .col-reg-med {
+    min-width: 180px;
+    max-width: 250px;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+  }
+  .col-reg-class {
+    min-width: 130px;
+    white-space: nowrap;
+  }
+  .col-reg-batch {
+    min-width: 110px;
+    white-space: nowrap;
+  }
+  .col-reg-patient {
+    min-width: 155px;
+    max-width: 220px;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+  }
+  .col-reg-doc {
+    min-width: 155px;
+    max-width: 220px;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+  }
+  .col-reg-open {
+    min-width: 75px;
+    white-space: nowrap;
+    text-align: center;
+  }
+  .col-reg-in {
+    min-width: 65px;
+    white-space: nowrap;
+    text-align: center;
+  }
+  .col-reg-out {
+    min-width: 65px;
+    white-space: nowrap;
+    text-align: center;
+  }
+  .col-reg-close {
+    min-width: 75px;
+    white-space: nowrap;
+    text-align: center;
+  }
+  .col-reg-pharma {
+    min-width: 120px;
+    white-space: nowrap;
+  }
+  .col-reg-ref {
+    min-width: 140px;
+    white-space: nowrap;
+    padding-right: 1.25rem !important;
+  }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="ambient-healthcare-bg" style="min-height:100vh;">
-<div class="container-fluid px-lg-5 py-4" style="position:relative;z-index:1;">
+<div class="pharmacist-page-scroll-wrapper">
+  <div class="pharmacist-page-scroll-content" style="width: 100%; max-width: 100%; min-width: 0;">
+    <div class="ambient-healthcare-bg controlled-register-page-container" style="min-height:100vh;">
+      <div class="container-fluid px-3 px-lg-4 py-4" style="position:relative;z-index:1;width:100%;max-width:100%;min-width:0;">
 
     <!-- Header -->
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
@@ -38,7 +159,7 @@
 
     <!-- KPI Cards -->
     <div class="row g-3 mb-4">
-        <div class="col-sm-4">
+        <div class="col-12 col-md-4">
             <div class="kpi-card-compact">
                 <div>
                     <div class="kpi-label">Controlled Drug SKUs (Active)</div>
@@ -49,7 +170,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-sm-4">
+        <div class="col-12 col-md-4">
             <div class="kpi-card-compact">
                 <div>
                     <div class="kpi-label">Units Dispensed (Filtered)</div>
@@ -65,7 +186,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-sm-4">
+        <div class="col-12 col-md-4">
             <div class="kpi-card-compact">
                 <div>
                     <div class="kpi-label">Units Received (Filtered)</div>
@@ -83,17 +204,18 @@
         </div>
     </div>
 
+
     <!-- Filter Bar -->
     <div class="bg-white border rounded-3 p-3 mb-4 shadow-sm">
         <form method="GET" class="row g-2 align-items-end">
-            <div class="col-md-3 col-sm-6">
+            <div class="col-12 col-md-6 col-xl-3">
                 <label class="form-label mb-1" style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#64748B;">Search Register</label>
                 <div class="input-group input-group-sm">
                     <span class="input-group-text bg-light border-end-0"><i class="fas fa-search text-muted" style="font-size:0.75rem;"></i></span>
                     <input type="text" name="q" class="form-control border-start-0 ps-0" placeholder="Register ID, Medicine, Batch, Patient, Doctor..." value="{{ q }}" style="font-size:0.82rem;">
                 </div>
             </div>
-            <div class="col-md-2 col-sm-6">
+            <div class="col-6 col-md-3 col-xl-2">
                 <label class="form-label mb-1" style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#64748B;">Regulatory Category</label>
                 <select name="regulatory_category" class="form-select form-select-sm" style="font-size:0.82rem;">
                     <option value="">-- All Categories --</option>
@@ -102,7 +224,7 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-md-2 col-sm-6">
+            <div class="col-6 col-md-3 col-xl-2">
                 <label class="form-label mb-1" style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#64748B;">Transaction Type</label>
                 <select name="transaction_type" class="form-select form-select-sm" style="font-size:0.82rem;">
                     <option value="">-- All Types --</option>
@@ -111,15 +233,15 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-md-2 col-sm-6">
+            <div class="col-6 col-md-4 col-xl-2">
                 <label class="form-label mb-1" style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#64748B;">From Date</label>
                 <input type="date" name="start_date" class="form-control form-control-sm" value="{{ start_date }}" style="font-size:0.82rem;">
             </div>
-            <div class="col-md-2 col-sm-6">
+            <div class="col-6 col-md-4 col-xl-2">
                 <label class="form-label mb-1" style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#64748B;">To Date</label>
                 <input type="date" name="end_date" class="form-control form-control-sm" value="{{ end_date }}" style="font-size:0.82rem;">
             </div>
-            <div class="col-md-1 col-sm-6 d-flex gap-1">
+            <div class="col-12 col-md-4 col-xl-1 d-flex gap-1">
                 <button type="submit" class="btn btn-sm text-white fw-semibold flex-grow-1"
                         style="background:#DC2626;border:none;border-radius:8px;font-size:0.8rem;" title="Apply Filter">
                     <i class="fas fa-filter"></i>
@@ -127,43 +249,44 @@
                 <a href="{% url 'controlled_register' %}" class="btn btn-sm btn-light border" style="border-radius:8px;" title="Reset Filters">
                     <i class="fas fa-rotate-left" style="font-size:0.75rem;"></i>
                 </a>
+
             </div>
         </form>
     </div>
 
     <!-- Register Ledger Table -->
-    <div class="bg-white border rounded-3 shadow-sm" style="overflow:hidden;">
-        <div class="table-responsive">
-            <table class="table-medivault-compact table mb-0 align-middle" style="min-width: 1250px;">
+    <div class="bg-white border rounded-3 shadow-sm controlled-register-card">
+        <div class="table-responsive controlled-register-table-wrapper">
+            <table class="table-medivault-compact table mb-0 align-middle controlled-register-table">
                 <thead>
                     <tr>
-                        <th class="ps-3" style="width: 125px;">Register ID</th>
-                        <th style="width: 100px;">Timestamp</th>
-                        <th>Type</th>
-                        <th>Medicine</th>
-                        <th>Regulatory Class</th>
-                        <th>Batch</th>
-                        <th>Patient Details</th>
-                        <th>Prescribing Doctor</th>
-                        <th class="text-center">Opening</th>
-                        <th class="text-center text-success">In</th>
-                        <th class="text-center text-danger">Out</th>
-                        <th class="text-center">Closing</th>
-                        <th>Pharmacist</th>
-                        <th class="pe-3">Reference</th>
+                        <th class="ps-3 col-reg-id">Register ID</th>
+                        <th class="col-reg-time">Timestamp</th>
+                        <th class="col-reg-type">Type</th>
+                        <th class="col-reg-med">Medicine</th>
+                        <th class="col-reg-class">Regulatory Class</th>
+                        <th class="col-reg-batch">Batch</th>
+                        <th class="col-reg-patient">Patient Details</th>
+                        <th class="col-reg-doc">Prescribing Doctor</th>
+                        <th class="text-center col-reg-open">Opening</th>
+                        <th class="text-center text-success col-reg-in">In</th>
+                        <th class="text-center text-danger col-reg-out">Out</th>
+                        <th class="text-center col-reg-close">Closing</th>
+                        <th class="col-reg-pharma">Pharmacist</th>
+                        <th class="pe-3 col-reg-ref">Reference</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for entry in page_obj %}
                     <tr>
-                        <td class="ps-3">
+                        <td class="ps-3 col-reg-id">
                             <span class="fw-bold font-monospace" style="color:#DC2626;font-size:0.78rem;">{{ entry.register_id }}</span>
                         </td>
-                        <td style="white-space:nowrap;">
+                        <td class="col-reg-time">
                             <div style="font-size:0.82rem;color:#1E293B;">{{ entry.transaction_date|date:"d M Y" }}</div>
                             <div style="font-size:0.7rem;color:#94A3B8;">{{ entry.transaction_date|date:"H:i" }}</div>
                         </td>
-                        <td>
+                        <td class="col-reg-type">
                             {% if entry.transaction_type == 'DISPENSE' %}
                             <span class="badge bg-danger-subtle text-danger border" style="font-size:0.68rem;">Dispense</span>
                             {% elif entry.transaction_type == 'PURCHASE' %}
@@ -178,52 +301,52 @@
                             <span class="badge bg-secondary-subtle text-secondary border" style="font-size:0.68rem;">{{ entry.get_transaction_type_display }}</span>
                             {% endif %}
                         </td>
-                        <td>
-                            <div class="fw-semibold" style="color:#0F2744;font-size:0.82rem;">{{ entry.medicine.medicine_name }}</div>
-                            <div style="font-size:0.7rem;color:#94A3B8;">{{ entry.medicine.strength }} ({{ entry.medicine.dosage_form }})</div>
+                        <td class="col-reg-med">
+                            <div class="fw-semibold" style="color:#0F2744;font-size:0.82rem;line-height:1.25;">{{ entry.medicine.medicine_name }}</div>
+                            <div style="font-size:0.7rem;color:#94A3B8;margin-top:2px;">{{ entry.medicine.strength }} ({{ entry.medicine.dosage_form }})</div>
                         </td>
-                        <td>
+                        <td class="col-reg-class">
                             <span class="badge" style="background:rgba(220,38,38,0.10);color:#DC2626;border:1px solid rgba(220,38,38,0.2);font-size:0.7rem;font-weight:600;">
                                 {{ entry.get_regulatory_category_display }}
                             </span>
                         </td>
-                        <td>
+                        <td class="col-reg-batch">
                             <span class="badge font-monospace" style="background:#F1F5F9;color:#0F2744;border:1px solid #E2E8F0;font-size:0.72rem;">
                                 {{ entry.batch.batch_number }}
                             </span>
                         </td>
-                        <td>
-                            <div class="fw-semibold" style="color:#1E293B;font-size:0.82rem;">{{ entry.patient_name }}</div>
-                            <div style="font-size:0.7rem;color:#94A3B8;">UHID: {{ entry.patient_id }}</div>
+                        <td class="col-reg-patient">
+                            <div class="fw-semibold" style="color:#1E293B;font-size:0.82rem;line-height:1.25;">{{ entry.patient_name }}</div>
+                            <div style="font-size:0.7rem;color:#94A3B8;margin-top:2px;">UHID: {{ entry.patient_id }}</div>
                         </td>
-                        <td>
-                            <div class="fw-semibold" style="color:#0F2744;font-size:0.8rem;">{{ entry.prescribing_doctor }}</div>
+                        <td class="col-reg-doc">
+                            <div class="fw-semibold" style="color:#0F2744;font-size:0.8rem;line-height:1.25;">{{ entry.prescribing_doctor }}</div>
                             {% if entry.doctor_registration %}
-                            <div style="font-size:0.7rem;color:#94A3B8;">Reg: {{ entry.doctor_registration }}</div>
+                            <div style="font-size:0.7rem;color:#94A3B8;margin-top:2px;">Reg: {{ entry.doctor_registration }}</div>
                             {% endif %}
                         </td>
-                        <td class="text-center fw-semibold" style="font-size:0.82rem;">{{ entry.opening_balance }}</td>
-                        <td class="text-center">
+                        <td class="text-center fw-semibold col-reg-open" style="font-size:0.82rem;">{{ entry.opening_balance }}</td>
+                        <td class="text-center col-reg-in">
                             {% if entry.quantity_in > 0 %}
                             <span class="fw-bold" style="color:#10B981;font-size:0.82rem;">+{{ entry.quantity_in }}</span>
                             {% else %}
                             <span style="color:#CBD5E1;">—</span>
                             {% endif %}
                         </td>
-                        <td class="text-center">
+                        <td class="text-center col-reg-out">
                             {% if entry.quantity_dispensed > 0 %}
                             <span class="fw-bold" style="color:#DC2626;font-size:0.82rem;">-{{ entry.quantity_dispensed }}</span>
                             {% else %}
                             <span style="color:#CBD5E1;">—</span>
                             {% endif %}
                         </td>
-                        <td class="text-center fw-bold" style="color:#0F2744;font-size:0.9rem;">{{ entry.closing_balance }}</td>
-                        <td>
+                        <td class="text-center fw-bold col-reg-close" style="color:#0F2744;font-size:0.9rem;">{{ entry.closing_balance }}</td>
+                        <td class="col-reg-pharma">
                             <span class="badge" style="background:#F1F5F9;color:#374151;border:1px solid #E2E8F0;font-size:0.7rem;">
                                 <i class="fas fa-user-check me-1" style="color:#00A99D;"></i>{{ entry.pharmacist.username }}
                             </span>
                         </td>
-                        <td class="pe-3">
+                        <td class="pe-3 col-reg-ref">
                             {% if entry.dispensing_record %}
                             <a href="{% url 'dispensing_detail' entry.dispensing_record.dispensing_id %}"
                                class="badge text-decoration-none font-monospace"
@@ -237,7 +360,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="13">
+                        <td colspan="14">
                             <div class="empty-state-compact">
                                 <div class="empty-icon-wrap"><i class="fas fa-book-medical"></i></div>
                                 <div class="empty-title">No Register Entries Found</div>
@@ -264,7 +387,7 @@
 
         <!-- Pagination -->
         {% if page_obj.has_other_pages %}
-        <div class="d-flex align-items-center justify-content-between px-3 py-2 border-top" style="background:#FAFBFD;">
+        <div class="d-flex align-items-center justify-content-between px-3 py-2 border-top flex-wrap gap-2" style="background:#FAFBFD;">
             <div style="font-size:0.78rem;color:#64748B;">
                 Showing {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ page_obj.paginator.count }} entries
             </div>
@@ -302,4 +425,6 @@
 
 </div>
 </div>
+  </div><!-- /.pharmacist-page-scroll-content -->
+</div><!-- /.pharmacist-page-scroll-wrapper -->
 {% endblock %}

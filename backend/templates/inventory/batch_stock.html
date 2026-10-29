@@ -5,9 +5,108 @@
 {% block admin_breadcrumb %}Batch-wise Stock{% endblock %}
 {% block pharmacist_breadcrumb %}Batch Availability{% endblock %}
 
+{% block extra_css %}
+<style>
+  /* Scoped layout containment & table responsiveness for Batch Stock */
+  .batch-stock-page-container {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+  .batch-stock-card {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .batch-stock-table-wrapper {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .batch-stock-table-wrapper::-webkit-scrollbar {
+    height: 7px;
+  }
+  .batch-stock-table-wrapper::-webkit-scrollbar-track {
+    background: #F1F5F9;
+    border-radius: 4px;
+  }
+  .batch-stock-table-wrapper::-webkit-scrollbar-thumb {
+    background: #CBD5E1;
+    border-radius: 4px;
+  }
+  .batch-stock-table-wrapper::-webkit-scrollbar-thumb:hover {
+    background: #94A3B8;
+  }
+  .batch-stock-table {
+    width: 100%;
+    min-width: 1220px;
+    table-layout: auto;
+  }
+  .batch-stock-table th,
+  .batch-stock-table td {
+    vertical-align: middle;
+  }
+  .col-batch-med {
+    min-width: 200px;
+    max-width: 260px;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+  }
+  .col-batch-no {
+    min-width: 110px;
+    white-space: nowrap;
+  }
+  .col-batch-mfg {
+    min-width: 105px;
+    white-space: nowrap;
+  }
+  .col-batch-exp {
+    min-width: 120px;
+    white-space: nowrap;
+  }
+  .col-batch-qty {
+    min-width: 100px;
+    white-space: nowrap;
+  }
+  .col-batch-price {
+    min-width: 95px;
+    white-space: nowrap;
+  }
+  .col-batch-storage {
+    min-width: 140px;
+    max-width: 220px;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+    font-size: 0.78rem;
+    color: #64748B;
+    line-height: 1.3;
+  }
+  .col-batch-ctrl {
+    min-width: 85px;
+    white-space: nowrap;
+  }
+  .col-batch-status {
+    min-width: 105px;
+    white-space: nowrap;
+  }
+  .col-batch-risk {
+    min-width: 115px;
+    white-space: nowrap;
+    padding-right: 1.25rem !important;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="ambient-healthcare-bg" style="min-height:100vh;">
-<div class="container-fluid py-4 px-lg-4" style="position:relative;z-index:1;">
+<div class="pharmacist-page-scroll-wrapper">
+  <div class="pharmacist-page-scroll-content" style="width: 100%; max-width: 100%; min-width: 0;">
+    <div class="ambient-healthcare-bg batch-stock-page-container" style="min-height:100vh;">
+      <div class="container-fluid py-4 px-3 px-lg-4" style="position:relative;z-index:1;width:100%;max-width:100%;min-width:0;">
 
   <!-- Header -->
   <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
@@ -31,25 +130,25 @@
 
   <!-- KPI Cards -->
   <div class="row g-3 mb-4">
-    <div class="col-6 col-md-3">
+    <div class="col-6 col-lg-3">
       <div class="kpi-card-compact h-100">
         <div><div class="kpi-label">Total Batches</div><div class="kpi-value">{{ total_batches }}</div></div>
         <div class="kpi-icon-pill" style="background:rgba(8,117,185,.10);color:#0875B9;"><i class="fas fa-layer-group"></i></div>
       </div>
     </div>
-    <div class="col-6 col-md-3">
+    <div class="col-6 col-lg-3">
       <div class="kpi-card-compact h-100">
         <div><div class="kpi-label">Active Batches</div><div class="kpi-value" style="color:#10B981;">{{ active_batches }}</div></div>
         <div class="kpi-icon-pill" style="background:rgba(16,185,129,.10);color:#10B981;"><i class="fas fa-circle-check"></i></div>
       </div>
     </div>
-    <div class="col-6 col-md-3">
+    <div class="col-6 col-lg-3">
       <div class="kpi-card-compact h-100">
         <div><div class="kpi-label">Near Expiry (90d)</div><div class="kpi-value" style="color:#F59E0B;">{{ near_expiry_count }}</div></div>
         <div class="kpi-icon-pill" style="background:rgba(245,158,11,.10);color:#F59E0B;"><i class="fas fa-hourglass-half"></i></div>
       </div>
     </div>
-    <div class="col-6 col-md-3">
+    <div class="col-6 col-lg-3">
       <div class="kpi-card-compact h-100">
         <div><div class="kpi-label">Expired Batches</div><div class="kpi-value" style="color:#DC2626;">{{ expired_count }}</div></div>
         <div class="kpi-icon-pill" style="background:rgba(220,38,38,.10);color:#DC2626;"><i class="fas fa-skull-crossbones"></i></div>
@@ -60,21 +159,21 @@
   <!-- Filter Toolbar -->
   <div class="bg-white border rounded-3 p-3 mb-4 shadow-sm">
     <form method="get" class="row g-2 align-items-end">
-      <div class="col-md-3 col-sm-6">
+      <div class="col-12 col-md-6 col-xl-3">
         <label class="form-label mb-1" style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748B;">Search</label>
         <div class="input-group input-group-sm">
           <span class="input-group-text bg-light border-end-0"><i class="fas fa-search text-muted" style="font-size:.75rem;"></i></span>
           <input type="text" name="search" value="{{ search_q }}" placeholder="Medicine / Batch #..." class="form-control border-start-0 ps-0" style="font-size:.82rem;">
         </div>
       </div>
-      <div class="col-md-2 col-sm-6">
+      <div class="col-6 col-md-3 col-xl-2">
         <label class="form-label mb-1" style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748B;">Medicine</label>
         <select name="medicine" class="form-select form-select-sm" style="font-size:.82rem;">
           <option value="">All Medicines</option>
           {% for med in medicines %}<option value="{{ med.id }}" {% if medicine_filter == med.id|stringformat:"s" %}selected{% endif %}>{{ med.medicine_name }}</option>{% endfor %}
         </select>
       </div>
-      <div class="col-md-2 col-sm-6">
+      <div class="col-6 col-md-3 col-xl-2">
         <label class="form-label mb-1" style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748B;">Status</label>
         <select name="status" class="form-select form-select-sm" style="font-size:.82rem;">
           <option value="">All Statuses</option>
@@ -84,7 +183,7 @@
           <option value="QUARANTINED" {% if status_filter == "QUARANTINED" %}selected{% endif %}>Quarantined</option>
         </select>
       </div>
-      <div class="col-md-2 col-sm-6">
+      <div class="col-6 col-md-4 col-xl-2">
         <label class="form-label mb-1" style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748B;">Expiry Range</label>
         <select name="near_expiry" class="form-select form-select-sm" style="font-size:.82rem;">
           <option value="">Any Expiry</option>
@@ -93,14 +192,14 @@
           <option value="90" {% if near_expiry_filter == "90" %}selected{% endif %}>Within 90 days</option>
         </select>
       </div>
-      <div class="col-md-2 col-sm-6">
+      <div class="col-6 col-md-4 col-xl-2">
         <label class="form-label mb-1" style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748B;">Type</label>
         <select name="controlled" class="form-select form-select-sm" style="font-size:.82rem;">
           <option value="">All Types</option>
           <option value="1" {% if controlled_filter == "1" %}selected{% endif %}>Controlled Only</option>
         </select>
       </div>
-      <div class="col-md-1 col-sm-6 d-flex gap-1">
+      <div class="col-12 col-md-4 col-xl-1 d-flex gap-1">
         <button type="submit" class="btn btn-sm text-white fw-semibold flex-grow-1" style="background:#00A99D;border:none;border-radius:8px;font-size:.8rem;"><i class="fas fa-filter"></i></button>
         <a href="{% url 'batch_stock' %}" class="btn btn-sm btn-light border" style="border-radius:8px;" title="Reset"><i class="fas fa-rotate-left" style="font-size:.75rem;"></i></a>
       </div>
@@ -108,35 +207,35 @@
   </div>
 
   <!-- Batch Table -->
-  <div class="bg-white border rounded-3 shadow-sm" style="overflow:hidden;">
-    <div class="table-responsive">
-      <table class="table-medivault-compact table table-hover mb-0 align-middle" style="min-width: 980px;">
+  <div class="bg-white border rounded-3 shadow-sm batch-stock-card">
+    <div class="table-responsive batch-stock-table-wrapper">
+      <table class="table-medivault-compact table table-hover mb-0 align-middle batch-stock-table">
         <thead>
           <tr>
-            <th class="ps-3" style="min-width: 180px;">Medicine</th>
-            <th>Batch #</th>
-            <th>Mfg. Date</th>
-            <th>Expiry Date</th>
-            <th class="text-center">Qty Available</th>
-            <th class="text-end">Purchase ₹</th>
-            <th class="text-end">Selling ₹</th>
-            <th style="min-width: 140px; max-width: 220px;">Storage</th>
-            <th class="text-center">Controlled</th>
-            <th class="text-center">Status</th>
-            <th class="pe-3">Expiry Risk</th>
+            <th class="ps-3 col-batch-med">Medicine</th>
+            <th class="col-batch-no">Batch #</th>
+            <th class="col-batch-mfg">Mfg. Date</th>
+            <th class="col-batch-exp">Expiry Date</th>
+            <th class="text-center col-batch-qty">Qty Available</th>
+            <th class="text-end col-batch-price">Purchase ₹</th>
+            <th class="text-end col-batch-price">Selling ₹</th>
+            <th class="col-batch-storage">Storage</th>
+            <th class="text-center col-batch-ctrl">Controlled</th>
+            <th class="text-center col-batch-status">Status</th>
+            <th class="pe-3 col-batch-risk">Expiry Risk</th>
           </tr>
         </thead>
         <tbody>
           {% for item in page_obj %}
           {% with b=item.batch %}
           <tr>
-            <td class="ps-3" style="word-break: break-word;">
-              <div class="fw-semibold" style="color:#0F2744;font-size:.83rem;">{{ b.medicine.medicine_name }}</div>
-              <div style="font-size:.7rem;color:#94A3B8;">{{ b.medicine.category.name|default:"—" }}</div>
+            <td class="ps-3 col-batch-med">
+              <div class="fw-semibold" style="color:#0F2744;font-size:.83rem;line-height:1.25;">{{ b.medicine.medicine_name }}</div>
+              <div style="font-size:.7rem;color:#94A3B8;margin-top:2px;">{{ b.medicine.category.name|default:"—" }}</div>
             </td>
-            <td><code style="font-size:.78rem;background:#F1F5F9;padding:2px 7px;border-radius:5px;color:#0F2744;border:1px solid #E2E8F0;">{{ b.batch_number }}</code></td>
-            <td style="font-size:.8rem;color:#64748B;">{{ b.manufacturing_date|date:"d M Y"|default:"—" }}</td>
-            <td>
+            <td class="col-batch-no"><code style="font-size:.78rem;background:#F1F5F9;padding:2px 7px;border-radius:5px;color:#0F2744;border:1px solid #E2E8F0;">{{ b.batch_number }}</code></td>
+            <td class="col-batch-mfg" style="font-size:.8rem;color:#64748B;">{{ b.manufacturing_date|date:"d M Y"|default:"—" }}</td>
+            <td class="col-batch-exp">
               <div class="fw-semibold {% if item.expiry_class == 'expired' %}text-danger{% elif item.expiry_class == 'critical' %}text-danger{% elif item.expiry_class == 'near' %}text-warning{% else %}text-muted{% endif %}" style="font-size:.82rem;">
                 {{ b.expiry_date|date:"d M Y" }}
               </div>
@@ -144,21 +243,21 @@
                 {% if item.days_to_expiry >= 0 %}{{ item.days_to_expiry }}d remaining{% else %}{{ item.days_to_expiry|cut:"-" }}d ago{% endif %}
               </div>
             </td>
-            <td class="text-center fw-bold" style="color:#0F2744;font-size:.88rem;">{{ b.quantity_available }}</td>
-            <td class="text-end" style="font-size:.82rem;color:#475569;font-family:monospace;">₹{{ b.purchase_price }}</td>
-            <td class="text-end fw-semibold" style="font-size:.82rem;color:#0F2744;font-family:monospace;">₹{{ b.selling_price }}</td>
-            <td style="font-size:.78rem;color:#64748B;word-break:break-word;max-width:220px;">{{ b.storage_condition|default:"—" }}</td>
-            <td class="text-center">
+            <td class="text-center fw-bold col-batch-qty" style="color:#0F2744;font-size:.88rem;">{{ b.quantity_available }}</td>
+            <td class="text-end col-batch-price" style="font-size:.82rem;color:#475569;font-family:monospace;">₹{{ b.purchase_price }}</td>
+            <td class="text-end fw-semibold col-batch-price" style="font-size:.82rem;color:#0F2744;font-family:monospace;">₹{{ b.selling_price }}</td>
+            <td class="col-batch-storage">{{ b.storage_condition|default:"—" }}</td>
+            <td class="text-center col-batch-ctrl">
               {% if b.is_controlled %}<span class="badge bg-danger" style="font-size:.68rem;">Ctrl</span>{% else %}<span style="color:#CBD5E1;">—</span>{% endif %}
             </td>
-            <td class="text-center">
+            <td class="text-center col-batch-status">
               {% if b.status == 'ACTIVE' %}<span class="badge" style="background:#D1FAE5;color:#065F46;font-size:.7rem;">Active</span>
               {% elif b.status == 'NEAR_EXPIRY' %}<span class="badge" style="background:#FEF3C7;color:#92400E;font-size:.7rem;">Near Expiry</span>
               {% elif b.status == 'EXPIRED' %}<span class="badge" style="background:#FEE2E2;color:#991B1B;font-size:.7rem;">Expired</span>
               {% elif b.status == 'QUARANTINED' %}<span class="badge" style="background:#EDE9FE;color:#5B21B6;font-size:.7rem;">Quarantined</span>
               {% else %}<span class="badge bg-secondary" style="font-size:.7rem;">{{ b.status }}</span>{% endif %}
             </td>
-            <td class="pe-3" style="min-width:90px;">
+            <td class="pe-3 col-batch-risk">
               <div style="height:6px;border-radius:3px;margin-top:2px;
                 {% if item.expiry_class == 'expired' %}background:#9CA3AF;
                 {% elif item.expiry_class == 'critical' %}background:linear-gradient(90deg,#EF4444,#FEE2E2);
@@ -188,7 +287,7 @@
       </table>
     </div>
     {% if page_obj.has_other_pages %}
-    <div class="d-flex align-items-center justify-content-between px-3 py-2 border-top" style="background:#FAFBFD;">
+    <div class="d-flex align-items-center justify-content-between px-3 py-2 border-top flex-wrap gap-2" style="background:#FAFBFD;">
       <div style="font-size:.78rem;color:#64748B;">Showing {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ page_obj.paginator.count }} batches</div>
       <nav><ul class="pagination pagination-sm mb-0 gap-1">
         {% if page_obj.has_previous %}<li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&search={{ search_q }}&status={{ status_filter }}&near_expiry={{ near_expiry_filter }}&controlled={{ controlled_filter }}&medicine={{ medicine_filter }}" style="border-radius:6px;font-size:.78rem;"><i class="fas fa-chevron-left"></i></a></li>{% endif %}
@@ -205,4 +304,6 @@
 
 </div>
 </div>
+  </div><!-- /.pharmacist-page-scroll-content -->
+</div><!-- /.pharmacist-page-scroll-wrapper -->
 {% endblock %}

@@ -78,7 +78,7 @@ class Command(BaseCommand):
             '\n======================================================'
         ))
         self.stdout.write(self.style.SUCCESS(
-            '  MediVault - Pharmacy Intelligence Refresh'
+            '  Sanalogx - Pharmacy Intelligence Refresh'
         ))
         self.stdout.write(self.style.SUCCESS(
             f'  Started at: {timezone.now().strftime("%Y-%m-%d %H:%M:%S %Z")}'

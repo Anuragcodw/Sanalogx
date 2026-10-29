@@ -1,5 +1,5 @@
 /* ==========================================================================
-   MediVault — Hospital Pharmacy Stock Optimization UI Design System
+   Sanalogx — Hospital Pharmacy Stock Optimization UI Design System
    Theme: Professional Light Healthcare SaaS
    ========================================================================== */
 
@@ -400,7 +400,7 @@ h1, h2, h3, h4, h5, h6, .font-heading {
 }
 
 /* ==========================================================================
-   MediVault App — Utility Classes (used in authenticated app pages)
+   Sanalogx App — Utility Classes (used in authenticated app pages)
    ========================================================================== */
 
 /* Text color utilities */
@@ -474,7 +474,7 @@ h1, h2, h3, h4, h5, h6, .font-heading {
     border-radius: var(--radius-full);
 }
 
-/* Pagination styled for MediVault */
+/* Pagination styled for Sanalogx */
 .pagination .page-link {
     border-color: var(--border-color);
     color: var(--color-navy);
@@ -595,7 +595,7 @@ h1, h2, h3, h4, h5, h6, .font-heading {
 
 
 /* ==========================================================================
-   MediVault Homepage Premium Redesign — Floating Navbar & Hero Section
+   Sanalogx Homepage Premium Redesign — Floating Navbar & Hero Section
    ========================================================================== */
 
 /* ── Floating Glass Navbar ── */
@@ -1193,7 +1193,7 @@ h1, h2, h3, h4, h5, h6, .font-heading {
 }
 
 /* ==========================================================================
-   MediVault — Teal Button Utilities & Floating AI Assistant System
+   Sanalogx — Teal Button Utilities & Floating AI Assistant System
    ========================================================================== */
 
 .btn-teal {
@@ -1318,7 +1318,7 @@ h1, h2, h3, h4, h5, h6, .font-heading {
    Fractional Spacing Utilities
    Bootstrap 5 only generates gap/padding/margin utilities for integer
    multipliers (0–5). These rules extend Bootstrap with the fractional
-   values used across MediVault templates.
+   values used across Sanalogx templates.
    Base unit: 0.25rem (matches Bootstrap's $spacer)
    ========================================================================== */
 

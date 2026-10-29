@@ -1,5 +1,5 @@
 /**
- * MediVault — Professional Barcode & QR Scanner Engine
+ * Sanalogx — Professional Barcode & QR Scanner Engine
  * Supports:
  *  - Live Camera Barcode/QR Scanning via Html5Qrcode
  *  - Rear / Environment Camera preference with device switching

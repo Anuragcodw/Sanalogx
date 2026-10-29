@@ -333,7 +333,7 @@ class SanalogxChatAssistantTests(TestCase):
         self.assertIn('Dolo 650', data['answer'])
         self.assertIn('Analgesic & Antipyretic', data['answer'])
         self.assertIn('Clinical Advisory', data['answer'])
-        self.assertIn('Live MediVault Inventory Status', data['answer'])
+        self.assertIn('Live Sanalogx Inventory Status', data['answer'])
 
     def test_medicine_knowledge_prompt_when_no_medicine_named(self):
         """'Medicine information' with no medicine names prompts user for clarification."""
