@@ -224,11 +224,21 @@
                     Scan prescription QR, medicine barcode, or batch barcode to identify records before clinical verification.
                 </p>
 
-                <!-- Primary Camera Action Button -->
-                <button type="button" class="btn btn-teal w-100 py-2 fw-semibold mb-3 shadow-sm d-flex align-items-center justify-content-center gap-2" id="btnOpenCameraModal" onclick="openCameraScannerModal()">
-                    <i class="fas fa-camera fs-5"></i>
-                    <span>Open Camera Scanner</span>
-                </button>
+                <!-- Primary Action Buttons: Live Camera & AI OCR Packaging Reader -->
+                <div class="row g-2 mb-3">
+                    <div class="col-12 col-sm-6">
+                        <button type="button" class="btn btn-teal w-100 py-2 fw-semibold shadow-sm d-flex align-items-center justify-content-center gap-2" id="btnOpenCameraModal" onclick="openCameraScannerModal()">
+                            <i class="fas fa-camera fs-5"></i>
+                            <span>Open Camera Scanner</span>
+                        </button>
+                    </div>
+                    <div class="col-12 col-sm-6">
+                        <button type="button" class="btn btn-outline-teal w-100 py-2 fw-semibold shadow-sm d-flex align-items-center justify-content-center gap-2" id="btnOpenOcrModal" onclick="openOcrPackagingModal()">
+                            <i class="fas fa-file-image fs-5"></i>
+                            <span>OCR Package Reader</span>
+                        </button>
+                    </div>
+                </div>
 
                 <!-- Manual Fallback Label -->
                 <div class="d-flex align-items-center mb-2">
@@ -260,6 +270,12 @@
                 <div id="scanResultBox" class="alert alert-info py-2 px-3 small mb-2 d-none">
                     <i class="fas fa-info-circle me-1"></i> <span id="scanResultText">Ready to scan.</span>
                 </div>
+
+                <!-- Real Scanned Medicine Profile Card (Phase 2) -->
+                <div id="scannedMedicineProfileContainer" class="d-none mb-3"></div>
+
+                <!-- Unknown Barcode & Mapping Container (Phase 2) -->
+                <div id="unknownBarcodeContainer" class="d-none mb-3"></div>
 
                 <!-- Safety Assurance Notice -->
                 <div class="d-flex align-items-center text-muted small mt-2" style="font-size: 0.72rem;">
@@ -880,9 +896,10 @@
                     <i class="fas fa-triangle-exclamation me-1"></i> <span id="cameraAlertText"></span>
                 </div>
 
-                <!-- Live Camera Viewfinder Box -->
-                <div class="scanner-viewport-box mb-3" id="scannerViewport">
-                    <div id="cameraReader" class="scanner-video-container"></div>
+                <!-- Live Camera Viewfinder Box (Phase 2 ZXing Camera Preview) -->
+                <div class="scanner-viewport-box mb-3 position-relative" id="scannerViewport" style="background: #0b1320; border-radius: 14px; overflow: hidden; min-height: 280px; display: flex; align-items: center; justify-content: center;">
+                    <video id="cameraVideo" playsinline autoplay muted style="width: 100%; height: 280px; object-fit: cover; display: block; border-radius: 14px; background: #000;"></video>
+                    <div id="cameraReader" class="scanner-video-container d-none"></div>
                     <div class="scanner-reticle-overlay" id="scannerReticle"></div>
                     <div class="scanner-laser-line" id="scannerLaser"></div>
                     <div class="scanner-status-pill" id="scannerStatusPill">
@@ -894,22 +911,18 @@
                 <!-- Camera Controls Toolbar -->
                 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 bg-light p-2 rounded-3 border">
                     <div class="d-flex gap-2 align-items-center flex-wrap">
-                        <button type="button" class="btn btn-sm btn-outline-teal" id="btnStartCamera" onclick="startCameraScanner()" disabled>
+                        <button type="button" class="btn btn-sm btn-outline-teal" id="btnStartCamera" onclick="startCameraScanner()">
                             <i class="fas fa-play me-1"></i> Start Camera
                         </button>
                         <button type="button" class="btn btn-sm btn-outline-danger" id="btnStopCamera" onclick="stopCameraScanner()">
                             <i class="fas fa-stop me-1"></i> Stop Camera
                         </button>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" id="btnSwitchCamera" onclick="switchCamera()" title="Switch Front/Rear Camera">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="btnSwitchCamera" onclick="switchCamera()" title="Switch Front/Rear Camera" style="display: none;">
                             <i class="fas fa-camera-rotate me-1"></i> Switch Camera
-                        </button>
-                        <input type="file" id="barcodeFileInput" accept="image/*" class="d-none" onchange="handleBarcodeImageUpload(this)">
-                        <button type="button" class="btn btn-sm btn-outline-teal" onclick="document.getElementById('barcodeFileInput').click()" title="Upload a photo or image of a barcode or QR code">
-                            <i class="fas fa-file-image me-1"></i> Upload Image / Photo
                         </button>
                     </div>
                     <div class="text-muted small" style="font-size: 0.75rem;">
-                        <i class="fas fa-lock text-success me-1"></i> Local Device Stream · SSL / Localhost Secure
+                        <i class="fas fa-video text-teal me-1"></i> Live Stream · Rear Camera Preferred
                     </div>
                 </div>
 
@@ -944,10 +957,14 @@
         </div>
     </div>
 </div>
+
+{% include 'includes/ocr_scanner_modal.html' %}
 {% endblock %}
 
 {% block extra_js %}
 <script src="{% static 'js/html5-qrcode.min.js' %}"></script>
+<script src="{% static 'js/zxing.min.js' %}"></script>
+<script src="{% static 'js/medivault_ocr.js' %}"></script>
 <script>
 const CSRF_TOKEN = '{{ csrf_token }}';
 
@@ -957,12 +974,14 @@ let currentLoadedPrescription = null;
 let currentAllocationsPlan = [];
 let currentEstimatedTotal = '0.00';
 
-// ── Camera Scanner State ─────────────────────────────────────────────────
-let html5QrCodeScanner = null;
-let currentCameraIndex = 0;
+// ── Phase 2: ZXing Camera Scanner & Live Media Stream State ──────────────
+let zxingReader = null;
+let currentCameraStream = null;
 let availableCameraDevices = [];
+let currentCameraDeviceIndex = 0;
 let isCameraRunning = false;
 let isScanLocked = false;
+let scanCooldownTimer = null;
 
 // ── Audio Feedback Chime (Web Audio API) ─────────────────────────────────
 function playScanChime() {
@@ -1048,129 +1067,160 @@ function hideCameraAlert() {
     if (alertBox) alertBox.classList.add('d-none');
 }
 
-function startCameraScanner() {
+// ── Phase 2: Live Camera Engine via ZXing & getUserMedia ─────────────────
+async function startCameraScanner() {
     hideCameraAlert();
     if (isCameraRunning) return;
 
+    // Check secure context
+    if (window.isSecureContext === false && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+        showCameraAlert('Camera access requires a secure connection (HTTPS or localhost). Manual code entry is available below.', 'danger');
+        updateScannerStatus('HTTPS Required', true);
+        return;
+    }
+
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        showCameraAlert('Your browser does not support camera access or requires a secure context (HTTPS or localhost). You can enter or paste barcodes manually using the input field.', 'danger');
+        showCameraAlert('Your browser does not support live camera access. Please enter codes manually using the field below.', 'danger');
         updateScannerStatus('Camera Not Supported', true);
         return;
     }
 
     updateScannerStatus('Requesting Camera Access...');
-    document.getElementById('btnStartCamera').disabled = true;
-    document.getElementById('btnStopCamera').disabled = false;
+    const btnStart = document.getElementById('btnStartCamera');
+    const btnStop = document.getElementById('btnStopCamera');
+    if (btnStart) btnStart.disabled = true;
+    if (btnStop) btnStop.disabled = false;
     isScanLocked = false;
 
-    if (!html5QrCodeScanner) {
+    try {
+        // Enumerate video devices
+        let devices = [];
         try {
-            html5QrCodeScanner = new Html5Qrcode("cameraReader", { verbose: false });
+            devices = await navigator.mediaDevices.enumerateDevices();
         } catch (e) {
-            showCameraAlert('Unable to initialize scanner engine: ' + e.message, 'danger');
-            updateScannerStatus('Engine Error', true);
-            return;
+            devices = [];
         }
-    }
-
-    Html5Qrcode.getCameras().then(devices => {
-        availableCameraDevices = devices || [];
+        availableCameraDevices = devices.filter(d => d.kind === 'videoinput');
         const switchBtn = document.getElementById('btnSwitchCamera');
         if (switchBtn) {
             switchBtn.style.display = (availableCameraDevices.length > 1) ? 'inline-block' : 'none';
         }
 
-        if (!availableCameraDevices || availableCameraDevices.length === 0) {
-            showCameraAlert('No physical camera device was detected on your system. You can enter or paste barcodes manually using the input field.', 'info');
-            updateScannerStatus('No Camera Found', true);
-            document.getElementById('btnStartCamera').disabled = false;
-            document.getElementById('btnStopCamera').disabled = true;
-            return;
-        }
-
-        const cameraConfig = (availableCameraDevices.length > 0)
-            ? { deviceId: { exact: availableCameraDevices[currentCameraIndex % availableCameraDevices.length].id } }
-            : { facingMode: "environment" };
-
-        const qrConfig = {
-            fps: 15,
-            qrbox: function(viewfinderWidth, viewfinderHeight) {
-                const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-                return {
-                    width: Math.floor(minEdge * 0.72),
-                    height: Math.floor(minEdge * 0.52)
-                };
-            },
-            aspectRatio: 1.333334
+        // Camera constraints: Prefer rear environment camera on mobile
+        let videoConstraints = {
+            facingMode: { ideal: 'environment' },
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
         };
 
-        html5QrCodeScanner.start(
-            cameraConfig,
-            qrConfig,
-            onScanSuccess,
-            onScanFailure
-        ).then(() => {
-            isCameraRunning = true;
-            document.getElementById('btnStartCamera').disabled = true;
-            document.getElementById('btnStopCamera').disabled = false;
-            updateScannerStatus('Camera Active — Scanning...');
-        }).catch(err => {
-            isCameraRunning = false;
-            document.getElementById('btnStartCamera').disabled = false;
-            document.getElementById('btnStopCamera').disabled = true;
-            let errMsg = err.message || String(err);
-            if (errMsg.includes('NotAllowedError') || errMsg.includes('Permission')) {
-                showCameraAlert('<strong>Camera permission was denied.</strong> Click the camera/lock icon in your browser address bar to allow access, or use the manual code entry fallback.', 'warning');
-            } else {
-                showCameraAlert('Camera start failed (' + escapeHtml(errMsg) + '). Manual code entry is available.', 'danger');
+        if (availableCameraDevices.length > 0) {
+            const chosen = availableCameraDevices[currentCameraDeviceIndex % availableCameraDevices.length];
+            if (chosen && chosen.deviceId) {
+                videoConstraints = {
+                    deviceId: { exact: chosen.deviceId },
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
+                };
             }
-            updateScannerStatus('Camera Inactive', true);
+        }
+
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: videoConstraints,
+            audio: false
         });
-    }).catch(err => {
-        showCameraAlert('Camera device query failed: ' + (err.message || err), 'danger');
-        updateScannerStatus('Camera Error', true);
-        document.getElementById('btnStartCamera').disabled = false;
-        document.getElementById('btnStopCamera').disabled = true;
-    });
+
+        currentCameraStream = stream;
+        const videoEl = document.getElementById('cameraVideo');
+        if (!videoEl) throw new Error("Video viewfinder element not found");
+
+        videoEl.srcObject = stream;
+        videoEl.setAttribute('playsinline', 'true');
+        await videoEl.play();
+
+        isCameraRunning = true;
+        updateScannerStatus('Camera Active — Scanning...');
+
+        // Initialize ZXing Multi-Format Reader
+        if (window.ZXing) {
+            const hints = new Map();
+            const formats = [
+                ZXing.BarcodeFormat.CODE_128,
+                ZXing.BarcodeFormat.QR_CODE,
+                ZXing.BarcodeFormat.CODE_39,
+                ZXing.BarcodeFormat.EAN_13,
+                ZXing.BarcodeFormat.EAN_8,
+                ZXing.BarcodeFormat.UPC_A,
+                ZXing.BarcodeFormat.UPC_E,
+                ZXing.BarcodeFormat.DATA_MATRIX,
+                ZXing.BarcodeFormat.ITF
+            ];
+            hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
+            hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+
+            zxingReader = new ZXing.BrowserMultiFormatReader(hints);
+            zxingReader.decodeFromVideoElement(videoEl, (result, err) => {
+                if (result) {
+                    const text = result.getText();
+                    if (text && !isScanLocked) {
+                        onScanSuccess(text);
+                    }
+                }
+            });
+        }
+
+    } catch (err) {
+        isCameraRunning = false;
+        if (btnStart) btnStart.disabled = false;
+        if (btnStop) btnStop.disabled = true;
+
+        const errName = err.name || '';
+        const errMsg = err.message || String(err);
+
+        if (errName === 'NotAllowedError' || errName === 'PermissionDeniedError' || errMsg.includes('Permission')) {
+            showCameraAlert('<strong>Camera permission was denied.</strong> Click the lock or camera icon in your browser address bar to allow camera access, or use manual code entry.', 'warning');
+            updateScannerStatus('Permission Denied', true);
+        } else if (errName === 'NotFoundError' || errName === 'DevicesNotFoundError' || errMsg.includes('NotFound')) {
+            showCameraAlert('No physical camera device was detected on your system. Manual code entry is available below.', 'info');
+            updateScannerStatus('No Camera Found', true);
+        } else {
+            showCameraAlert('Camera start failed: ' + escapeHtml(errMsg) + '. Manual code entry is available.', 'danger');
+            updateScannerStatus('Camera Inactive', true);
+        }
+    }
 }
 
 function stopCameraScanner() {
-    if (html5QrCodeScanner && isCameraRunning) {
-        html5QrCodeScanner.stop().then(() => {
-            isCameraRunning = false;
-            document.getElementById('btnStartCamera').disabled = false;
-            document.getElementById('btnStopCamera').disabled = true;
-            updateScannerStatus('Camera Stopped');
-        }).catch(() => {
-            isCameraRunning = false;
-            document.getElementById('btnStartCamera').disabled = false;
-            document.getElementById('btnStopCamera').disabled = true;
-        });
-    } else {
-        isCameraRunning = false;
-        const startBtn = document.getElementById('btnStartCamera');
-        const stopBtn = document.getElementById('btnStopCamera');
-        if (startBtn) startBtn.disabled = false;
-        if (stopBtn) stopBtn.disabled = true;
+    if (zxingReader) {
+        try { zxingReader.reset(); } catch (e) {}
+        zxingReader = null;
     }
+    if (currentCameraStream) {
+        currentCameraStream.getTracks().forEach(track => {
+            try { track.stop(); } catch (e) {}
+        });
+        currentCameraStream = null;
+    }
+    const videoEl = document.getElementById('cameraVideo');
+    if (videoEl) {
+        videoEl.srcObject = null;
+    }
+    isCameraRunning = false;
+    const btnStart = document.getElementById('btnStartCamera');
+    const btnStop = document.getElementById('btnStopCamera');
+    if (btnStart) btnStart.disabled = false;
+    if (btnStop) btnStop.disabled = true;
+    updateScannerStatus('Camera Stopped');
 }
 
 function switchCamera() {
     if (availableCameraDevices.length > 1) {
-        currentCameraIndex = (currentCameraIndex + 1) % availableCameraDevices.length;
-        if (isCameraRunning && html5QrCodeScanner) {
-            html5QrCodeScanner.stop().then(() => {
-                isCameraRunning = false;
-                startCameraScanner();
-            }).catch(() => {
-                isCameraRunning = false;
-                startCameraScanner();
-            });
-        }
+        currentCameraDeviceIndex = (currentCameraDeviceIndex + 1) % availableCameraDevices.length;
+        stopCameraScanner();
+        startCameraScanner();
     }
 }
 
-function onScanSuccess(decodedText, decodedResult) {
+function onScanSuccess(decodedText) {
     if (isScanLocked) return;
     isScanLocked = true;
 
@@ -1178,39 +1228,42 @@ function onScanSuccess(decodedText, decodedResult) {
     updateScannerStatus('Code Detected: ' + decodedText, false, true);
 
     const valInput = document.getElementById('modalDecodedValue');
-    valInput.value = decodedText;
-    document.getElementById('btnModalSearchVerify').disabled = false;
-    document.getElementById('decodedPillBadge').className = 'badge bg-success font-monospace';
-    document.getElementById('decodedPillBadge').innerText = 'DECODED';
+    if (valInput) valInput.value = decodedText;
+
+    const badge = document.getElementById('decodedPillBadge');
+    if (badge) {
+        badge.className = 'badge bg-success font-monospace';
+        badge.innerText = 'DECODED';
+    }
+
+    const btnVerify = document.getElementById('btnModalSearchVerify');
+    if (btnVerify) btnVerify.disabled = false;
 
     document.getElementById('barcodeInput').value = decodedText;
     document.getElementById('decodedCodeVal').innerText = decodedText;
     document.getElementById('decodedCodeBadge').classList.remove('d-none');
 
-    if (html5QrCodeScanner && isCameraRunning) {
-        try { html5QrCodeScanner.pause(); } catch(e){}
-    }
-}
-
-function onScanFailure(error) {
-    // Continuous frame scans
+    // Debounce cooldown: prevent duplicate scans within 1.5 seconds
+    if (scanCooldownTimer) clearTimeout(scanCooldownTimer);
+    scanCooldownTimer = setTimeout(() => {
+        isScanLocked = false;
+    }, 1500);
 }
 
 function restartCameraScanning() {
     isScanLocked = false;
-    document.getElementById('modalDecodedValue').value = '';
-    document.getElementById('btnModalSearchVerify').disabled = true;
-    document.getElementById('decodedPillBadge').className = 'badge bg-secondary font-monospace';
-    document.getElementById('decodedPillBadge').innerText = 'AWAITING CODE';
+    const valInput = document.getElementById('modalDecodedValue');
+    if (valInput) valInput.value = '';
+    const btnVerify = document.getElementById('btnModalSearchVerify');
+    if (btnVerify) btnVerify.disabled = true;
+    const badge = document.getElementById('decodedPillBadge');
+    if (badge) {
+        badge.className = 'badge bg-secondary font-monospace';
+        badge.innerText = 'AWAITING CODE';
+    }
     updateScannerStatus('Camera Active — Scanning...');
 
-    if (html5QrCodeScanner) {
-        try {
-            html5QrCodeScanner.resume();
-        } catch(e) {
-            if (!isCameraRunning) startCameraScanner();
-        }
-    } else {
+    if (!isCameraRunning) {
         startCameraScanner();
     }
 }
@@ -1235,34 +1288,18 @@ function clearScanLookup() {
     box.classList.add('d-none');
     box.className = 'alert alert-info py-2 px-3 small d-none';
     document.getElementById('scanResultText').innerText = 'Ready to scan.';
-}
 
-// ── Barcode & QR Image File Upload Decoder (Local & Secure) ─────────────
-function handleBarcodeImageUpload(input) {
-    if (!input.files || input.files.length === 0) return;
-    const file = input.files[0];
-    hideCameraAlert();
-    updateScannerStatus('Decoding image file...');
-
-    if (!html5QrCodeScanner) {
-        try {
-            html5QrCodeScanner = new Html5Qrcode("cameraReader", { verbose: false });
-        } catch (e) {
-            showCameraAlert('Scanner engine error: ' + e.message, 'danger');
-            return;
-        }
+    const profileContainer = document.getElementById('scannedMedicineProfileContainer');
+    if (profileContainer) {
+        profileContainer.innerHTML = '';
+        profileContainer.classList.add('d-none');
     }
 
-    html5QrCodeScanner.scanFile(file, true)
-        .then(decodedText => {
-            onScanSuccess(decodedText, null);
-            input.value = '';
-        })
-        .catch(err => {
-            input.value = '';
-            showCameraAlert('No readable barcode or QR code found in this image. Ensure good lighting or enter the code manually.', 'warning');
-            updateScannerStatus('Image Scan Failed', true);
-        });
+    const unknownContainer = document.getElementById('unknownBarcodeContainer');
+    if (unknownContainer) {
+        unknownContainer.innerHTML = '';
+        unknownContainer.classList.add('d-none');
+    }
 }
 
 // ── Workflow Mode Switching ──────────────────────────────────────────────
@@ -1383,10 +1420,26 @@ function performScanLookup(code) {
                 text.innerHTML = '<i class="fas ' + icon + ' me-1"></i> ' + escapeHtml(data.message) + guidanceHtml;
                 document.getElementById('decodedCodeType').className = 'badge ' + badgeClass;
                 document.getElementById('decodedCodeType').innerText = badgeText;
+
+                const profBox = document.getElementById('scannedMedicineProfileContainer');
+                if (profBox) profBox.classList.add('d-none');
+
+                if (statusCode === 'NOT_FOUND') {
+                    renderUnknownBarcodeBox(code);
+                }
                 return;
             }
 
             box.className = 'alert alert-success py-2 px-3 small border border-success';
+
+            const profileContainer = document.getElementById('scannedMedicineProfileContainer');
+            if (profileContainer) profileContainer.classList.add('d-none');
+            const unknownContainer = document.getElementById('unknownBarcodeContainer');
+            if (unknownContainer) unknownContainer.classList.add('d-none');
+
+            if (data.type === 'MEDICINE' || data.type === 'BATCH') {
+                renderScannedMedicineProfile(data.medicine, data.batch, data.barcode_type);
+            }
 
             if (data.type === 'PRESCRIPTION') {
                 document.getElementById('decodedCodeType').className = 'badge bg-primary';
@@ -2360,5 +2413,328 @@ function resetDispensingForm() {
         currentLoadedPrescription = null;
     }
 }
+
+// ── Phase 2: Real Medicine Profile & Unknown Barcode Renderer ────────────
+function renderScannedMedicineProfile(med, batch, barcodeType) {
+    const container = document.getElementById('scannedMedicineProfileContainer');
+    if (!container || !med) return;
+
+    let barcodeBadgeText = 'Code 128 (Internal)';
+    let barcodeBadgeClass = 'bg-teal text-white';
+    if (barcodeType === 'MANUFACTURER') {
+        barcodeBadgeText = 'Manufacturer EAN/UPC';
+        barcodeBadgeClass = 'bg-primary text-white';
+    } else if (barcodeType === 'BATCH') {
+        barcodeBadgeText = 'Batch Barcode';
+        barcodeBadgeClass = 'bg-info text-dark';
+    } else if (barcodeType === 'QR_CODE') {
+        barcodeBadgeText = '2D QR Code';
+        barcodeBadgeClass = 'bg-secondary text-white';
+    }
+
+    let stockBadgeClass = 'bg-success';
+    let stockStatusText = med.stock_status || 'NORMAL';
+    if (med.is_out_of_stock) {
+        stockBadgeClass = 'bg-danger';
+        stockStatusText = 'OUT OF STOCK';
+    } else if (med.stock_status === 'CRITICAL') {
+        stockBadgeClass = 'bg-danger';
+    } else if (med.is_low_stock) {
+        stockBadgeClass = 'bg-warning text-dark';
+        stockStatusText = 'LOW STOCK';
+    }
+
+    // Warnings list
+    let warningsHtml = '';
+    if (med.warnings && med.warnings.length > 0) {
+        warningsHtml = '<div class="alert alert-warning py-2 px-3 small mb-2"><div class="fw-bold mb-1"><i class="fas fa-triangle-exclamation me-1"></i> Warnings & Advisories:</div><ul class="mb-0 ps-3">' +
+            med.warnings.map(w => '<li>' + escapeHtml(w) + '</li>').join('') +
+            '</ul></div>';
+    }
+
+    // Reorder recommendation banner if low stock
+    let reorderHtml = '';
+    if (med.reorder_recommendation && med.reorder_recommendation.needed) {
+        const r = med.reorder_recommendation;
+        reorderHtml = `
+            <div class="alert alert-warning border border-warning py-2 px-3 small mb-2">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="fw-bold text-dark"><i class="fas fa-cart-shopping me-1 text-warning"></i> AI Auto-Reorder Recommendation:</span>
+                    <span class="badge bg-warning text-dark">Suggested: ${r.suggested_quantity} units</span>
+                </div>
+                <div class="text-muted extra-small mt-1">${escapeHtml(r.reason)}</div>
+            </div>
+        `;
+    }
+
+    // Batches breakdown table (FEFO sorted)
+    let batchesRowsHtml = '';
+    if (med.batches && med.batches.length > 0) {
+        batchesRowsHtml = med.batches.map(b => {
+            let expBadge = b.is_expired
+                ? '<span class="badge bg-danger">EXPIRED</span>'
+                : (b.is_near_expiry
+                    ? '<span class="badge bg-warning text-dark">' + b.days_to_expiry + 'd left ⚠</span>'
+                    : '<span class="badge bg-success">' + b.days_to_expiry + 'd left</span>');
+            let fefoBadge = b.is_fefo_first ? '<span class="badge bg-teal text-white ms-1">FEFO #1</span>' : '';
+            let statusBadge = (b.status === 'ACTIVE' || b.status === 'NEAR_EXPIRY')
+                ? '<span class="badge bg-light text-dark border">' + escapeHtml(b.status) + '</span>'
+                : '<span class="badge bg-secondary">' + escapeHtml(b.status) + '</span>';
+
+            return `
+                <tr>
+                    <td class="font-monospace fw-bold text-navy">${escapeHtml(b.batch_number)} ${fefoBadge}</td>
+                    <td><strong>${b.quantity_available}</strong> / ${b.quantity_received}</td>
+                    <td>${escapeHtml(b.expiry_date)} ${expBadge}</td>
+                    <td>${statusBadge}</td>
+                    <td>₹${escapeHtml(b.selling_price || '0.00')}</td>
+                </tr>
+            `;
+        }).join('');
+    } else {
+        batchesRowsHtml = '<tr><td colspan="5" class="text-center text-muted py-2">No active batches recorded in inventory.</td></tr>';
+    }
+
+    container.innerHTML = `
+        <div class="card card-medivault bg-white shadow-sm border border-teal-subtle p-3 mb-2" style="border-radius: 14px;">
+            <!-- Profile Header -->
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                    <h6 class="fw-bold text-navy mb-0">${escapeHtml(med.medicine_name)}</h6>
+                    <span class="text-muted small">${escapeHtml(med.generic_name || '—')} · ${escapeHtml(med.strength || '')} · ${escapeHtml(med.dosage_form || '')}</span>
+                </div>
+                <div class="d-flex flex-column align-items-end gap-1">
+                    <span class="badge ${barcodeBadgeClass}">${barcodeBadgeText}</span>
+                    <span class="badge bg-light text-muted border font-monospace" style="font-size: 0.7rem;">${escapeHtml(med.internal_barcode || '')}</span>
+                </div>
+            </div>
+
+            <!-- Metadata Row -->
+            <div class="text-muted small mb-2 d-flex flex-wrap gap-3" style="font-size: 0.76rem;">
+                <span><i class="fas fa-tags text-teal me-1"></i> Category: <strong>${escapeHtml(med.category)}</strong></span>
+                <span><i class="fas fa-industry text-teal me-1"></i> Mfr: <strong>${escapeHtml(med.manufacturer)}</strong></span>
+                <span><i class="fas fa-prescription-bottle text-teal me-1"></i> Reg: <strong>${escapeHtml(med.regulatory_display || '')}</strong></span>
+            </div>
+
+            <!-- Stock Metrics Grid -->
+            <div class="row g-2 mb-2 text-center">
+                <div class="col-3">
+                    <div class="p-2 rounded bg-light border">
+                        <span class="d-block text-muted" style="font-size: 0.68rem; text-transform: uppercase;">Usable Stock</span>
+                        <strong class="fs-6 text-teal">${med.usable_stock}</strong>
+                    </div>
+                </div>
+                <div class="col-3">
+                    <div class="p-2 rounded bg-light border">
+                        <span class="d-block text-muted" style="font-size: 0.68rem; text-transform: uppercase;">Total Physical</span>
+                        <strong class="fs-6 text-navy">${med.total_stock}</strong>
+                    </div>
+                </div>
+                <div class="col-3">
+                    <div class="p-2 rounded bg-light border">
+                        <span class="d-block text-muted" style="font-size: 0.68rem; text-transform: uppercase;">Expired</span>
+                        <strong class="fs-6 ${med.expired_stock > 0 ? 'text-danger' : 'text-muted'}">${med.expired_stock}</strong>
+                    </div>
+                </div>
+                <div class="col-3">
+                    <div class="p-2 rounded bg-light border">
+                        <span class="d-block text-muted" style="font-size: 0.68rem; text-transform: uppercase;">Quarantined</span>
+                        <strong class="fs-6 ${med.quarantined_stock > 0 ? 'text-warning' : 'text-muted'}">${med.quarantined_stock}</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Verified Clinical Medicine-Use -->
+            <div class="p-2 bg-light rounded border mb-2 small">
+                <span class="fw-semibold text-navy"><i class="fas fa-stethoscope text-teal me-1"></i> Verified Medicine-Use Information:</span>
+                <div class="text-secondary mt-1" style="font-size: 0.78rem;">${escapeHtml(med.verified_medicine_use)}</div>
+            </div>
+
+            <!-- Phase 3: AI-Assisted Clinical Summary (Strictly Verified Local Formulary Derived) -->
+            ${(function() {
+                if (!med.ai_summary || !med.ai_summary.is_ai_generated) return '';
+                const ai = med.ai_summary;
+                const points = (ai.key_points || []).map(p => '<li class="mb-0.5">' + escapeHtml(p) + '</li>').join('');
+                return `
+                    <div class="card border border-teal-subtle p-2.5 rounded-3 mb-2" style="background: rgba(0, 169, 157, 0.05); border-left: 3px solid #00A99D !important;">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="fw-bold text-navy extra-small"><i class="fas fa-brain text-teal me-1"></i> ${escapeHtml(ai.badge)}</span>
+                            <span class="badge bg-light text-teal border extra-small" style="font-size: 0.65rem;">Verified Records Only</span>
+                        </div>
+                        <div class="text-secondary extra-small mb-1.5" style="font-size: 0.74rem; line-height: 1.35;">${escapeHtml(ai.overview)}</div>
+                        <ul class="mb-1 ps-3 extra-small text-muted" style="font-size: 0.71rem;">
+                            ${points}
+                        </ul>
+                        <div class="text-muted extra-small fst-italic mt-1" style="font-size: 0.66rem;">
+                            <i class="fas fa-shield-halved text-teal me-1"></i> ${escapeHtml(ai.disclaimer)}
+                        </div>
+                    </div>
+                `;
+            })()}
+
+            <!-- Phase 3: External Regulatory Product Data Reference (OpenFDA / Trusted Source) -->
+            ${(function() {
+                if (!med.external_info || !med.external_info.available || !med.external_info.data) return '';
+                const ext = med.external_info.data;
+                return `
+                    <div class="p-2 bg-light rounded border mb-2 extra-small" style="border-left: 3px solid #3B82F6 !important;">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="fw-semibold text-primary"><i class="fas fa-globe me-1"></i> External Reference: ${escapeHtml(med.external_info.source)}</span>
+                            <span class="badge bg-info-subtle text-info border extra-small">Reference Only</span>
+                        </div>
+                        <div class="text-secondary" style="font-size: 0.72rem;"><strong>Indications:</strong> ${escapeHtml(ext.indications_summary)}</div>
+                        <div class="text-muted extra-small fst-italic mt-0.5" style="font-size: 0.66rem;">${escapeHtml(med.external_info.disclaimer)}</div>
+                    </div>
+                `;
+            })()}
+
+            <!-- Storage & Handling -->
+            <div class="text-muted small mb-2" style="font-size: 0.74rem;">
+                <i class="fas fa-snowflake text-info me-1"></i> Storage: <strong>${escapeHtml(med.storage_instructions)}</strong>
+            </div>
+
+            ${warningsHtml}
+            ${reorderHtml}
+
+            <!-- FEFO Batch Breakdown Accordion -->
+            <div class="mb-2">
+                <a class="btn btn-sm btn-outline-secondary w-100 py-1 text-start d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#scannedBatchesCollapse" role="button">
+                    <span><i class="fas fa-boxes-stacked me-1 text-teal"></i> Batch Inventory Breakdown (${med.batches ? med.batches.length : 0} batches)</span>
+                    <i class="fas fa-chevron-down small"></i>
+                </a>
+                <div class="collapse mt-2" id="scannedBatchesCollapse">
+                    <div class="table-responsive" style="max-height: 180px; overflow-y: auto;">
+                        <table class="table table-sm table-hover align-middle mb-0" style="font-size: 0.75rem;">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Batch #</th>
+                                    <th>Stock</th>
+                                    <th>Expiry</th>
+                                    <th>Status</th>
+                                    <th>Price</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${batchesRowsHtml}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Action Button -->
+            <button type="button" class="btn btn-teal btn-sm w-100 fw-semibold py-1.5 shadow-sm" onclick="selectMedicineById(${med.id})">
+                <i class="fas fa-hand-holding-medical me-1"></i> Select for Dispensing
+            </button>
+        </div>
+    `;
+    container.classList.remove('d-none');
+}
+
+function renderUnknownBarcodeBox(code) {
+    const unknownBox = document.getElementById('unknownBarcodeContainer');
+    if (!unknownBox) return;
+
+    unknownBox.innerHTML = `
+        <div class="card bg-white border border-danger-subtle p-3 mb-2 shadow-sm" style="border-radius: 12px;">
+            <div class="d-flex align-items-center gap-2 text-danger fw-bold mb-1">
+                <i class="fas fa-circle-xmark fs-5"></i>
+                <span>Medicine Not Found</span>
+            </div>
+            <p class="small text-muted mb-2">
+                No medicine record in MySQL matches scanned code: <strong class="font-monospace text-dark">${escapeHtml(code)}</strong>
+            </p>
+            <div class="d-flex flex-wrap gap-2 mb-2">
+                <button type="button" class="btn btn-xs btn-outline-secondary py-1 px-2" onclick="document.getElementById('medicineSearchInput').focus();">
+                    <i class="fas fa-search me-1"></i> Search Catalogue
+                </button>
+                <button type="button" class="btn btn-xs btn-outline-teal py-1 px-2" onclick="toggleBarcodeMappingUi('${escapeHtml(code)}')">
+                    <i class="fas fa-link me-1"></i> Map to Existing Medicine
+                </button>
+            </div>
+            <div id="barcodeMappingUi" class="d-none mt-2 pt-2 border-top">
+                <label class="form-label small fw-semibold text-muted mb-1">Select Medicine to Link this Barcode:</label>
+                <div class="input-group input-group-sm mb-2">
+                    <select id="mapTargetMedicineSelect" class="form-select form-select-sm">
+                        <option value="">-- Choose Catalogue Medicine --</option>
+                        ${getMedicinesDropdownOptions()}
+                    </select>
+                    <button class="btn btn-teal fw-semibold" type="button" onclick="submitBarcodeMapping('${escapeHtml(code)}')">
+                        <i class="fas fa-check me-1"></i> Link Barcode
+                    </button>
+                </div>
+                <div id="mappingStatusAlert" class="small d-none"></div>
+                <span class="text-muted extra-small"><i class="fas fa-shield-halved text-teal me-1"></i> Overwriting existing manufacturer barcodes is prohibited.</span>
+            </div>
+        </div>
+    `;
+    unknownBox.classList.remove('d-none');
+}
+
+function toggleBarcodeMappingUi(code) {
+    const ui = document.getElementById('barcodeMappingUi');
+    if (ui) ui.classList.toggle('d-none');
+}
+
+function getMedicinesDropdownOptions() {
+    const sel = document.getElementById('medicineSelect');
+    if (!sel) return '';
+    let opts = '';
+    for (let i = 1; i < sel.options.length; i++) {
+        const opt = sel.options[i];
+        opts += `<option value="${opt.value}">${escapeHtml(opt.text)}</option>`;
+    }
+    return opts;
+}
+
+function submitBarcodeMapping(code) {
+    const sel = document.getElementById('mapTargetMedicineSelect');
+    const alertBox = document.getElementById('mappingStatusAlert');
+    if (!sel || !sel.value) {
+        if (alertBox) {
+            alertBox.className = 'small text-danger mt-1';
+            alertBox.innerText = 'Please select a medicine to map this barcode.';
+            alertBox.classList.remove('d-none');
+        }
+        return;
+    }
+    const medId = sel.value;
+
+    fetch("{% url 'medicine_barcode_map_api' %}", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": CSRF_TOKEN
+        },
+        body: JSON.stringify({ medicine_id: medId, barcode: code })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            if (alertBox) {
+                alertBox.className = 'small text-success mt-1';
+                alertBox.innerText = data.message;
+                alertBox.classList.remove('d-none');
+            }
+            setTimeout(() => {
+                performScanLookup(code);
+            }, 1000);
+        } else {
+            if (alertBox) {
+                alertBox.className = 'small text-danger mt-1';
+                alertBox.innerText = data.message;
+                alertBox.classList.remove('d-none');
+            }
+        }
+    })
+    .catch(err => {
+        if (alertBox) {
+            alertBox.className = 'small text-danger mt-1';
+            alertBox.innerText = 'Failed to map barcode: ' + err.message;
+            alertBox.classList.remove('d-none');
+        }
+    });
+}
+
 </script>
 {% endblock %}

@@ -10,6 +10,8 @@
  */
 
 const MedivaultScanner = (function () {
+    let zxingReader = null;
+    let currentStream = null;
     let html5QrCode = null;
     let availableCameras = [];
     let currentCameraIndex = 0;
@@ -19,6 +21,7 @@ const MedivaultScanner = (function () {
     let onCodeDecoded = null;
     let lastScanTime = 0;
     let lastScannedCode = '';
+    let scanCooldownTimer = null;
     const DEBOUNCE_MS = 1500;
 
     // ── Audio Feedback Chime (Web Audio API) ─────────────────────────────────
@@ -115,13 +118,19 @@ const MedivaultScanner = (function () {
         stopCamera();
     }
 
-    // ── Camera Engine ────────────────────────────────────────────────────────
-    function startCamera() {
+    // ── Phase 2: Live Camera Engine via ZXing & getUserMedia ─────────────────
+    async function startCamera() {
         hideAlert();
         if (isCameraRunning) return;
 
+        if (window.isSecureContext === false && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+            showAlert('Camera access requires HTTPS or localhost. Please use manual entry.', 'danger');
+            updateStatus('HTTPS Required', true);
+            return;
+        }
+
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            showAlert('Your browser does not support camera capture or requires a secure context (HTTPS / localhost). Manual barcode entry is available below.', 'danger');
+            showAlert('Your browser does not support live camera access. Manual code entry is available below.', 'danger');
             updateStatus('Camera Not Supported', true);
             return;
         }
@@ -133,94 +142,115 @@ const MedivaultScanner = (function () {
         if (btnStop) btnStop.disabled = false;
         isScanLocked = false;
 
-        if (!html5QrCode) {
+        try {
+            let devices = [];
             try {
-                html5QrCode = new Html5Qrcode("cameraReader", { verbose: false });
+                devices = await navigator.mediaDevices.enumerateDevices();
             } catch (e) {
-                showAlert('Scanner engine failed to initialize: ' + e.message, 'danger');
-                updateStatus('Engine Error', true);
-                return;
+                devices = [];
             }
-        }
-
-        Html5Qrcode.getCameras().then(devices => {
-            availableCameras = devices || [];
+            availableCameras = devices.filter(d => d.kind === 'videoinput');
             const switchBtn = document.getElementById('btnSwitchCamera');
             if (switchBtn) {
                 switchBtn.style.display = (availableCameras.length > 1) ? 'inline-block' : 'none';
             }
 
-            if (availableCameras.length === 0) {
-                showAlert('No active camera hardware detected. You can type or paste barcodes manually using the input field.', 'info');
-                updateStatus('No Camera Found', true);
-                if (btnStart) btnStart.disabled = false;
-                if (btnStop) btnStop.disabled = true;
-                return;
-            }
-
-            const cameraConfig = (availableCameras.length > 0)
-                ? { deviceId: { exact: availableCameras[currentCameraIndex % availableCameras.length].id } }
-                : { facingMode: "environment" };
-
-            const qrConfig = {
-                fps: 15,
-                qrbox: function (viewfinderWidth, viewfinderHeight) {
-                    const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-                    return {
-                        width: Math.floor(minEdge * 0.74),
-                        height: Math.floor(minEdge * 0.52)
-                    };
-                },
-                aspectRatio: 1.333334
+            let videoConstraints = {
+                facingMode: { ideal: 'environment' },
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
             };
 
-            html5QrCode.start(
-                cameraConfig,
-                qrConfig,
-                onScanSuccess,
-                onScanFailure
-            ).then(() => {
-                isCameraRunning = true;
-                if (btnStart) btnStart.disabled = true;
-                if (btnStop) btnStop.disabled = false;
-                updateStatus('Camera Active — Scanning...');
-                checkTorchSupport();
-            }).catch(err => {
-                isCameraRunning = false;
-                if (btnStart) btnStart.disabled = false;
-                if (btnStop) btnStop.disabled = true;
-                const errMsg = err.message || String(err);
-                if (errMsg.includes('NotAllowedError') || errMsg.includes('Permission')) {
-                    showAlert('<strong>Camera permission was denied.</strong> Click the lock or camera icon in your browser address bar to allow camera access, or use manual entry.', 'warning');
-                } else if (errMsg.includes('NotFoundError') || errMsg.includes('DevicesNotFoundError')) {
-                    showAlert('No video device found on this system.', 'info');
-                } else {
-                    showAlert('Unable to start camera stream (' + escapeHtml(errMsg) + ').', 'danger');
+            if (availableCameras.length > 0) {
+                const chosen = availableCameras[currentCameraIndex % availableCameras.length];
+                if (chosen && chosen.deviceId) {
+                    videoConstraints = {
+                        deviceId: { exact: chosen.deviceId },
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    };
                 }
-                updateStatus('Camera Inactive', true);
+            }
+
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: videoConstraints,
+                audio: false
             });
-        }).catch(err => {
-            showAlert('Device enumeration failed: ' + (err.message || err), 'danger');
-            updateStatus('Device Error', true);
-            if (btnStart) btnStart.disabled = false;
-            if (btnStop) btnStop.disabled = true;
-        });
+
+            currentStream = stream;
+            const videoEl = document.getElementById('cameraVideo');
+            if (videoEl) {
+                videoEl.srcObject = stream;
+                videoEl.setAttribute('playsinline', 'true');
+                await videoEl.play();
+            }
+
+            isCameraRunning = true;
+            updateStatus('Camera Active — Scanning...');
+
+            if (window.ZXing && videoEl) {
+                const hints = new Map();
+                const formats = [
+                    ZXing.BarcodeFormat.CODE_128,
+                    ZXing.BarcodeFormat.QR_CODE,
+                    ZXing.BarcodeFormat.CODE_39,
+                    ZXing.BarcodeFormat.EAN_13,
+                    ZXing.BarcodeFormat.EAN_8,
+                    ZXing.BarcodeFormat.UPC_A,
+                    ZXing.BarcodeFormat.UPC_E,
+                    ZXing.BarcodeFormat.DATA_MATRIX,
+                    ZXing.BarcodeFormat.ITF
+                ];
+                hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
+                hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+
+                zxingReader = new ZXing.BrowserMultiFormatReader(hints);
+                zxingReader.decodeFromVideoElement(videoEl, (result, err) => {
+                    if (result) {
+                        const text = result.getText();
+                        if (text && !isScanLocked) {
+                            onScanSuccess(text);
+                        }
+                    }
+                });
+            }
+
+        } catch (err) {
+            isCameraRunning = false;
+            resetControlButtons();
+            const errName = err.name || '';
+            const errMsg = err.message || String(err);
+            if (errName === 'NotAllowedError' || errName === 'PermissionDeniedError' || errMsg.includes('Permission')) {
+                showAlert('<strong>Camera permission was denied.</strong> Click the lock or camera icon in your address bar to allow camera access, or use manual entry.', 'warning');
+                updateStatus('Permission Denied', true);
+            } else if (errName === 'NotFoundError' || errName === 'DevicesNotFoundError' || errMsg.includes('NotFound')) {
+                showAlert('No active camera hardware detected. You can type or paste barcodes manually using the input field.', 'info');
+                updateStatus('No Camera Found', true);
+            } else {
+                showAlert('Unable to start camera stream (' + escapeHtml(errMsg) + ').', 'danger');
+                updateStatus('Camera Inactive', true);
+            }
+        }
     }
 
     function stopCamera() {
-        if (html5QrCode && isCameraRunning) {
-            html5QrCode.stop().then(() => {
-                isCameraRunning = false;
-                updateStatus('Camera Stopped');
-                resetControlButtons();
-            }).catch(() => {
-                isCameraRunning = false;
-                resetControlButtons();
-            });
-        } else {
-            isCameraRunning = false;
-            resetControlButtons();
+        if (zxingReader) {
+            try { zxingReader.reset(); } catch (e) {}
+            zxingReader = null;
         }
+        if (currentStream) {
+            currentStream.getTracks().forEach(track => {
+                try { track.stop(); } catch (e) {}
+            });
+            currentStream = null;
+        }
+        const videoEl = document.getElementById('cameraVideo');
+        if (videoEl) {
+            videoEl.srcObject = null;
+        }
+        isCameraRunning = false;
+        resetControlButtons();
+        updateStatus('Camera Stopped');
         isTorchOn = false;
         const torchBtn = document.getElementById('btnToggleTorch');
         if (torchBtn) {
@@ -239,15 +269,8 @@ const MedivaultScanner = (function () {
     function switchCamera() {
         if (availableCameras.length > 1) {
             currentCameraIndex = (currentCameraIndex + 1) % availableCameras.length;
-            if (isCameraRunning && html5QrCode) {
-                html5QrCode.stop().then(() => {
-                    isCameraRunning = false;
-                    startCamera();
-                }).catch(() => {
-                    isCameraRunning = false;
-                    startCamera();
-                });
-            }
+            stopCamera();
+            startCamera();
         }
     }
 

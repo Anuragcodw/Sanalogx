@@ -23,6 +23,18 @@ urlpatterns = [
     path('drafts/<str:medicine_id>/review/', views.medicine_draft_review_view, name='medicine_draft_review'),
     path('<str:medicine_id>/review/', views.medicine_draft_review_view, name='medicine_review'),
 
+    # Medicine Barcode Registry Workflow
+    path('barcodes/', views.medicine_barcode_registry_view, name='medicine_barcode_registry'),
+    path('barcodes/lookup/', views.medicine_barcode_lookup_api, name='medicine_barcode_lookup_api'),
+    path('barcodes/map/', views.medicine_barcode_map_api, name='medicine_barcode_map_api'),
+    path('barcodes/ocr/', views.medicine_ocr_scan_api, name='medicine_ocr_scan_api'),
+    path('barcodes/<int:pk>/preview/', views.medicine_barcode_preview_api, name='medicine_barcode_preview'),
+    path('barcodes/<int:pk>/ai-summary/', views.medicine_ai_summary_api, name='medicine_ai_summary_api'),
+    path('barcodes/<int:pk>/external-info/', views.medicine_external_info_api, name='medicine_external_info_api'),
+    path('barcodes/<int:pk>/png/', views.medicine_barcode_png_view, name='medicine_barcode_png'),
+    path('barcodes/<int:pk>/pdf/', views.medicine_barcode_pdf_view, name='medicine_barcode_pdf'),
+    path('barcodes/<int:pk>/print/', views.medicine_barcode_print_view, name='medicine_barcode_print'),
+
     # Medicine CRUD & Validation
     path('', views.medicine_list_view, name='medicine_list'),
     path('add/', views.medicine_add_view, name='medicine_add'),

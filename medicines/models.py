@@ -61,6 +61,14 @@ class Medicine(models.Model):
     unit_of_measure = models.CharField(max_length=100)
     description = models.TextField(blank=True)
     barcode = models.CharField(max_length=100, unique=True, null=True, blank=True)
+    internal_barcode = models.CharField(
+        max_length=64,
+        unique=True,
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Unique internal Sanalogx barcode identifier e.g. SAN-MED-000123"
+    )
     qr_code = models.CharField(max_length=255, null=True, blank=True)
     image = models.ImageField(upload_to='medicines/', null=True, blank=True)
     reorder_level = models.PositiveIntegerField(default=50)
@@ -137,6 +145,33 @@ class Medicine(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    def generate_internal_barcode(self):
+        """Generates deterministic unique internal barcode identifier."""
+        if self.pk:
+            return f"SAN-MED-{self.pk:06d}"
+        return None
+
+    @property
+    def effective_internal_barcode(self):
+        """Returns the persisted internal barcode or the deterministic fallback."""
+        if self.internal_barcode:
+            return self.internal_barcode
+        if self.pk:
+            return f"SAN-MED-{self.pk:06d}"
+        return ""
+
+    def save(self, *args, **kwargs):
+        # Assign deterministic internal barcode if pk exists and not yet set
+        if self.pk and not self.internal_barcode:
+            self.internal_barcode = self.generate_internal_barcode()
+        super().save(*args, **kwargs)
+        # For newly created medicines, assign internal barcode post-insert
+        if not self.internal_barcode and self.pk:
+            self.internal_barcode = self.generate_internal_barcode()
+            Medicine.objects.filter(pk=self.pk, internal_barcode__isnull=True).update(
+                internal_barcode=self.internal_barcode
+            )
 
     def __str__(self):
         return f"{self.medicine_name} ({self.strength})"

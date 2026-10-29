@@ -1,0 +1,90 @@
+<!-- Sanalogx Reusable OCR Packaging Recognition Modal (Phase 3) -->
+<div class="modal fade" id="ocrPackagingModal" tabindex="-1" aria-labelledby="ocrPackagingModalLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
+            <div class="modal-header text-white" style="background: #0f2744;">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="p-2 rounded-3" style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: rgba(0, 169, 157, 0.2); color: #00A99D;">
+                        <i class="fas fa-file-image"></i>
+                    </div>
+                    <div>
+                        <h6 class="modal-title fw-bold mb-0 text-white" id="ocrPackagingModalLabel">AI / OCR Medicine Packaging Recognition</h6>
+                        <span class="text-white-50 extra-small">Extracts medicine name, strength, batch &amp; expiry from damaged packaging</span>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" onclick="closeOcrPackagingModal()"></button>
+            </div>
+            <div class="modal-body p-3 p-md-4">
+                <!-- Status & Error Alert -->
+                <div id="ocrModalAlertBox" class="alert alert-warning py-2 px-3 small d-none mb-3">
+                    <i class="fas fa-triangle-exclamation me-1"></i> <span id="ocrModalAlertText"></span>
+                </div>
+
+                <!-- Upload / Capture Area -->
+                <div class="ocr-dropzone p-4 text-center border border-2 border-dashed rounded-3 bg-light mb-3 position-relative" id="ocrDropzone" style="border-color: #00A99D !important; cursor: pointer;">
+                    <input type="file" id="ocrFileInput" accept="image/jpeg,image/png,image/webp" class="position-absolute top-0 start-0 w-100 h-100 opacity-0" style="cursor: pointer;" onchange="handleOcrFileSelected(event)">
+                    <div id="ocrPrompt">
+                        <i class="fas fa-cloud-arrow-up fs-2 text-teal mb-2"></i>
+                        <h6 class="fw-bold text-navy mb-1">Click to Upload or Drag Packaging Image Here</h6>
+                        <p class="text-muted extra-small mb-2">Supported formats: JPG, PNG, WEBP (Max file size: 5 MB)</p>
+                        <span class="badge bg-light text-muted border extra-small">
+                            <i class="fas fa-camera text-teal me-1"></i>Supports Box, Label, or Blister Pack Photos
+                        </span>
+                    </div>
+                    <div id="ocrPreviewContainer" class="d-none">
+                        <img id="ocrImagePreview" src="" alt="Packaging Preview" class="img-fluid rounded mb-2 shadow-sm" style="max-height: 180px; object-fit: contain;">
+                        <div class="d-flex justify-content-center gap-2">
+                            <button type="button" class="btn btn-xs btn-outline-secondary" onclick="resetOcrImage()">
+                                <i class="fas fa-rotate-left me-1"></i> Choose Different Image
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Processing Spinner -->
+                <div id="ocrLoadingSpinner" class="text-center py-3 d-none">
+                    <div class="spinner-border text-teal mb-2" role="status">
+                        <span class="visually-hidden">Analyzing image...</span>
+                    </div>
+                    <div class="fw-semibold text-navy small">Analyzing packaging text via OCR &amp; matching database catalogue...</div>
+                    <span class="text-muted extra-small">Normalizing parameters: strength, form, batch #, and expiration...</span>
+                </div>
+
+                <!-- OCR Results Section -->
+                <div id="ocrResultsSection" class="d-none">
+                    <!-- Raw Extracted Text Collapsible -->
+                    <div class="mb-3">
+                        <a class="btn btn-xs btn-outline-secondary w-100 py-1.5 text-start d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#ocrRawTextCollapse" role="button">
+                            <span><i class="fas fa-align-left text-teal me-1"></i> View Raw Extracted Text</span>
+                            <i class="fas fa-chevron-down extra-small"></i>
+                        </a>
+                        <div class="collapse mt-2" id="ocrRawTextCollapse">
+                            <pre id="ocrRawTextContent" class="p-2.5 bg-dark text-light rounded small font-monospace mb-0" style="max-height: 120px; overflow-y: auto; font-size: 0.73rem; white-space: pre-wrap;"></pre>
+                        </div>
+                    </div>
+
+                    <!-- Extracted Parameters Badge Bar -->
+                    <div id="ocrExtractedParamsBar" class="d-flex flex-wrap gap-1.5 mb-3 p-2 bg-light rounded border extra-small"></div>
+
+                    <!-- Candidate Matches List -->
+                    <div class="fw-bold text-navy small mb-2 d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-list-check text-teal me-1"></i> Matched Formulary Candidates:</span>
+                        <span id="ocrCandidatesCount" class="badge bg-teal text-white">0 Matches</span>
+                    </div>
+                    <div id="ocrCandidatesList" class="d-flex flex-column gap-2 mb-3" style="max-height: 260px; overflow-y: auto;"></div>
+                </div>
+
+                <!-- Safety Mandate Notice -->
+                <div class="alert alert-info py-2 px-3 extra-small mb-0 border-0 bg-info-subtle text-info-emphasis">
+                    <i class="fas fa-shield-halved me-1"></i>
+                    <strong>Clinical Safety Rule:</strong> OCR results are assistive recommendations. Staff confirmation is mandatory. No medication is dispensed or deducted from inventory via OCR recognition alone.
+                </div>
+            </div>
+            <div class="modal-footer bg-light py-2" style="border-bottom-left-radius: 16px; border-bottom-right-radius: 16px;">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal" onclick="closeOcrPackagingModal()">
+                    <i class="fas fa-times me-1"></i> Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

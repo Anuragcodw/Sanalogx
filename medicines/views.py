@@ -65,7 +65,8 @@ def medicine_list_view(request):
             Q(generic_name__icontains=search_query) |
             Q(brand_name__icontains=search_query) |
             Q(manufacturer__icontains=search_query) |
-            Q(barcode__icontains=search_query)
+            Q(barcode__icontains=search_query) |
+            Q(internal_barcode__icontains=search_query)
         )
 
     # Filters
@@ -817,4 +818,339 @@ def medicine_draft_review_view(request, medicine_id):
         'medicine': medicine,
         'form': form,
     })
+
+
+# ── Medicine Barcode Registry Views (Phase 1) ────────────────────────────────
+
+@pharmacist_or_admin_required
+def medicine_barcode_registry_view(request):
+    """
+    Medicine Barcode Registry View:
+    - Lists all medicines with their unique Code 128 internal barcode (SAN-MED-000123).
+    - Supports search by name, generic name, strength, internal barcode, and manufacturer barcode.
+    - Supports category and dosage form filtering.
+    - Generates live SVG barcode preview for table display.
+    - Provides View Barcode, Download PNG, Download PDF, and Print actions.
+    - Pagination support with state preservation.
+    """
+    from . import barcode_service
+
+    queryset = Medicine.objects.all().select_related('category').order_by('pk')
+
+    # Search filter
+    q = request.GET.get('q', '').strip()
+    if q:
+        queryset = queryset.filter(
+            Q(medicine_name__icontains=q) |
+            Q(generic_name__icontains=q) |
+            Q(brand_name__icontains=q) |
+            Q(strength__icontains=q) |
+            Q(internal_barcode__icontains=q) |
+            Q(barcode__icontains=q)
+        )
+
+    # Category filter
+    category_id = request.GET.get('category', '').strip()
+    if category_id:
+        queryset = queryset.filter(category_id=category_id)
+
+    # Dosage form filter
+    dosage_form = request.GET.get('dosage_form', '').strip()
+    if dosage_form:
+        queryset = queryset.filter(dosage_form__iexact=dosage_form)
+
+    # Status filter
+    status = request.GET.get('status', '').strip()
+    if status and status != 'ALL':
+        queryset = queryset.filter(status=status)
+
+    # Metrics
+    total_meds = Medicine.objects.count()
+    with_internal = Medicine.objects.exclude(internal_barcode__isnull=True).exclude(internal_barcode='').count()
+    with_mfr = Medicine.objects.exclude(barcode__isnull=True).exclude(barcode='').count()
+    categories_count = Category.objects.count()
+
+    # Pagination: 20 per page
+    paginator = Paginator(queryset, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    # Attach SVG previews to each medicine on current page
+    for med in page_obj:
+        if not med.internal_barcode:
+            barcode_service.get_or_create_internal_barcode(med)
+        med.barcode_svg = barcode_service.generate_barcode_svg(med.internal_barcode)
+
+    categories = Category.objects.all().order_by('name')
+    dosage_forms = (
+        Medicine.objects.values_list('dosage_form', flat=True)
+        .exclude(dosage_form__isnull=True)
+        .exclude(dosage_form='')
+        .distinct()
+        .order_by('dosage_form')
+    )
+
+    context = {
+        'page_obj': page_obj,
+        'medicines': page_obj,
+        'search_query': q,
+        'selected_category': category_id,
+        'selected_dosage': dosage_form,
+        'selected_status': status,
+        'categories': categories,
+        'dosage_forms': dosage_forms,
+        'total_count': paginator.count,
+        'metrics': {
+            'total': total_meds,
+            'with_internal': with_internal,
+            'with_mfr': with_mfr,
+            'categories': categories_count,
+        }
+    }
+    return render(request, 'medicines/barcode_registry.html', context)
+
+
+@pharmacist_or_admin_required
+def medicine_barcode_preview_api(request, pk):
+    """
+    JSON API for the 'View Barcode' modal.
+    Returns medicine metadata, internal barcode identifier, and SVG data.
+    """
+    from . import barcode_service
+    medicine = get_object_or_404(Medicine, pk=pk)
+    code = barcode_service.get_or_create_internal_barcode(medicine)
+    svg_data = barcode_service.generate_barcode_svg(code)
+
+    return JsonResponse({
+        'success': True,
+        'id': medicine.id,
+        'medicine_name': medicine.medicine_name,
+        'generic_name': medicine.generic_name or '',
+        'strength': medicine.strength or '',
+        'dosage_form': medicine.dosage_form or '',
+        'category': medicine.category.name if medicine.category else '',
+        'internal_barcode': code,
+        'manufacturer_barcode': medicine.barcode or '',
+        'barcode_svg': svg_data,
+        'png_url': f"/medicines/barcodes/{medicine.pk}/png/",
+        'pdf_url': f"/medicines/barcodes/{medicine.pk}/pdf/",
+        'print_url': f"/medicines/barcodes/{medicine.pk}/print/",
+    })
+
+
+@pharmacist_or_admin_required
+def medicine_barcode_png_view(request, pk):
+    """
+    Downloads high-resolution (300 DPI) Code 128 PNG barcode image.
+    Filename: SAN-MED-000123.png
+    """
+    from . import barcode_service
+    medicine = get_object_or_404(Medicine, pk=pk)
+    code = barcode_service.get_or_create_internal_barcode(medicine)
+    png_bytes = barcode_service.generate_barcode_png_bytes(code)
+
+    response = HttpResponse(png_bytes, content_type='image/png')
+    response['Content-Disposition'] = f'attachment; filename="{code}.png"'
+    return response
+
+
+@pharmacist_or_admin_required
+def medicine_barcode_pdf_view(request, pk):
+    """
+    Downloads printable hospital label PDF (3.5" x 2.0").
+    Filename: SAN-MED-000123_label.pdf
+    """
+    from . import barcode_service
+    medicine = get_object_or_404(Medicine, pk=pk)
+    code = barcode_service.get_or_create_internal_barcode(medicine)
+    pdf_bytes = barcode_service.generate_barcode_label_pdf_bytes(medicine)
+
+    response = HttpResponse(pdf_bytes, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{code}_label.pdf"'
+    return response
+
+
+@pharmacist_or_admin_required
+def medicine_barcode_print_view(request, pk):
+    """
+    Displays a print-ready standalone label template formatted for
+    standard thermal barcode printer or standard paper.
+    Auto-triggers window.print() if ?autoprint=1 is passed.
+    """
+    from . import barcode_service
+    medicine = get_object_or_404(Medicine, pk=pk)
+    code = barcode_service.get_or_create_internal_barcode(medicine)
+    svg_data = barcode_service.generate_barcode_svg(code)
+
+    context = {
+        'medicine': medicine,
+        'code': code,
+        'barcode_svg': svg_data,
+        'autoprint': request.GET.get('autoprint', '1') == '1',
+    }
+    return render(request, 'medicines/barcode_print.html', context)
+
+
+@pharmacist_or_admin_required
+def medicine_barcode_lookup_api(request):
+    """
+    Phase 2 — GET/POST Barcode Lookup API.
+    Resolves barcode (Internal Sanalogx Code 128, Manufacturer EAN/UPC, Batch, QR).
+    Returns real MySQL medicine profile with full stock, usable stock, FEFO batches,
+    storage conditions, warnings, and reorder recommendations.
+    Strictly read-only; does not alter inventory or records.
+    """
+    code = request.GET.get('code') or request.POST.get('code')
+    if not code and request.body:
+        try:
+            data = json.loads(request.body.decode('utf-8'))
+            code = data.get('code')
+        except Exception:
+            pass
+
+    if not code or not str(code).strip():
+        return JsonResponse({
+            'success': False,
+            'status_code': 'INVALID_INPUT',
+            'message': 'Barcode parameter is required.'
+        }, status=400)
+
+    from . import barcode_service
+    result = barcode_service.resolve_barcode_lookup(str(code).strip(), user=request.user)
+    status_code = 200 if result.get('success') else 404
+    return JsonResponse(result, status=status_code)
+
+
+@pharmacist_or_admin_required
+def medicine_barcode_map_api(request):
+    """
+    Phase 2 — POST Barcode Mapping API.
+    Allows authorized staff to map an unassigned manufacturer barcode to an existing medicine.
+    Enforces duplicate prevention and never overwrites existing manufacturer barcodes.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST method required.'}, status=405)
+
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+    except Exception:
+        data = request.POST
+
+    medicine_id = data.get('medicine_id')
+    barcode_value = data.get('barcode', '').strip()
+
+    if not medicine_id or not barcode_value:
+        return JsonResponse({
+            'success': False,
+            'message': 'Both medicine_id and barcode are required.'
+        }, status=400)
+
+    from . import barcode_service
+    result = barcode_service.map_manufacturer_barcode(medicine_id, barcode_value, user=request.user)
+    status_code = 200 if result.get('success') else 400
+    return JsonResponse(result, status=status_code)
+
+
+@pharmacist_or_admin_required
+def medicine_ocr_scan_api(request):
+    """
+    Phase 3 — POST OCR Packaging Recognition API.
+    Extracts text from packaging image, detects candidate parameters,
+    matches against MySQL formulary with confidence scoring.
+    Requires staff confirmation before taking any action.
+    Never alters inventory or creates records automatically.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST method required.'}, status=405)
+
+    image_file = request.FILES.get('image')
+    image_base64 = None
+
+    if not image_file:
+        # Check for JSON base64 payload
+        try:
+            data = json.loads(request.body.decode('utf-8'))
+            image_base64 = data.get('image_base64')
+        except Exception:
+            image_base64 = request.POST.get('image_base64')
+
+    if not image_file and not image_base64:
+        return JsonResponse({
+            'success': False,
+            'message': 'No image file or image data provided. Please upload or capture a packaging image.'
+        }, status=400)
+
+    from . import ocr_service
+
+    if image_file:
+        # Validate file size (max 5 MB)
+        if image_file.size > ocr_service.MAX_IMAGE_SIZE_BYTES:
+            return JsonResponse({
+                'success': False,
+                'message': f"Image file size ({image_file.size / (1024*1024):.1f} MB) exceeds maximum allowed limit (5 MB)."
+            }, status=400)
+
+        result = ocr_service.process_packaging_image(image_file)
+    else:
+        # Decode base64
+        import base64
+        try:
+            if ',' in image_base64:
+                image_base64 = image_base64.split(',', 1)[1]
+            img_bytes = base64.b64decode(image_base64)
+            if len(img_bytes) > ocr_service.MAX_IMAGE_SIZE_BYTES:
+                return JsonResponse({
+                    'success': False,
+                    'message': "Base64 image data exceeds maximum allowed limit (5 MB)."
+                }, status=400)
+            result = ocr_service.process_packaging_image(img_bytes)
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': f"Failed to decode base64 image data: {str(e)}"
+            }, status=400)
+
+    status_code = 200 if result.get('success') else 400
+    return JsonResponse(result, status=status_code)
+
+
+@pharmacist_or_admin_required
+def medicine_ai_summary_api(request, pk):
+    """
+    Phase 3 — GET AI-Assisted Clinical Explanation API.
+    Returns structured summary strictly derived from verified MySQL records.
+    Never fabricates unverified indications, dosages, or stock figures.
+    """
+    medicine = get_object_or_404(Medicine, pk=pk)
+    from . import ai_summary_service
+    summary_data = ai_summary_service.generate_medicine_ai_summary(medicine)
+    return JsonResponse({
+        'success': True,
+        'medicine_id': medicine.id,
+        'medicine_name': medicine.medicine_name,
+        'summary': summary_data,
+    })
+
+
+@pharmacist_or_admin_required
+def medicine_external_info_api(request, pk):
+    """
+    Phase 3 — GET External Product Data Reference API.
+    Queries trusted OpenFDA / external sources without altering local DB records.
+    """
+    medicine = get_object_or_404(Medicine, pk=pk)
+    from . import product_info_service
+    ext_data = product_info_service.lookup_external_product_info(
+        medicine.barcode or medicine.effective_internal_barcode,
+        generic_name=medicine.generic_name
+    )
+    return JsonResponse({
+        'success': True,
+        'medicine_id': medicine.id,
+        'medicine_name': medicine.medicine_name,
+        'external_info': ext_data,
+    })
+
+
+
 
