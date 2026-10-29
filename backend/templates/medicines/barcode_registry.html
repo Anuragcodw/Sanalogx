@@ -29,6 +29,14 @@
             </div>
         </div>
         <div class="d-flex align-items-center gap-2 flex-wrap">
+            <button type="button" class="btn btn-outline-teal btn-sm d-inline-flex align-items-center gap-1.5 px-3 py-2 fw-semibold shadow-2xs" onclick="openRegistryCameraScanner()">
+                <i class="fas fa-camera text-teal"></i>
+                <span>Scan Barcode</span>
+            </button>
+            <button type="button" class="btn btn-outline-teal btn-sm d-inline-flex align-items-center gap-1.5 px-3 py-2 fw-semibold shadow-2xs" onclick="openRegistryOcrScanner()">
+                <i class="fas fa-file-image text-teal"></i>
+                <span>OCR Packaging</span>
+            </button>
             <a href="{% url 'medicine_list' %}" class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1.5 px-3 py-2 fw-semibold">
                 <i class="fas fa-pills text-teal"></i>
                 <span>Medicine Master</span>
@@ -475,4 +483,173 @@ function openBarcodeModal(medId) {
     max-height: 80px;
 }
 </style>
+<!-- Camera Scanner & OCR Packaging Modals (Phase 4 Registry Integration) -->
+{% include 'includes/camera_scanner_modal.html' %}
+{% include 'includes/ocr_scanner_modal.html' %}
+
+<!-- Scanned Profile Detail Modal -->
+<div class="modal fade" id="registryScanResultModal" tabindex="-1" aria-labelledby="registryScanResultModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+            <div class="modal-header bg-navy text-white py-2.5 px-3" style="background: #0F2744;">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-teal rounded-circle p-2" style="background: #00A99D !important;">
+                        <i class="fas fa-check text-white"></i>
+                    </span>
+                    <div>
+                        <h6 class="modal-title fw-bold text-white mb-0" id="registryScanResultModalLabel">Scanned Medicine Record</h6>
+                        <span class="extra-small text-teal" style="color: #00D2B4;">Verified Database Formulary Profile</span>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-3 p-md-4">
+                <div id="registryModalProfileContainer"></div>
+            </div>
+            <div class="modal-footer bg-light py-2">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{% static 'js/zxing.min.js' %}"></script>
+<script src="{% static 'js/medivault_scanner.js' %}"></script>
+<script src="{% static 'js/medivault_ocr.js' %}"></script>
+<script>
+const CSRF_TOKEN = '{{ csrf_token }}';
+
+function openRegistryCameraScanner() {
+    MedivaultScanner.openModal(function(decodedCode) {
+        lookupAndShowMedicine(decodedCode);
+    });
+    setTimeout(() => {
+        MedivaultScanner.startCamera();
+    }, 400);
+}
+
+function openRegistryOcrScanner() {
+    MedivaultOCR.openModal(function(candidateIdentifier) {
+        lookupAndShowMedicine(candidateIdentifier);
+    });
+}
+
+function lookupAndShowMedicine(code) {
+    if (!code) return;
+    fetch(`/medicines/barcodes/lookup/?code=${encodeURIComponent(code)}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.success && data.medicine) {
+                renderRegistryScannedProfile(data.medicine, data.barcode_type);
+                const modal = new bootstrap.Modal(document.getElementById('registryScanResultModal'));
+                modal.show();
+            } else {
+                alert(data.message || 'Medicine not found for scanned code: ' + code);
+            }
+        })
+        .catch(err => {
+            alert('Lookup error: ' + err.message);
+        });
+}
+
+function renderRegistryScannedProfile(med, barcodeType) {
+    const container = document.getElementById('registryModalProfileContainer');
+    if (!container || !med) return;
+
+    let aiHtml = '';
+    if (med.ai_summary && med.ai_summary.is_ai_generated) {
+        const ai = med.ai_summary;
+        const pts = (ai.key_points || []).map(p => `<li>${escapeHtml(p)}</li>`).join('');
+        aiHtml = `
+            <div class="card border border-teal-subtle p-2.5 rounded-3 mb-3" style="background: rgba(0, 169, 157, 0.05); border-left: 3px solid #00A99D !important;">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="fw-bold text-navy small"><i class="fas fa-brain text-teal me-1"></i> ${escapeHtml(ai.badge)}</span>
+                    <span class="badge bg-light text-teal border extra-small">Formulary Verified</span>
+                </div>
+                <p class="text-secondary small mb-1.5">${escapeHtml(ai.overview)}</p>
+                <ul class="mb-1 ps-3 extra-small text-muted">${pts}</ul>
+                <div class="text-muted extra-small fst-italic mt-1">${escapeHtml(ai.disclaimer)}</div>
+            </div>
+        `;
+    }
+
+    container.innerHTML = `
+        <div class="card border-0">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                    <h5 class="fw-bold text-navy mb-0">${escapeHtml(med.medicine_name)}</h5>
+                    <span class="text-muted small">${escapeHtml(med.generic_name || '')} · ${escapeHtml(med.strength || '')} · ${escapeHtml(med.dosage_form || '')}</span>
+                </div>
+                <div class="d-flex flex-column align-items-end gap-1">
+                    <span class="badge bg-teal text-white">${escapeHtml(med.internal_barcode)}</span>
+                    <span class="badge bg-light text-muted border font-monospace extra-small">Type: ${escapeHtml(barcodeType)}</span>
+                </div>
+            </div>
+
+            <div class="row g-2 mb-3 text-center">
+                <div class="col-3">
+                    <div class="p-2 rounded bg-light border">
+                        <span class="d-block text-muted extra-small">Usable Stock</span>
+                        <strong class="fs-6 text-teal">${med.usable_stock}</strong>
+                    </div>
+                </div>
+                <div class="col-3">
+                    <div class="p-2 rounded bg-light border">
+                        <span class="d-block text-muted extra-small">Total Physical</span>
+                        <strong class="fs-6 text-navy">${med.total_stock}</strong>
+                    </div>
+                </div>
+                <div class="col-3">
+                    <div class="p-2 rounded bg-light border">
+                        <span class="d-block text-muted extra-small">Expired</span>
+                        <strong class="fs-6 ${med.expired_stock > 0 ? 'text-danger' : 'text-muted'}">${med.expired_stock}</strong>
+                    </div>
+                </div>
+                <div class="col-3">
+                    <div class="p-2 rounded bg-light border">
+                        <span class="d-block text-muted extra-small">Quarantined</span>
+                        <strong class="fs-6 ${med.quarantined_stock > 0 ? 'text-warning' : 'text-muted'}">${med.quarantined_stock}</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-2.5 bg-light rounded border mb-3 small">
+                <span class="fw-semibold text-navy"><i class="fas fa-stethoscope text-teal me-1"></i> Verified Medicine-Use:</span>
+                <div class="text-secondary mt-1">${escapeHtml(med.verified_medicine_use)}</div>
+            </div>
+
+            <div class="text-muted small mb-3">
+                <i class="fas fa-snowflake text-info me-1"></i> Storage Condition: <strong>${escapeHtml(med.storage_instructions)}</strong>
+            </div>
+
+            ${aiHtml}
+
+            <div class="d-flex justify-content-end gap-2 pt-2 border-top">
+                <a href="/medicines/barcodes/${med.id}/png/" class="btn btn-outline-primary btn-sm fw-semibold">
+                    <i class="fas fa-image me-1"></i> Download PNG
+                </a>
+                <a href="/medicines/barcodes/${med.id}/pdf/" class="btn btn-outline-danger btn-sm fw-semibold">
+                    <i class="fas fa-file-pdf me-1"></i> Download PDF Label
+                </a>
+                <a href="/medicines/barcodes/${med.id}/print/" target="_blank" class="btn btn-dark btn-sm fw-semibold">
+                    <i class="fas fa-print me-1"></i> Print Barcode
+                </a>
+                <a href="/medicines/${med.id}/" class="btn btn-teal btn-sm fw-semibold text-white">
+                    <i class="fas fa-arrow-up-right-from-square me-1"></i> Open Details
+                </a>
+            </div>
+        </div>
+    `;
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+</script>
 {% endblock %}

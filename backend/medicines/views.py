@@ -1051,4 +1051,106 @@ def medicine_barcode_map_api(request):
     return JsonResponse(result, status=status_code)
 
 
+@pharmacist_or_admin_required
+def medicine_ocr_scan_api(request):
+    """
+    Phase 3 — POST OCR Packaging Recognition API.
+    Extracts text from packaging image, detects candidate parameters,
+    matches against MySQL formulary with confidence scoring.
+    Requires staff confirmation before taking any action.
+    Never alters inventory or creates records automatically.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST method required.'}, status=405)
+
+    image_file = request.FILES.get('image')
+    image_base64 = None
+
+    if not image_file:
+        # Check for JSON base64 payload
+        try:
+            data = json.loads(request.body.decode('utf-8'))
+            image_base64 = data.get('image_base64')
+        except Exception:
+            image_base64 = request.POST.get('image_base64')
+
+    if not image_file and not image_base64:
+        return JsonResponse({
+            'success': False,
+            'message': 'No image file or image data provided. Please upload or capture a packaging image.'
+        }, status=400)
+
+    from . import ocr_service
+
+    if image_file:
+        # Validate file size (max 5 MB)
+        if image_file.size > ocr_service.MAX_IMAGE_SIZE_BYTES:
+            return JsonResponse({
+                'success': False,
+                'message': f"Image file size ({image_file.size / (1024*1024):.1f} MB) exceeds maximum allowed limit (5 MB)."
+            }, status=400)
+
+        result = ocr_service.process_packaging_image(image_file)
+    else:
+        # Decode base64
+        import base64
+        try:
+            if ',' in image_base64:
+                image_base64 = image_base64.split(',', 1)[1]
+            img_bytes = base64.b64decode(image_base64)
+            if len(img_bytes) > ocr_service.MAX_IMAGE_SIZE_BYTES:
+                return JsonResponse({
+                    'success': False,
+                    'message': "Base64 image data exceeds maximum allowed limit (5 MB)."
+                }, status=400)
+            result = ocr_service.process_packaging_image(img_bytes)
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': f"Failed to decode base64 image data: {str(e)}"
+            }, status=400)
+
+    status_code = 200 if result.get('success') else 400
+    return JsonResponse(result, status=status_code)
+
+
+@pharmacist_or_admin_required
+def medicine_ai_summary_api(request, pk):
+    """
+    Phase 3 — GET AI-Assisted Clinical Explanation API.
+    Returns structured summary strictly derived from verified MySQL records.
+    Never fabricates unverified indications, dosages, or stock figures.
+    """
+    medicine = get_object_or_404(Medicine, pk=pk)
+    from . import ai_summary_service
+    summary_data = ai_summary_service.generate_medicine_ai_summary(medicine)
+    return JsonResponse({
+        'success': True,
+        'medicine_id': medicine.id,
+        'medicine_name': medicine.medicine_name,
+        'summary': summary_data,
+    })
+
+
+@pharmacist_or_admin_required
+def medicine_external_info_api(request, pk):
+    """
+    Phase 3 — GET External Product Data Reference API.
+    Queries trusted OpenFDA / external sources without altering local DB records.
+    """
+    medicine = get_object_or_404(Medicine, pk=pk)
+    from . import product_info_service
+    ext_data = product_info_service.lookup_external_product_info(
+        medicine.barcode or medicine.effective_internal_barcode,
+        generic_name=medicine.generic_name
+    )
+    return JsonResponse({
+        'success': True,
+        'medicine_id': medicine.id,
+        'medicine_name': medicine.medicine_name,
+        'external_info': ext_data,
+    })
+
+
+
 

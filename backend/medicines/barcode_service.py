@@ -528,6 +528,27 @@ def resolve_barcode_lookup(raw_code: str, user=None) -> dict:
         'batches': batches_data,
     }
 
+    # Phase 3: AI-Assisted Clinical Summary & External Product Info
+    try:
+        from medicines.ai_summary_service import generate_medicine_ai_summary
+        ai_summary = generate_medicine_ai_summary(matched_medicine, medicine_payload)
+    except Exception as e:
+        logger.warning(f"Error generating AI summary: {e}")
+        ai_summary = None
+
+    try:
+        from medicines.product_info_service import lookup_external_product_info
+        external_info = lookup_external_product_info(
+            matched_medicine.barcode or matched_medicine.effective_internal_barcode,
+            generic_name=matched_medicine.generic_name
+        )
+    except Exception as e:
+        logger.warning(f"Error retrieving external product info: {e}")
+        external_info = {'available': False, 'message': 'External lookup error.'}
+
+    medicine_payload['ai_summary'] = ai_summary
+    medicine_payload['external_info'] = external_info
+
     result = {
         'success': True,
         'type': 'BATCH' if matched_batch else 'MEDICINE',

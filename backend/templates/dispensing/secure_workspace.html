@@ -224,11 +224,21 @@
                     Scan prescription QR, medicine barcode, or batch barcode to identify records before clinical verification.
                 </p>
 
-                <!-- Primary Camera Action Button -->
-                <button type="button" class="btn btn-teal w-100 py-2 fw-semibold mb-3 shadow-sm d-flex align-items-center justify-content-center gap-2" id="btnOpenCameraModal" onclick="openCameraScannerModal()">
-                    <i class="fas fa-camera fs-5"></i>
-                    <span>Open Camera Scanner</span>
-                </button>
+                <!-- Primary Action Buttons: Live Camera & AI OCR Packaging Reader -->
+                <div class="row g-2 mb-3">
+                    <div class="col-12 col-sm-6">
+                        <button type="button" class="btn btn-teal w-100 py-2 fw-semibold shadow-sm d-flex align-items-center justify-content-center gap-2" id="btnOpenCameraModal" onclick="openCameraScannerModal()">
+                            <i class="fas fa-camera fs-5"></i>
+                            <span>Open Camera Scanner</span>
+                        </button>
+                    </div>
+                    <div class="col-12 col-sm-6">
+                        <button type="button" class="btn btn-outline-teal w-100 py-2 fw-semibold shadow-sm d-flex align-items-center justify-content-center gap-2" id="btnOpenOcrModal" onclick="openOcrPackagingModal()">
+                            <i class="fas fa-file-image fs-5"></i>
+                            <span>OCR Package Reader</span>
+                        </button>
+                    </div>
+                </div>
 
                 <!-- Manual Fallback Label -->
                 <div class="d-flex align-items-center mb-2">
@@ -947,11 +957,14 @@
         </div>
     </div>
 </div>
+
+{% include 'includes/ocr_scanner_modal.html' %}
 {% endblock %}
 
 {% block extra_js %}
 <script src="{% static 'js/html5-qrcode.min.js' %}"></script>
 <script src="{% static 'js/zxing.min.js' %}"></script>
+<script src="{% static 'js/medivault_ocr.js' %}"></script>
 <script>
 const CSRF_TOKEN = '{{ csrf_token }}';
 
@@ -2536,6 +2549,44 @@ function renderScannedMedicineProfile(med, batch, barcodeType) {
                 <span class="fw-semibold text-navy"><i class="fas fa-stethoscope text-teal me-1"></i> Verified Medicine-Use Information:</span>
                 <div class="text-secondary mt-1" style="font-size: 0.78rem;">${escapeHtml(med.verified_medicine_use)}</div>
             </div>
+
+            <!-- Phase 3: AI-Assisted Clinical Summary (Strictly Verified Local Formulary Derived) -->
+            ${(function() {
+                if (!med.ai_summary || !med.ai_summary.is_ai_generated) return '';
+                const ai = med.ai_summary;
+                const points = (ai.key_points || []).map(p => '<li class="mb-0.5">' + escapeHtml(p) + '</li>').join('');
+                return `
+                    <div class="card border border-teal-subtle p-2.5 rounded-3 mb-2" style="background: rgba(0, 169, 157, 0.05); border-left: 3px solid #00A99D !important;">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="fw-bold text-navy extra-small"><i class="fas fa-brain text-teal me-1"></i> ${escapeHtml(ai.badge)}</span>
+                            <span class="badge bg-light text-teal border extra-small" style="font-size: 0.65rem;">Verified Records Only</span>
+                        </div>
+                        <div class="text-secondary extra-small mb-1.5" style="font-size: 0.74rem; line-height: 1.35;">${escapeHtml(ai.overview)}</div>
+                        <ul class="mb-1 ps-3 extra-small text-muted" style="font-size: 0.71rem;">
+                            ${points}
+                        </ul>
+                        <div class="text-muted extra-small fst-italic mt-1" style="font-size: 0.66rem;">
+                            <i class="fas fa-shield-halved text-teal me-1"></i> ${escapeHtml(ai.disclaimer)}
+                        </div>
+                    </div>
+                `;
+            })()}
+
+            <!-- Phase 3: External Regulatory Product Data Reference (OpenFDA / Trusted Source) -->
+            ${(function() {
+                if (!med.external_info || !med.external_info.available || !med.external_info.data) return '';
+                const ext = med.external_info.data;
+                return `
+                    <div class="p-2 bg-light rounded border mb-2 extra-small" style="border-left: 3px solid #3B82F6 !important;">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="fw-semibold text-primary"><i class="fas fa-globe me-1"></i> External Reference: ${escapeHtml(med.external_info.source)}</span>
+                            <span class="badge bg-info-subtle text-info border extra-small">Reference Only</span>
+                        </div>
+                        <div class="text-secondary" style="font-size: 0.72rem;"><strong>Indications:</strong> ${escapeHtml(ext.indications_summary)}</div>
+                        <div class="text-muted extra-small fst-italic mt-0.5" style="font-size: 0.66rem;">${escapeHtml(med.external_info.disclaimer)}</div>
+                    </div>
+                `;
+            })()}
 
             <!-- Storage & Handling -->
             <div class="text-muted small mb-2" style="font-size: 0.74rem;">
