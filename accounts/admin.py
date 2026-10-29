@@ -14,7 +14,7 @@ class UserAdmin(BaseUserAdmin):
     readonly_fields = ('created_at', 'updated_at')
 
     fieldsets = BaseUserAdmin.fieldsets + (
-        ('MediVault Role & Status', {
+        ('Sanalogx Role & Status', {
             'fields': ('full_name', 'phone', 'role', 'status', 'rejection_reason')
         }),
         ('Email Verification Status', {
@@ -27,7 +27,7 @@ class UserAdmin(BaseUserAdmin):
     )
 
     add_fieldsets = BaseUserAdmin.add_fieldsets + (
-        ('MediVault Details', {
+        ('Sanalogx Details', {
             'fields': ('full_name', 'phone', 'role', 'status')
         }),
     )

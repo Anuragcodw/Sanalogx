@@ -1,5 +1,5 @@
 /**
- * MediVault — Admin Dashboard Interactive Behaviors
+ * Sanalogx — Admin Dashboard Interactive Behaviors
  * Sidebar toggle, mobile drawer, hash tab persistence, and dismissible alerts.
  */
 
@@ -18,7 +18,7 @@
                     appContainer.classList.toggle('sidebar-collapsed');
                     var isCollapsed = appContainer.classList.contains('sidebar-collapsed');
                     try {
-                        localStorage.setItem('medivault_admin_sidebar_collapsed', isCollapsed ? '1' : '0');
+                        localStorage.setItem('sanalogx_admin_sidebar_collapsed', isCollapsed ? '1' : '0');
                     } catch (_) {}
                 } else {
                     appContainer.classList.toggle('mobile-open');
@@ -29,7 +29,7 @@
         // Restore collapse state on desktop
         if (appContainer && window.innerWidth >= 992) {
             try {
-                if (localStorage.getItem('medivault_admin_sidebar_collapsed') === '1') {
+                if (localStorage.getItem('sanalogx_admin_sidebar_collapsed') === '1') {
                     appContainer.classList.add('sidebar-collapsed');
                 }
             } catch (_) {}

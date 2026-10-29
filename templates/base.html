@@ -20,7 +20,7 @@
     <!-- SweetAlert2 CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 
-    <!-- Custom MediVault CSS -->
+    <!-- Custom Sanalogx CSS -->
     <link rel="stylesheet" href="{% static 'css/style.css' %}?v=2.0">
     {% if user.is_authenticated %}
     <link rel="stylesheet" href="{% static 'css/admin_dashboard.css' %}?v=1.1">
@@ -46,7 +46,7 @@
     <!-- SweetAlert2 JS -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    <!-- Custom MediVault JS -->
+    <!-- Custom Sanalogx JS -->
     <script src="{% static 'js/main.js' %}"></script>
     {% if user.is_authenticated and user.role == 'ADMIN' %}
         <script src="{% static 'js/admin_dashboard.js' %}?v=1.0"></script>

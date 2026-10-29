@@ -1,5 +1,5 @@
 /* ==========================================================================
-   MediVault — Main Frontend JavaScript Engine
+   Sanalogx — Main Frontend JavaScript Engine
    ========================================================================== */
 
 document.addEventListener('DOMContentLoaded', function () {

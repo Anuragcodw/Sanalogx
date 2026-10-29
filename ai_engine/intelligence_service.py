@@ -47,15 +47,17 @@ except Exception:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _get_usable_stock(medicine, as_of_date=None) -> int:
-    """Count only non-expired active or near-expiry batches as usable stock."""
-    today = as_of_date or timezone.localdate()
-    if not medicine.batches.exists():
-        inv = getattr(medicine, 'inventory', None)
-        return inv.current_stock if inv else 0
-    return medicine.batches.filter(
-        status__in=(MedicineBatch.BatchStatus.ACTIVE, MedicineBatch.BatchStatus.NEAR_EXPIRY),
-        expiry_date__gt=today,
-    ).aggregate(total=Sum('quantity_available'))['total'] or 0
+    """
+    Count only valid, usable, non-expired, non-quarantined batches as usable stock.
+    Strictly excludes:
+      - Expired batches (expiry_date <= today or status == EXPIRED)
+      - Quarantined batches (status == QUARANTINED)
+      - Returned batches (status == RETURNED)
+      - Depleted batches (quantity_available <= 0)
+    Respects existing FEFO rules.
+    """
+    from ai_engine.auto_reorder_service import get_usable_stock
+    return get_usable_stock(medicine, as_of_date=as_of_date)
 
 
 def get_demand_forecast(medicine, cutoff_date=None):

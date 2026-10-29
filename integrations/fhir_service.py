@@ -314,10 +314,10 @@ def get_fhir_capability_statement() -> Dict[str, Any]:
         "id": "medivault-fhir-capability",
         "status": "active",
         "date": timezone.now().date().isoformat(),
-        "publisher": "MediVault Hospital Pharmacy System",
+        "publisher": "Sanalogx Hospital Pharmacy System",
         "kind": "instance",
         "software": {
-            "name": "MediVault Intelligent Pharmacy Integration Layer",
+            "name": "Sanalogx Intelligent Pharmacy Integration Layer",
             "version": "2.0.0"
         },
         "fhirVersion": "4.0.1",

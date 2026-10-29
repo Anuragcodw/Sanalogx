@@ -109,7 +109,7 @@ class ReportRecord(models.Model):
         return f'RPT-{year}-{str(last + 1).zfill(5)}'
 
     def get_verification_url(self):
-        base_url = getattr(settings, 'MEDIVAULT_BASE_URL', 'http://127.0.0.1:8000')
+        base_url = getattr(settings, 'SANALOGX_BASE_URL', getattr(settings, 'MEDIVAULT_BASE_URL', 'http://127.0.0.1:8000'))
         return f"{base_url}/reports/verify/{self.verification_token}/"
 
     def record_download(self):

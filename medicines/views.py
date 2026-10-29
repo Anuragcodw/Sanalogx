@@ -348,7 +348,7 @@ def medicine_deactivate_view(request, medicine_id):
 def medicine_qr_view(request, medicine_id):
     """Generate and return a clean QR code identifying the medicine securely."""
     medicine = get_object_or_404(Medicine, pk=_clean_medicine_pk(medicine_id))
-    qr_data = f"MediVault-Medicine:{medicine.id}"
+    qr_data = f"Sanalogx-Medicine:{medicine.id}"
     
     qr = qrcode.QRCode(
         version=1,

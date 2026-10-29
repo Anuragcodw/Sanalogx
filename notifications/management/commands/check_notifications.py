@@ -31,7 +31,7 @@ class Command(BaseCommand):
 
         prefix = '[DRY RUN] ' if dry_run else ''
         self.stdout.write(self.style.WARNING(
-            f"\n{prefix}MediVault Notification Check Engine — {timezone.now().strftime('%d %b %Y %H:%M:%S UTC')}"
+            f"\n{prefix}Sanalogx Notification Check Engine — {timezone.now().strftime('%d %b %Y %H:%M:%S UTC')}"
         ))
 
         from notifications import service

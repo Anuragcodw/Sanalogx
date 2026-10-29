@@ -135,7 +135,7 @@ def order_review_view(request, order_id):
         if action == 'verify':
             med_id = request.POST.get('medicine_id')
             if not med_id:
-                messages.error(request, "Please select an internal MediVault Medicine to map this order.")
+                messages.error(request, "Please select an internal Sanalogx Medicine to map this order.")
                 return redirect('order_review', order_id=order.id)
 
             medicine = get_object_or_404(Medicine, id=med_id)

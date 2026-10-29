@@ -21,7 +21,7 @@ from accounts.models import User, PharmacistProfile, log_audit
 
 
 class Command(BaseCommand):
-    help = "Safely audit, classify, and optionally clean unlinked starter/demo records in MediVault."
+    help = "Safely audit, classify, and optionally clean unlinked starter/demo records in Sanalogx."
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -46,7 +46,7 @@ class Command(BaseCommand):
         confirmed = options.get('confirm', False)
 
         self.stdout.write("=" * 76)
-        self.stdout.write("  MediVault Healthcare Data Audit & Safe Cleanup Utility")
+        self.stdout.write("  Sanalogx Healthcare Data Audit & Safe Cleanup Utility")
         self.stdout.write("=" * 76)
 
         # ── 1. Audit Medicines ──────────────────────────────────────────────

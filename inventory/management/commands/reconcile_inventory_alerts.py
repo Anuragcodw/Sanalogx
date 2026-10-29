@@ -73,7 +73,7 @@ class Command(BaseCommand):
 
         if not quiet:
             self.stdout.write(self.style.MIGRATE_HEADING(
-                f"MediVault Background Reconciliation Engine Initialized "
+                f"Sanalogx Background Reconciliation Engine Initialized "
                 f"[Loop={loop_mode}, Interval={interval}s, DryRun={dry_run}]"
             ))
 
@@ -182,6 +182,14 @@ class Command(BaseCommand):
             except Exception as e:
                 logger.error(f"[reconcile_inventory] Notification checks error: {e}")
 
+        # ── Step 5: Automated AI Low-Stock Reordering ────────────────────────
+        try:
+            from ai_engine.auto_reorder_service import run_auto_reorder
+            reorder_stats = run_auto_reorder(dry_run=dry_run, quiet=quiet)
+            stats['auto_reorders_created'] = reorder_stats.get('requests_created', 0)
+        except Exception as e:
+            logger.error(f"[reconcile_inventory] Auto-reorder execution error: {e}")
+
         elapsed = round(time.time() - start_time, 2)
         if not quiet:
             self.stdout.write(self.style.SUCCESS(
@@ -189,5 +197,6 @@ class Command(BaseCommand):
                 f"Medicines: {stats['medicines_recalculated']}, "
                 f"Expiry Checked: {stats['expiry_alerts_updated']}, "
                 f"Low/OOS: {stats['low_stock_alerts_updated']}, "
-                f"Alerts Resolved: {stats['alerts_resolved']}"
+                f"Alerts Resolved: {stats['alerts_resolved']}, "
+                f"Auto-Reorders Created: {stats.get('auto_reorders_created', 0)}"
             ))
