@@ -313,27 +313,72 @@ def ai_recommendations_api(request):
     return JsonResponse({'success': True, 'recommendations': data})
 
 
-@admin_or_pharmacist_required
 def voice_assistant_api(request):
     """
-    MediVoice AI Assistant Command Processor.
-    Uses ML Intent Classifier + Entity Extractor + ORM Queries.
-    Logs command execution to VoiceCommandLog.
+    Sanalogx AI Voice Assistant API:
+    - Processes natural spoken / typed pharmacy commands.
+    - Supports two-step confirmation (CONFIRM_STOCK_ACTION, CANCEL_STOCK_ACTION).
+    - Dispatches to voice_service intent handlers.
+    - Enforces authentication and RBAC permissions.
+    - Records every command in VoiceCommandLog.
     """
+    if not request.user.is_authenticated:
+        return JsonResponse({'success': False, 'error': 'Authentication required. Please log in.'}, status=401)
+
     if request.method != 'POST':
         return JsonResponse({'success': False, 'error': 'Method not allowed.'}, status=405)
 
     try:
         data = json.loads(request.body)
-        raw_query = data.get('query', '').strip()
+        action = data.get('action', '')
+        token = data.get('confirmation_token', '')
 
+        # ── 1. Handle Explicit Stock Confirmation Actions ────────────────────
+        if action == 'CONFIRM_STOCK_ACTION':
+            res = voice_service.execute_voice_confirmation(request.user, token)
+            try:
+                VoiceCommandLog.objects.create(
+                    user=request.user,
+                    raw_text=f"[CONFIRMED TOKEN {token[:8] if token else ''}]",
+                    intent='CONFIRM_STOCK_ACTION',
+                    confidence=1.0,
+                    response_text=res.get('speech', ''),
+                    action_url=res.get('action_url')
+                )
+            except Exception:
+                pass
+            return JsonResponse(res)
+
+        if action == 'CANCEL_STOCK_ACTION':
+            res = voice_service.cancel_voice_confirmation(request.user, token)
+            try:
+                VoiceCommandLog.objects.create(
+                    user=request.user,
+                    raw_text=f"[CANCELLED TOKEN {token[:8] if token else ''}]",
+                    intent='CANCEL_STOCK_ACTION',
+                    confidence=1.0,
+                    response_text=res.get('speech', ''),
+                    action_url=None
+                )
+            except Exception:
+                pass
+            return JsonResponse(res)
+
+        # ── 2. Handle Spoken / Typed Voice Commands ──────────────────────────
+        raw_query = data.get('query', '').strip()
         if not raw_query:
             return JsonResponse({
                 'success': False,
                 'speech': "I didn't catch that. Could you please repeat your command?",
             })
 
-        res = voice_service.process_voice_command(request.user, raw_query)
+        res = voice_service.process_voice_command(request.user, raw_query, session=request.session)
+
+        # Ensure compatibility with both 'url' and 'action_url' consumers
+        if 'action_url' in res and 'url' not in res:
+            res['url'] = res['action_url']
+        elif 'url' in res and 'action_url' not in res:
+            res['action_url'] = res['url']
 
         # Log command execution
         try:
@@ -343,19 +388,12 @@ def voice_assistant_api(request):
                 intent=res.get('intent', 'UNKNOWN'),
                 confidence=res.get('confidence', 0.0),
                 response_text=res.get('speech', ''),
-                action_url=res.get('action_url')
+                action_url=res.get('action_url') or res.get('url')
             )
         except Exception:
             pass
 
-        return JsonResponse({
-            'success': True,
-            'intent': res.get('intent'),
-            'confidence': res.get('confidence'),
-            'speech': res.get('speech'),
-            'action': 'REDIRECT' if res.get('action_url') else 'NONE',
-            'url': res.get('action_url')
-        })
+        return JsonResponse(res)
 
     except Exception as exc:
         return JsonResponse({'success': False, 'error': str(exc)}, status=400)

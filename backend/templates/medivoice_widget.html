@@ -167,7 +167,9 @@ function handleSendClick() {
     let input = document.getElementById('medivoiceTextInput');
     if (input) {
         let val = input.value;
-        sendChatQuery(val);
+        if (val && val.trim()) {
+            sendVoiceCommand(val.trim(), false);
+        }
     }
 }
 
@@ -183,13 +185,14 @@ function getFormattedTime() {
     return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-function appendUserMessage(text) {
+function appendUserMessage(text, isVoice = false) {
     let container = document.getElementById('medivoiceMessages');
     let timeStr = getFormattedTime();
+    let voiceIcon = isVoice ? '<i class="fas fa-microphone me-1 opacity-75"></i>' : '';
     container.insertAdjacentHTML('beforeend', `
         <div class="d-flex align-items-start justify-content-end gap-2 mb-3 chat-msg-row user-row">
             <div class="p-2.5 text-white rounded-3 shadow-sm small" style="max-width:85%; background: #00A99D; word-break: break-word;">
-                <div>${escapeHtml(text)}</div>
+                <div>${voiceIcon}${escapeHtml(text)}</div>
                 <div class="text-end text-white-50 extra-small mt-1" style="font-size: 0.65rem;">${timeStr}</div>
             </div>
             <div class="badge rounded-circle p-2 mt-1 flex-shrink-0" style="background: #0F2744;"><i class="fas fa-user text-white extra-small"></i></div>
@@ -441,15 +444,260 @@ function clearChat() {
     updateState('Ready', 'text-teal');
 }
 
+// ─── Text-to-Speech (Browser SpeechSynthesis) ─────────────────────────────
+function speakText(text) {
+    if (!('speechSynthesis' in window)) return;
+    try {
+        window.speechSynthesis.cancel();
+        let cleanText = text.toString()
+            .replace(/<[^>]*>/g, '')
+            .replace(/[*_#`]/g, '')
+            .replace(/[₹]/g, 'rupees ')
+            .replace(/https?:\/\/\S+/g, '')
+            .trim();
+        if (!cleanText) return;
+        let utterance = new SpeechSynthesisUtterance(cleanText);
+        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
+        utterance.lang = 'en-IN';
+        window.speechSynthesis.speak(utterance);
+    } catch (e) {
+        console.warn('Speech synthesis error:', e);
+    }
+}
+
+// ─── Send Voice Command (Sanalogx AI Voice Assistant) ─────────────────────
+function sendVoiceCommand(query, isVoice = false) {
+    if (!query || !query.trim()) return;
+    let queryText = query.trim();
+    lastUserQuery = queryText;
+
+    appendUserMessage(queryText, isVoice);
+    let inputElem = document.getElementById('medivoiceTextInput');
+    if (inputElem) inputElem.value = '';
+
+    appendTypingIndicator();
+    updateState('Processing Command...', 'text-warning');
+
+    let modal = document.getElementById('medivoiceModal');
+    if (modal && modal.classList.contains('d-none')) {
+        modal.classList.remove('d-none');
+        let icon = document.getElementById('triggerBtnIcon');
+        if (icon) icon.className = 'fas fa-times text-white';
+    }
+
+    fetch(VOICE_API_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': CSRF_TOKEN
+        },
+        body: JSON.stringify({ query: queryText })
+    })
+    .then(res => res.json().then(data => ({ status: res.status, data })))
+    .then(({ status, data }) => {
+        removeTypingIndicator();
+        if (status === 401) {
+            updateState('Unauthorized', 'text-danger');
+            appendErrorMessage('Authentication required. Please log in to execute pharmacy voice commands.', queryText);
+            return;
+        }
+        if (status >= 500) {
+            updateState('Service Error', 'text-danger');
+            appendErrorMessage('The voice assistant service encountered an error. Please try again in a moment.', queryText);
+            return;
+        }
+
+        updateState('Ready', 'text-teal');
+        let speech = data.speech || "Command processed.";
+
+        // Read aloud with TTS
+        speakText(speech);
+
+        if (data.action === 'CONFIRMATION_REQUIRED' && data.details) {
+            appendConfirmationCard(data);
+        } else if (data.is_ambiguous && data.matching_medicines) {
+            appendDisambiguationCard(data);
+        } else {
+            appendAIMessage(speech, data.action_url || data.url, 'Open Workspace', data.follow_up_suggestions);
+        }
+    })
+    .catch(err => {
+        removeTypingIndicator();
+        updateState('Offline / Error', 'text-danger');
+        appendErrorMessage('Unable to connect to Sanalogx Voice Assistant backend. Please check network connection.', queryText);
+    });
+}
+
+// ─── Interactive Two-Step Stock Confirmation Card ──────────────────────────
+function appendConfirmationCard(data) {
+    let container = document.getElementById('medivoiceMessages');
+    let timeStr = getFormattedTime();
+    let d = data.details || {};
+    let cardHtml = `
+        <div class="d-flex align-items-start gap-2 mb-3 chat-msg-row assistant-row" id="confirmRow_${data.confirmation_token}">
+            <div class="badge bg-warning text-dark rounded-circle p-2 mt-1 flex-shrink-0">
+                <i class="fas fa-exclamation-triangle extra-small"></i>
+            </div>
+            <div class="p-3 bg-white rounded-3 shadow-sm text-navy small border border-warning" style="max-width:92%; word-break: break-word;">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="fw-bold text-warning-emphasis" style="font-size: 0.8rem;">
+                        <i class="fas fa-shield-alt me-1 text-warning"></i>Confirmation Required
+                    </span>
+                    <span class="text-muted extra-small" style="font-size: 0.65rem;">${timeStr}</span>
+                </div>
+                <p class="mb-2 text-dark">${escapeHtml(data.speech)}</p>
+                <div class="bg-light p-2.5 rounded-2 mb-2.5 border extra-small">
+                    <div><strong>Medicine:</strong> ${escapeHtml(d.medicine_name || '')}</div>
+                    <div><strong>Batch:</strong> <code class="text-primary">${escapeHtml(d.batch_number || '')}</code> (Exp: ${escapeHtml(d.batch_expiry || 'N/A')})</div>
+                    <div><strong>Quantity to Add:</strong> <span class="badge bg-success">+${d.quantity || 0} ${escapeHtml(d.unit || 'units')}</span></div>
+                    <div><strong>Stock Change:</strong> ${d.current_stock || 0} &rarr; <strong class="text-success">${d.projected_stock || 0}</strong></div>
+                </div>
+                <div class="d-flex gap-2" id="confirmActions_${data.confirmation_token}">
+                    <button type="button" onclick="confirmStockAction('${data.confirmation_token}', this)" class="btn btn-sm btn-success py-1 px-3 fw-bold extra-small">
+                        <i class="fas fa-check me-1"></i>Confirm Stock Addition
+                    </button>
+                    <button type="button" onclick="cancelStockAction('${data.confirmation_token}', this)" class="btn btn-sm btn-outline-secondary py-1 px-2.5 extra-small">
+                        <i class="fas fa-times me-1"></i>Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    container.insertAdjacentHTML('beforeend', cardHtml);
+    scrollChat();
+}
+
+function confirmStockAction(token, btn) {
+    if (!token) return;
+    let actionsDiv = document.getElementById('confirmActions_' + token);
+    if (actionsDiv) {
+        actionsDiv.innerHTML = '<span class="text-muted extra-small"><i class="fas fa-spinner fa-spin me-1"></i>Processing authorized stock addition...</span>';
+    }
+    updateState('Updating Inventory...', 'text-warning');
+
+    fetch(VOICE_API_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': CSRF_TOKEN
+        },
+        body: JSON.stringify({
+            action: 'CONFIRM_STOCK_ACTION',
+            confirmation_token: token
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        updateState('Ready', 'text-teal');
+        speakText(data.speech || 'Stock updated successfully.');
+        if (actionsDiv) {
+            if (data.success) {
+                actionsDiv.innerHTML = `
+                    <div class="alert alert-success py-1.5 px-2.5 extra-small mb-0 w-100">
+                        <i class="fas fa-check-circle me-1"></i><strong>Confirmed:</strong> ${escapeHtml(data.speech)}
+                        ${data.action_url ? `<div class="mt-1"><a href="${data.action_url}" class="text-success fw-bold text-decoration-underline">View Medicine Inventory &rarr;</a></div>` : ''}
+                    </div>
+                `;
+            } else {
+                actionsDiv.innerHTML = `
+                    <div class="alert alert-danger py-1.5 px-2.5 extra-small mb-0 w-100">
+                        <i class="fas fa-times-circle me-1"></i>${escapeHtml(data.speech || 'Confirmation failed.')}
+                    </div>
+                `;
+            }
+        }
+    })
+    .catch(() => {
+        updateState('Error', 'text-danger');
+        if (actionsDiv) {
+            actionsDiv.innerHTML = `<div class="alert alert-danger py-1 px-2 extra-small mb-0 w-100"><i class="fas fa-times-circle me-1"></i>Network error processing confirmation.</div>`;
+        }
+    });
+}
+
+function cancelStockAction(token, btn) {
+    if (!token) return;
+    let actionsDiv = document.getElementById('confirmActions_' + token);
+    if (actionsDiv) {
+        actionsDiv.innerHTML = '<span class="text-muted extra-small"><i class="fas fa-spinner fa-spin me-1"></i>Cancelling...</span>';
+    }
+
+    fetch(VOICE_API_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': CSRF_TOKEN
+        },
+        body: JSON.stringify({
+            action: 'CANCEL_STOCK_ACTION',
+            confirmation_token: token
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        speakText(data.speech || 'Stock addition cancelled.');
+        if (actionsDiv) {
+            actionsDiv.innerHTML = `
+                <div class="alert alert-secondary py-1 px-2.5 extra-small mb-0 w-100">
+                    <i class="fas fa-ban me-1"></i>${escapeHtml(data.speech || 'Stock addition cancelled.')}
+                </div>
+            `;
+        }
+    })
+    .catch(() => {
+        if (actionsDiv) {
+            actionsDiv.innerHTML = `<div class="alert alert-secondary py-1 px-2 extra-small mb-0 w-100">Cancelled.</div>`;
+        }
+    });
+}
+
+// ─── Ambiguity Disambiguation Card ─────────────────────────────────────────
+function appendDisambiguationCard(data) {
+    let container = document.getElementById('medivoiceMessages');
+    let timeStr = getFormattedTime();
+    let meds = data.matching_medicines || [];
+    let chips = meds.map(m => `
+        <button type="button" onclick="sendVoiceCommand('Stock of ${escapeHtml(m.name).replace(/'/g, "\\'")}')" class="btn btn-outline-primary btn-sm py-0.5 px-2 extra-small rounded-pill">
+            ${escapeHtml(m.name)}
+        </button>
+    `).join('');
+
+    let cardHtml = `
+        <div class="d-flex align-items-start gap-2 mb-3 chat-msg-row assistant-row">
+            <div class="badge bg-teal rounded-circle p-2 mt-1 flex-shrink-0" style="background: #00A99D !important;">
+                <i class="fas fa-robot text-white extra-small"></i>
+            </div>
+            <div class="p-3 bg-white rounded-3 shadow-sm text-navy small" style="max-width:92%; border: 1px solid #E2E8F0; word-break: break-word;">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="fw-bold text-teal" style="color: #0F766E; font-size: 0.8rem;">Sanalogx AI Assistant</span>
+                    <span class="text-muted extra-small" style="font-size: 0.65rem;">${timeStr}</span>
+                </div>
+                <p class="mb-2">${escapeHtml(data.speech)}</p>
+                <div class="d-flex flex-wrap gap-1 mt-2 pt-2 border-top">
+                    ${chips}
+                </div>
+            </div>
+        </div>
+    `;
+    container.insertAdjacentHTML('beforeend', cardHtml);
+    scrollChat();
+}
+
 // ─── Speech Recognition (MediVoice Integration) ───────────────────────────
 function startSpeechRecognition() {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-        appendAIMessage('Voice input is not supported in this browser. Please use Google Chrome or Microsoft Edge.', null);
+        appendAIMessage('Voice input is not supported in this browser. Please use Google Chrome or Microsoft Edge, or type your command below.', null);
         return;
     }
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    recognition = new SpeechRecognition();
+    try {
+        recognition = new SpeechRecognition();
+    } catch (e) {
+        appendAIMessage('Speech recognition could not be initialized in this browser. You can type your command below.', null);
+        return;
+    }
     recognition.continuous = false;
     recognition.interimResults = false;
     recognition.lang = 'en-IN';
@@ -465,19 +713,34 @@ function startSpeechRecognition() {
         let transcript = event.results[0][0].transcript;
         let input = document.getElementById('medivoiceTextInput');
         if (input) input.value = transcript;
-        sendChatQuery(transcript);
+        sendVoiceCommand(transcript, true);
     };
 
-    recognition.onerror = function() {
-        updateState('Mic Error', 'text-warning');
+    recognition.onerror = function(event) {
         resetMicBtn();
+        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+            updateState('Mic Permission Denied', 'text-danger');
+            appendErrorMessage('Microphone access was denied. Please allow microphone permissions in your browser or type your command below.', null);
+        } else if (event.error === 'no-speech') {
+            updateState('No Speech Heard', 'text-warning');
+        } else if (event.error === 'network') {
+            updateState('Network Error', 'text-danger');
+            appendErrorMessage('Network error during voice recognition. Please verify your connection or type your command.', null);
+        } else {
+            updateState('Voice Error: ' + event.error, 'text-warning');
+        }
     };
 
     recognition.onend = function() {
         resetMicBtn();
     };
 
-    recognition.start();
+    try {
+        recognition.start();
+    } catch (err) {
+        resetMicBtn();
+        updateState('Ready', 'text-teal');
+    }
 }
 
 function resetMicBtn() {
