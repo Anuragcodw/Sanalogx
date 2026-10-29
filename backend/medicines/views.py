@@ -65,7 +65,8 @@ def medicine_list_view(request):
             Q(generic_name__icontains=search_query) |
             Q(brand_name__icontains=search_query) |
             Q(manufacturer__icontains=search_query) |
-            Q(barcode__icontains=search_query)
+            Q(barcode__icontains=search_query) |
+            Q(internal_barcode__icontains=search_query)
         )
 
     # Filters
@@ -817,4 +818,176 @@ def medicine_draft_review_view(request, medicine_id):
         'medicine': medicine,
         'form': form,
     })
+
+
+# ── Medicine Barcode Registry Views (Phase 1) ────────────────────────────────
+
+@pharmacist_or_admin_required
+def medicine_barcode_registry_view(request):
+    """
+    Medicine Barcode Registry View:
+    - Lists all medicines with their unique Code 128 internal barcode (SAN-MED-000123).
+    - Supports search by name, generic name, strength, internal barcode, and manufacturer barcode.
+    - Supports category and dosage form filtering.
+    - Generates live SVG barcode preview for table display.
+    - Provides View Barcode, Download PNG, Download PDF, and Print actions.
+    - Pagination support with state preservation.
+    """
+    from . import barcode_service
+
+    queryset = Medicine.objects.all().select_related('category').order_by('pk')
+
+    # Search filter
+    q = request.GET.get('q', '').strip()
+    if q:
+        queryset = queryset.filter(
+            Q(medicine_name__icontains=q) |
+            Q(generic_name__icontains=q) |
+            Q(brand_name__icontains=q) |
+            Q(strength__icontains=q) |
+            Q(internal_barcode__icontains=q) |
+            Q(barcode__icontains=q)
+        )
+
+    # Category filter
+    category_id = request.GET.get('category', '').strip()
+    if category_id:
+        queryset = queryset.filter(category_id=category_id)
+
+    # Dosage form filter
+    dosage_form = request.GET.get('dosage_form', '').strip()
+    if dosage_form:
+        queryset = queryset.filter(dosage_form__iexact=dosage_form)
+
+    # Status filter
+    status = request.GET.get('status', '').strip()
+    if status and status != 'ALL':
+        queryset = queryset.filter(status=status)
+
+    # Metrics
+    total_meds = Medicine.objects.count()
+    with_internal = Medicine.objects.exclude(internal_barcode__isnull=True).exclude(internal_barcode='').count()
+    with_mfr = Medicine.objects.exclude(barcode__isnull=True).exclude(barcode='').count()
+    categories_count = Category.objects.count()
+
+    # Pagination: 20 per page
+    paginator = Paginator(queryset, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    # Attach SVG previews to each medicine on current page
+    for med in page_obj:
+        if not med.internal_barcode:
+            barcode_service.get_or_create_internal_barcode(med)
+        med.barcode_svg = barcode_service.generate_barcode_svg(med.internal_barcode)
+
+    categories = Category.objects.all().order_by('name')
+    dosage_forms = (
+        Medicine.objects.values_list('dosage_form', flat=True)
+        .exclude(dosage_form__isnull=True)
+        .exclude(dosage_form='')
+        .distinct()
+        .order_by('dosage_form')
+    )
+
+    context = {
+        'page_obj': page_obj,
+        'medicines': page_obj,
+        'search_query': q,
+        'selected_category': category_id,
+        'selected_dosage': dosage_form,
+        'selected_status': status,
+        'categories': categories,
+        'dosage_forms': dosage_forms,
+        'total_count': paginator.count,
+        'metrics': {
+            'total': total_meds,
+            'with_internal': with_internal,
+            'with_mfr': with_mfr,
+            'categories': categories_count,
+        }
+    }
+    return render(request, 'medicines/barcode_registry.html', context)
+
+
+@pharmacist_or_admin_required
+def medicine_barcode_preview_api(request, pk):
+    """
+    JSON API for the 'View Barcode' modal.
+    Returns medicine metadata, internal barcode identifier, and SVG data.
+    """
+    from . import barcode_service
+    medicine = get_object_or_404(Medicine, pk=pk)
+    code = barcode_service.get_or_create_internal_barcode(medicine)
+    svg_data = barcode_service.generate_barcode_svg(code)
+
+    return JsonResponse({
+        'success': True,
+        'id': medicine.id,
+        'medicine_name': medicine.medicine_name,
+        'generic_name': medicine.generic_name or '',
+        'strength': medicine.strength or '',
+        'dosage_form': medicine.dosage_form or '',
+        'category': medicine.category.name if medicine.category else '',
+        'internal_barcode': code,
+        'manufacturer_barcode': medicine.barcode or '',
+        'barcode_svg': svg_data,
+        'png_url': f"/medicines/barcodes/{medicine.pk}/png/",
+        'pdf_url': f"/medicines/barcodes/{medicine.pk}/pdf/",
+        'print_url': f"/medicines/barcodes/{medicine.pk}/print/",
+    })
+
+
+@pharmacist_or_admin_required
+def medicine_barcode_png_view(request, pk):
+    """
+    Downloads high-resolution (300 DPI) Code 128 PNG barcode image.
+    Filename: SAN-MED-000123.png
+    """
+    from . import barcode_service
+    medicine = get_object_or_404(Medicine, pk=pk)
+    code = barcode_service.get_or_create_internal_barcode(medicine)
+    png_bytes = barcode_service.generate_barcode_png_bytes(code)
+
+    response = HttpResponse(png_bytes, content_type='image/png')
+    response['Content-Disposition'] = f'attachment; filename="{code}.png"'
+    return response
+
+
+@pharmacist_or_admin_required
+def medicine_barcode_pdf_view(request, pk):
+    """
+    Downloads printable hospital label PDF (3.5" x 2.0").
+    Filename: SAN-MED-000123_label.pdf
+    """
+    from . import barcode_service
+    medicine = get_object_or_404(Medicine, pk=pk)
+    code = barcode_service.get_or_create_internal_barcode(medicine)
+    pdf_bytes = barcode_service.generate_barcode_label_pdf_bytes(medicine)
+
+    response = HttpResponse(pdf_bytes, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{code}_label.pdf"'
+    return response
+
+
+@pharmacist_or_admin_required
+def medicine_barcode_print_view(request, pk):
+    """
+    Displays a print-ready standalone label template formatted for
+    standard thermal barcode printer or standard paper.
+    Auto-triggers window.print() if ?autoprint=1 is passed.
+    """
+    from . import barcode_service
+    medicine = get_object_or_404(Medicine, pk=pk)
+    code = barcode_service.get_or_create_internal_barcode(medicine)
+    svg_data = barcode_service.generate_barcode_svg(code)
+
+    context = {
+        'medicine': medicine,
+        'code': code,
+        'barcode_svg': svg_data,
+        'autoprint': request.GET.get('autoprint', '1') == '1',
+    }
+    return render(request, 'medicines/barcode_print.html', context)
+
 

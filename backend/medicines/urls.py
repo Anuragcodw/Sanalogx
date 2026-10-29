@@ -23,6 +23,13 @@ urlpatterns = [
     path('drafts/<str:medicine_id>/review/', views.medicine_draft_review_view, name='medicine_draft_review'),
     path('<str:medicine_id>/review/', views.medicine_draft_review_view, name='medicine_review'),
 
+    # Medicine Barcode Registry Workflow
+    path('barcodes/', views.medicine_barcode_registry_view, name='medicine_barcode_registry'),
+    path('barcodes/<int:pk>/preview/', views.medicine_barcode_preview_api, name='medicine_barcode_preview'),
+    path('barcodes/<int:pk>/png/', views.medicine_barcode_png_view, name='medicine_barcode_png'),
+    path('barcodes/<int:pk>/pdf/', views.medicine_barcode_pdf_view, name='medicine_barcode_pdf'),
+    path('barcodes/<int:pk>/print/', views.medicine_barcode_print_view, name='medicine_barcode_print'),
+
     # Medicine CRUD & Validation
     path('', views.medicine_list_view, name='medicine_list'),
     path('add/', views.medicine_add_view, name='medicine_add'),

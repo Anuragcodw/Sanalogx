@@ -45,6 +45,10 @@
                 <span>Categories</span>
             </a>
             {% endif %}
+            <a href="{% url 'medicine_barcode_registry' %}" class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1.5 px-3 py-2 fw-semibold">
+                <i class="fas fa-barcode text-teal"></i>
+                <span>Barcode Registry</span>
+            </a>
             <a href="{% url 'medicine_add' %}" class="btn btn-teal btn-sm d-inline-flex align-items-center gap-1.5 px-3.5 py-2 fw-semibold text-white shadow-sm">
                 <i class="fas fa-plus"></i>
                 <span>Add Medicine</span>

@@ -29,9 +29,16 @@
         <div class="pharmacist-nav-section-title">Medicines</div>
 
         <div class="pharmacist-nav-item">
-            <a href="{% url 'medicine_list' %}" class="pharmacist-nav-link {% if 'medicines' in request.path and request.resolver_match.url_name != 'category_list' %}active{% endif %}">
+            <a href="{% url 'medicine_list' %}" class="pharmacist-nav-link {% if 'medicines' in request.path and request.resolver_match.url_name != 'category_list' and 'barcodes' not in request.path %}active{% endif %}">
                 <i class="fas fa-pills nav-icon"></i>
                 <span>Medicine Search</span>
+            </a>
+        </div>
+
+        <div class="pharmacist-nav-item">
+            <a href="{% url 'medicine_barcode_registry' %}" class="pharmacist-nav-link {% if 'barcodes' in request.path %}active{% endif %}">
+                <i class="fas fa-barcode nav-icon"></i>
+                <span>Barcode Registry</span>
             </a>
         </div>
 
