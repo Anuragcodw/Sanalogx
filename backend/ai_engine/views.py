@@ -123,7 +123,23 @@ def handle_recommendation_action(request, pk):
         rec.reviewed_by = request.user
         rec.reviewed_at = timezone.now()
         rec.save(update_fields=['status', 'reviewed_by', 'reviewed_at'])
-        messages.success(request, f"Recommendation for {rec.medicine.medicine_name if rec.medicine else 'item'} accepted.")
+
+        pr_info = ""
+        if rec.recommendation_type == AIRecommendation.RecommendationType.REORDER and rec.medicine:
+            from .auto_reorder_service import create_auto_reorder_request
+            qty = rec.recommended_quantity or rec.medicine.reorder_level
+            reorder_res = create_auto_reorder_request(
+                medicine=rec.medicine,
+                requested_qty=qty,
+                supplier=rec.recommended_supplier or rec.supplier,
+                reason=f"Accepted AI Recommendation #{rec.id}: {rec.title}",
+                triggered_by_user=request.user,
+            )
+            pr = reorder_res.get('purchase_request')
+            if pr:
+                pr_info = f" Purchase Request {pr.request_id} ({qty} units) is ready for review."
+
+        messages.success(request, f"Recommendation for {rec.medicine.medicine_name if rec.medicine else 'item'} accepted.{pr_info}")
         AuditLog.log(
             action_type=AuditLog.ActionType.REPORT_GENERATED,
             performed_by=request.user,
@@ -159,55 +175,23 @@ def convert_recommendation_to_pr(request):
     recommended_qty = int(request.POST.get('recommended_qty', 1))
     medicine = get_object_or_404(Medicine, pk=medicine_id)
 
-    # Prevent duplicate active requests for the same medicine
-    existing_item = PurchaseRequestItem.objects.filter(
+    from .auto_reorder_service import create_auto_reorder_request
+    res = create_auto_reorder_request(
         medicine=medicine,
-        purchase_request__status__in=[
-            PurchaseRequest.PRStatus.DRAFT,
-            PurchaseRequest.PRStatus.PENDING_APPROVAL,
-        ]
-    ).select_related('purchase_request').first()
-
-    if existing_item:
-        pr = existing_item.purchase_request
-        existing_item.requested_qty = recommended_qty
-        existing_item.approved_qty = recommended_qty
-        existing_item.save(update_fields=['requested_qty', 'approved_qty'])
-        messages.info(
-            request,
-            f"Updated existing active Purchase Request {pr.request_id} for {medicine.medicine_name} "
-            f"to {recommended_qty} units (prevented duplicate request)."
-        )
-        return redirect('purchase_request_list')
-
-    best_sm = get_best_supplier(medicine)
-    supplier = best_sm.supplier if best_sm else None
-    unit_price = best_sm.unit_price if best_sm else Decimal('0.00')
-
-    pr_id = PurchaseRequest.generate_request_id()
-    pr = PurchaseRequest.objects.create(
-        request_id=pr_id,
-        priority=PurchaseRequest.Priority.URGENT if medicine.inventory.current_stock == 0 else PurchaseRequest.Priority.NORMAL,
-        status=PurchaseRequest.PRStatus.PENDING_APPROVAL,
-        reason=f"AI Reorder Recommendation for {medicine.medicine_name}",
-        recommended_supplier=supplier,
-        created_by=request.user,
-    )
-
-    PurchaseRequestItem.objects.create(
-        purchase_request=pr,
-        medicine=medicine,
-        current_stock=medicine.inventory.current_stock if hasattr(medicine, 'inventory') else 0,
-        reorder_level=medicine.reorder_level,
-        ai_recommended_qty=recommended_qty,
         requested_qty=recommended_qty,
-        approved_qty=recommended_qty,
-        suggested_supplier=supplier,
-        suggested_unit_price=unit_price,
+        reason=f"AI Reorder Recommendation for {medicine.medicine_name}",
+        triggered_by_user=request.user,
     )
 
-    messages.success(request, f"Purchase Request {pr.request_id} created successfully for {medicine.medicine_name} ({recommended_qty} units).")
-    return redirect('purchase_request_detail', pk=pr.id)
+    pr = res.get('purchase_request')
+    if res.get('created'):
+        messages.success(request, f"Purchase Request {pr.request_id} created successfully for {medicine.medicine_name} ({recommended_qty} units).")
+    else:
+        messages.info(request, res.get('message', f"Active Purchase Request {pr.request_id} already exists."))
+
+    if pr:
+        return redirect('purchase_request_detail', pk=pr.id)
+    return redirect('purchase_request_list')
 
 
 @admin_or_pharmacist_required
