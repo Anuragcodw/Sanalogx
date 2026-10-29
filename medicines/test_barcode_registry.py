@@ -323,3 +323,33 @@ class MedicineBarcodeRegistryTestCase(TestCase):
         self.assertEqual(data['png_url'], f"/medicines/barcodes/{self.med1.pk}/png/")
         self.assertEqual(data['pdf_url'], f"/medicines/barcodes/{self.med1.pk}/pdf/")
         self.assertEqual(data['print_url'], f"/medicines/barcodes/{self.med1.pk}/print/")
+
+    def test_scanner_button_ui_elements(self):
+        """Registry page contains the Scan Barcode button and all required scanner UI elements."""
+        self.client.force_login(self.pharmacist_user)
+        response = self.client.get(reverse('medicine_barcode_registry'))
+
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode("utf-8")
+
+        # Scan Barcode button must exist
+        self.assertIn("Scan Barcode", html)
+
+        # Button must wire to the correct JS function
+        self.assertIn("openRegistryCameraScanner", html)
+
+        # Camera scanner modal anchor must be present (injected by template include)
+        self.assertIn("cameraScannerModal", html)
+
+        # Result modal for showing lookup results must be present
+        self.assertIn("registryScanResultModal", html)
+
+        # ZXing barcode scanning library must be loaded
+        self.assertIn("zxing.min.js", html)
+
+        # Main scanner JS module must be loaded
+        self.assertIn("medivault_scanner.js", html)
+
+        # CSRF token must be embedded for the JS lookup call
+        self.assertIn("CSRF_TOKEN", html)
+

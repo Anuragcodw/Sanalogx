@@ -451,5 +451,7 @@ const MedivaultScanner = (function () {
         attachHardwareScanner: attachHardwareScanner,
         playChime: playChime,
         escapeHtml: escapeHtml
+    };
 })();
+window.MedivaultScanner = MedivaultScanner;
 window.SanalogxScanner = MedivaultScanner;
