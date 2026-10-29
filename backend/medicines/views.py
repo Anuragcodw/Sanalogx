@@ -991,3 +991,64 @@ def medicine_barcode_print_view(request, pk):
     return render(request, 'medicines/barcode_print.html', context)
 
 
+@pharmacist_or_admin_required
+def medicine_barcode_lookup_api(request):
+    """
+    Phase 2 — GET/POST Barcode Lookup API.
+    Resolves barcode (Internal Sanalogx Code 128, Manufacturer EAN/UPC, Batch, QR).
+    Returns real MySQL medicine profile with full stock, usable stock, FEFO batches,
+    storage conditions, warnings, and reorder recommendations.
+    Strictly read-only; does not alter inventory or records.
+    """
+    code = request.GET.get('code') or request.POST.get('code')
+    if not code and request.body:
+        try:
+            data = json.loads(request.body.decode('utf-8'))
+            code = data.get('code')
+        except Exception:
+            pass
+
+    if not code or not str(code).strip():
+        return JsonResponse({
+            'success': False,
+            'status_code': 'INVALID_INPUT',
+            'message': 'Barcode parameter is required.'
+        }, status=400)
+
+    from . import barcode_service
+    result = barcode_service.resolve_barcode_lookup(str(code).strip(), user=request.user)
+    status_code = 200 if result.get('success') else 404
+    return JsonResponse(result, status=status_code)
+
+
+@pharmacist_or_admin_required
+def medicine_barcode_map_api(request):
+    """
+    Phase 2 — POST Barcode Mapping API.
+    Allows authorized staff to map an unassigned manufacturer barcode to an existing medicine.
+    Enforces duplicate prevention and never overwrites existing manufacturer barcodes.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST method required.'}, status=405)
+
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+    except Exception:
+        data = request.POST
+
+    medicine_id = data.get('medicine_id')
+    barcode_value = data.get('barcode', '').strip()
+
+    if not medicine_id or not barcode_value:
+        return JsonResponse({
+            'success': False,
+            'message': 'Both medicine_id and barcode are required.'
+        }, status=400)
+
+    from . import barcode_service
+    result = barcode_service.map_manufacturer_barcode(medicine_id, barcode_value, user=request.user)
+    status_code = 200 if result.get('success') else 400
+    return JsonResponse(result, status=status_code)
+
+
+

@@ -25,6 +25,8 @@ urlpatterns = [
 
     # Medicine Barcode Registry Workflow
     path('barcodes/', views.medicine_barcode_registry_view, name='medicine_barcode_registry'),
+    path('barcodes/lookup/', views.medicine_barcode_lookup_api, name='medicine_barcode_lookup_api'),
+    path('barcodes/map/', views.medicine_barcode_map_api, name='medicine_barcode_map_api'),
     path('barcodes/<int:pk>/preview/', views.medicine_barcode_preview_api, name='medicine_barcode_preview'),
     path('barcodes/<int:pk>/png/', views.medicine_barcode_png_view, name='medicine_barcode_png'),
     path('barcodes/<int:pk>/pdf/', views.medicine_barcode_pdf_view, name='medicine_barcode_pdf'),

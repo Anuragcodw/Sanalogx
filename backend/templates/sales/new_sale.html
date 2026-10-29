@@ -195,6 +195,7 @@
 {% include 'includes/camera_scanner_modal.html' %}
 
 <script src="{% static 'js/html5-qrcode.min.js' %}"></script>
+<script src="{% static 'js/zxing.min.js' %}"></script>
 <script src="{% static 'js/medivault_scanner.js' %}"></script>
 <script>
 const medDataMap = JSON.parse('{{ med_data_json|escapejs }}');

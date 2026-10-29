@@ -20,9 +20,10 @@
                     <i class="fas fa-triangle-exclamation me-1"></i> <span id="cameraAlertText"></span>
                 </div>
 
-                <!-- Live Camera Viewfinder Box -->
-                <div class="scanner-viewport-box mb-3" id="scannerViewport">
-                    <div id="cameraReader" class="scanner-video-container"></div>
+                <!-- Live Camera Viewfinder Box (Phase 2 ZXing Camera Preview) -->
+                <div class="scanner-viewport-box mb-3 position-relative" id="scannerViewport" style="background: #0b1320; border-radius: 12px; overflow: hidden; min-height: 260px; display: flex; align-items: center; justify-content: center;">
+                    <video id="cameraVideo" playsinline autoplay muted style="width: 100%; height: 260px; object-fit: cover; display: block; border-radius: 12px; background: #000;"></video>
+                    <div id="cameraReader" class="scanner-video-container d-none"></div>
                     <div class="scanner-reticle-overlay" id="scannerReticle"></div>
                     <div class="scanner-laser-line" id="scannerLaser"></div>
                     <div class="scanner-status-pill" id="scannerStatusPill">
